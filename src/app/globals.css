@@ -1,0 +1,339 @@
+@import "tailwindcss";
+
+/* Dark mode is class-driven (`<html class="dark">`) so the user's stored
+   preference wins over the OS setting. See <ThemeScript /> in the root layout. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   Brand palette — sampled from the NTS logo.
+   `brand` is the electric blue of "NUTAN"; `steel` is the graphite grey of
+   "TECH" and the monogram's N.
+   --------------------------------------------------------------------------- */
+@theme {
+  --color-brand-50: #eef5ff;
+  --color-brand-100: #d9e8ff;
+  --color-brand-200: #bcd7ff;
+  --color-brand-300: #8ebdff;
+  --color-brand-400: #5998ff;
+  --color-brand-500: #2f77ff;
+  --color-brand-600: #1a6dff;
+  --color-brand-700: #1354d6;
+  --color-brand-800: #1645a8;
+  --color-brand-900: #183d85;
+  --color-brand-950: #122650;
+
+  --color-steel-50: #f6f7f8;
+  --color-steel-100: #eceef0;
+  --color-steel-200: #d5d9dd;
+  --color-steel-300: #b1b8bf;
+  --color-steel-400: #86909a;
+  --color-steel-500: #6b757f;
+  --color-steel-600: #565f68;
+  --color-steel-700: #464d54;
+  --color-steel-800: #3c4247;
+  --color-steel-900: #35393e;
+  --color-steel-950: #202326;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  /* A calm, consistent elevation scale. Shadows stay soft so dense data
+     screens don't turn noisy. */
+  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.06);
+  --shadow-raised: 0 4px 8px -2px rgb(16 24 40 / 0.06), 0 2px 4px -2px rgb(16 24 40 / 0.04);
+  --shadow-overlay: 0 12px 32px -8px rgb(16 24 40 / 0.18), 0 4px 12px -4px rgb(16 24 40 / 0.1);
+
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* ---------------------------------------------------------------------------
+   Semantic tokens. Every colour used by components resolves through these, so
+   light/dark is a single set of overrides rather than per-component variants.
+   --------------------------------------------------------------------------- */
+:root {
+  color-scheme: light;
+
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --surface-inset: #f1f4f8;
+  --border: #e3e8ef;
+  --border-strong: #cdd5e0;
+
+  --fg: #131a24;
+  --fg-muted: #566274;
+  --fg-subtle: #7b8798;
+  --fg-inverted: #ffffff;
+
+  --accent: #1a6dff;
+  --accent-hover: #1354d6;
+  --accent-soft: #eef5ff;
+  --accent-fg: #ffffff;
+
+  --success: #0f9d58;
+  --success-soft: #e6f6ee;
+  --warning: #c2740a;
+  --warning-soft: #fdf3e3;
+  --danger: #d92d20;
+  --danger-soft: #fdeceb;
+  --info: #1a6dff;
+  --info-soft: #eef5ff;
+
+  --ring: #1a6dff;
+
+  /* The app shell reads these so page content can size against them. */
+  --sidebar-width: 16rem;
+  --topbar-height: 3.75rem;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --bg: #0d1117;
+  --surface: #151b23;
+  --surface-muted: #1a212b;
+  --surface-inset: #10161d;
+  --border: #262e3a;
+  --border-strong: #35404f;
+
+  --fg: #e9edf3;
+  --fg-muted: #9aa7b8;
+  --fg-subtle: #74829a;
+  --fg-inverted: #0d1117;
+
+  --accent: #4d8cff;
+  --accent-hover: #6ba1ff;
+  --accent-soft: #16233a;
+  --accent-fg: #06101f;
+
+  --success: #3ddc97;
+  --success-soft: #0f2820;
+  --warning: #f0b054;
+  --warning-soft: #2c2010;
+  --danger: #ff6b5e;
+  --danger-soft: #2e1512;
+  --info: #4d8cff;
+  --info-soft: #16233a;
+
+  --ring: #4d8cff;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-inset: var(--surface-inset);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-fg-inverted: var(--fg-inverted);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-fg);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --color-ring: var(--ring);
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+   --------------------------------------------------------------------------- */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* Guards against any single element forcing the page sideways. Data-dense
+       regions scroll inside their own container instead. */
+    overflow-x: clip;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Native controls should follow the theme rather than the OS default. */
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  ::placeholder {
+    color: var(--fg-subtle);
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border-radius: 9999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--fg-subtle);
+    background-clip: content-box;
+  }
+}
+
+@layer components {
+  /* Horizontal scroll container for wide tables — the page never scrolls,
+     the table does. */
+  .scroll-x {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Numeric columns line up when digits are tabular. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+@layer utilities {
+  .animate-in-up {
+    animation: in-up 0.24s var(--ease-out-quart) both;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.18s var(--ease-out-quart) both;
+  }
+
+  .animate-pop {
+    animation: pop 0.16s var(--ease-out-quart) both;
+  }
+
+  /* Skeleton shimmer used by loading.tsx files. */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--surface-inset);
+  }
+
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--fg) 6%, transparent),
+      transparent
+    );
+    animation: shimmer 1.5s infinite;
+  }
+}
+
+@keyframes in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print — used by the browser-print fallback for invoices and quotations. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+}
