@@ -14,12 +14,12 @@ export const metadata: Metadata = {
  */
 const NOTICES: Record<string, { title: string; body: string }> = {
   inactive: {
-    title: "Your account has been deactivated",
-    body: "An administrator has deactivated your account, so you have been signed out. Contact your administrator if you think this is a mistake.",
+    title: "Account Deactivated",
+    body: "You have been signed out. Contact Admin.",
   },
   stale: {
-    title: "You were signed out",
-    body: "Your password was changed or reset on another device. Sign in again with your new password.",
+    title: "Signed out",
+    body: "Your password was changed. Sign in again with the new one.",
   },
 };
 

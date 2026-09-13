@@ -9,7 +9,6 @@ import { recordAudit } from "@/lib/audit";
 import { getSessionUser } from "@/lib/dal";
 import { enforceRateLimit, RateLimits } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
-import { formatDate } from "@/lib/dates";
 import { createSession, destroySession } from "@/lib/session";
 import { changePasswordSchema, loginSchema } from "@/lib/validation";
 import { RateLimitError } from "@/lib/errors";
@@ -72,7 +71,6 @@ export async function signIn(
       role: true,
       status: true,
       sessionVersion: true,
-      deactivatedAt: true,
       deactivationReason: true,
     },
   });
@@ -132,24 +130,19 @@ export async function signIn(
 }
 
 /**
- * What a deactivated employee reads when they try to sign in. Spells out the
- * date and the administrator's reason so the message is an explanation rather
- * than a dead end.
+ * What a deactivated employee reads when they try to sign in. Short and to the
+ * point: the fact, the administrator's reason, and whom to ask.
  */
 function deactivatedMessage(user: {
   status: "INACTIVE" | "SUSPENDED" | "ACTIVE";
-  deactivatedAt: Date | null;
   deactivationReason: string | null;
 }): string {
-  const when = user.deactivatedAt
-    ? ` on ${formatDate(user.deactivatedAt)}`
-    : "";
-  const reason = user.deactivationReason
-    ? ` Reason given: ${user.deactivationReason.replace(/[.!?]?$/, ".")}`
-    : "";
-  const verb = user.status === "SUSPENDED" ? "suspended" : "deactivated";
+  const state = user.status === "SUSPENDED" ? "Suspended" : "Deactivated";
+  const reason = user.deactivationReason?.trim().replace(/[.!?]+$/, "");
 
-  return `Your account was ${verb} by your administrator${when}.${reason} Please contact your administrator to restore access.`;
+  return reason
+    ? `Account ${state}: ${reason}. Contact Admin.`
+    : `Account ${state}. Contact Admin.`;
 }
 
 export async function signOut(): Promise<void> {
