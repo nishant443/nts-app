@@ -7,11 +7,13 @@ import { action, formAction, formError, formSuccess } from "@/lib/action";
 import { generateTemporaryPassword, hashPassword } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { parseDateInput } from "@/lib/dates";
-import { NotFoundError } from "@/lib/errors";
+import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
+import { flash } from "@/lib/flash";
 import { formatEmployeeCode } from "@/lib/numbering";
 import { prisma } from "@/lib/prisma";
 import {
   employeeCreateSchema,
+  employeeStatusSchema,
   employeeUpdateSchema,
   ownProfileSchema,
 } from "@/lib/validation";
@@ -82,6 +84,7 @@ export const createEmployee = formAction(
     });
 
     revalidatePath("/admin/employees");
+    await flash(`${input.name} added as ${created.employeeCode}.`);
     redirect(`/admin/employees/${created.id}`);
   },
 );
@@ -143,7 +146,10 @@ export const updateEmployee = formAction(
         status: input.status,
         // Deactivating invalidates every session that account holds.
         ...(input.status !== "ACTIVE" && employee.status === "ACTIVE"
-          ? { sessionVersion: { increment: 1 } }
+          ? { sessionVersion: { increment: 1 }, deactivatedAt: new Date() }
+          : {}),
+        ...(input.status === "ACTIVE" && employee.status !== "ACTIVE"
+          ? { deactivatedAt: null, deactivationReason: null }
           : {}),
         profile: {
           upsert: {
@@ -283,6 +289,73 @@ export const updateOwnProfile = formAction(
     return formSuccess("Your profile has been updated.");
   },
 );
+
+/**
+ * Deactivate or reactivate an account. Nothing is deleted: the employee's
+ * history stays intact, they simply cannot sign in until reactivated. An
+ * optional reason is stored and shown to them on their next sign-in attempt.
+ */
+export const setEmployeeStatus = action<
+  { id: string; active: boolean; reason?: string },
+  { name: string; active: boolean }
+>({ access: "admin" }, async ({ input: raw, user }) => {
+  const parsed = employeeStatusSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new ValidationError("Please check the details and try again.");
+  }
+  const input = parsed.data;
+
+  const employee = await prisma.user.findUnique({
+    where: { id: input.id },
+    select: { id: true, name: true, role: true, status: true },
+  });
+
+  if (!employee) throw new NotFoundError("That employee no longer exists.");
+
+  if (!input.active) {
+    if (employee.id === user.id) {
+      throw new ConflictError("You cannot deactivate your own account.");
+    }
+
+    // Never let the last administrator lock everyone out of the system.
+    if (employee.role === "ADMIN") {
+      const admins = await prisma.user.count({
+        where: { role: "ADMIN", status: "ACTIVE", NOT: { id: employee.id } },
+      });
+      if (admins === 0) {
+        throw new ConflictError(
+          "This is the only active administrator and cannot be deactivated.",
+        );
+      }
+    }
+  }
+
+  await prisma.user.update({
+    where: { id: employee.id },
+    data: input.active
+      ? { status: "ACTIVE", deactivatedAt: null, deactivationReason: null }
+      : {
+          status: "INACTIVE",
+          deactivatedAt: new Date(),
+          deactivationReason: input.reason ?? null,
+          // Signs them out of every device straight away.
+          sessionVersion: { increment: 1 },
+        },
+  });
+
+  await recordAudit({
+    userId: user.id,
+    action: input.active ? "employee.reactivated" : "employee.deactivated",
+    entity: "User",
+    entityId: employee.id,
+    meta: { employee: employee.name, reason: input.reason ?? null },
+  });
+
+  revalidatePath("/admin/employees");
+  revalidatePath(`/admin/employees/${employee.id}`);
+
+  return { name: employee.name, active: input.active };
+});
 
 /**
  * Issues a new temporary password and signs the employee out everywhere. The

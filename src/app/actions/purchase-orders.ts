@@ -7,6 +7,7 @@ import { action, formAction, formError } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
 import { parseDateInput } from "@/lib/dates";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { flash } from "@/lib/flash";
 import { withLineItems } from "@/lib/line-items";
 import { withDocumentNumber } from "@/lib/numbering";
 import { prisma } from "@/lib/prisma";
@@ -113,6 +114,7 @@ export const savePurchaseOrder = formAction(
     revalidatePath("/purchase-orders");
     revalidatePath(`/purchase-orders/${orderId}`);
 
+    await flash(input.id ? "Purchase order saved." : "Purchase order created.");
     redirect(`/purchase-orders/${orderId}`);
   },
 );

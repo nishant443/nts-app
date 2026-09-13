@@ -7,6 +7,7 @@ import { action, formAction, formError } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
 import { parseDateInput } from "@/lib/dates";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { flash } from "@/lib/flash";
 import { withLineItems } from "@/lib/line-items";
 import { notifyAdmins } from "@/lib/notifications";
 import { withDocumentNumber } from "@/lib/numbering";
@@ -125,6 +126,7 @@ export const saveQuotation = formAction(
     revalidatePath("/quotations");
     revalidatePath(`/quotations/${quotationId}`);
 
+    await flash(input.id ? "Quotation saved." : "Quotation created.");
     redirect(`/quotations/${quotationId}`);
   },
 );
@@ -277,6 +279,7 @@ export const convertQuotationToInvoice = action<{ id: string }>(
     revalidatePath("/quotations");
     revalidatePath("/invoices");
 
+    await flash("Quotation converted to an invoice.");
     redirect(`/invoices/${invoiceId}`);
   },
 );

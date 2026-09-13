@@ -187,6 +187,13 @@
     text-wrap: balance;
   }
 
+  /* Preflight zeroes every margin, which strips the browser's own centring
+     from modal dialogs and leaves them pinned to the top-left corner. Put it
+     back: a modal sits in the middle of the viewport. */
+  dialog:modal {
+    margin: auto;
+  }
+
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
@@ -257,6 +264,21 @@
 
   .min-h-dvh {
     min-height: calc(100dvh / var(--ui-zoom));
+  }
+
+  /* Shrinking bar under the "saved" pop-up showing how long until it closes. */
+  .popup-timer {
+    transform-origin: left;
+    animation: popup-timer linear forwards;
+  }
+
+  @keyframes popup-timer {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
   }
 
   .animate-in-up {

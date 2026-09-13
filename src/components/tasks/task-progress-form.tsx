@@ -10,8 +10,11 @@ import { Field, Textarea } from "@/components/ui/field";
 import { emptyFormState, fieldError } from "@/lib/form-state";
 
 /**
- * The assignee's controls: one button to start, then a note and a button to
- * finish. Rendered only while the task is OPEN or IN_PROGRESS.
+ * The assignee's controls. "Mark complete" is always offered — a quick job
+ * should not need a separate "start" click first — with "Start task" alongside
+ * it while the task is still open, for work that will take a while.
+ *
+ * Both buttons submit the same form; the one pressed sets `status`.
  */
 export function TaskProgressForm({
   taskId,
@@ -25,55 +28,52 @@ export function TaskProgressForm({
   return (
     <Card>
       <CardHeader
-        title={status === "OPEN" ? "Start this task" : "Finish this task"}
+        title="Update this task"
         description={
           status === "OPEN"
-            ? "Mark it started so your administrator knows it is in hand."
-            : "Add a short note on what was done, then mark it complete."
+            ? "Start it so your administrator knows it is in hand, or mark it complete once the work is done."
+            : "Add a short note on what was done, then mark it complete. Your administrator is notified straight away."
         }
       />
       <CardBody>
         <form action={formAction} className="flex flex-col gap-4" noValidate>
           <input type="hidden" name="id" value={taskId} />
-          <input
-            type="hidden"
-            name="status"
-            value={status === "OPEN" ? "IN_PROGRESS" : "COMPLETED"}
-          />
 
           <FormBanners state={state} />
 
-          {status === "IN_PROGRESS" && (
-            <Field
-              label="Completion note"
-              htmlFor="note"
-              error={fieldError(state, "note")}
-              hint="Optional — parts used, observations, anything to follow up."
-            >
-              <Textarea
-                id="note"
-                name="note"
-                rows={4}
-                invalid={Boolean(fieldError(state, "note"))}
-              />
-            </Field>
-          )}
+          <Field
+            label="Completion note"
+            htmlFor="note"
+            error={fieldError(state, "note")}
+            hint="Optional — parts used, observations, anything to follow up. Sent to your administrator with the completion notice."
+          >
+            <Textarea
+              id="note"
+              name="note"
+              rows={4}
+              invalid={Boolean(fieldError(state, "note"))}
+            />
+          </Field>
 
-          <div className="flex justify-end">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            {status === "OPEN" && (
+              <SubmitButton
+                name="status"
+                value="IN_PROGRESS"
+                variant="secondary"
+                pendingLabel="Saving…"
+              >
+                <Play aria-hidden="true" />
+                Start task
+              </SubmitButton>
+            )}
             <SubmitButton
-              pendingLabel={status === "OPEN" ? "Starting…" : "Completing…"}
+              name="status"
+              value="COMPLETED"
+              pendingLabel="Saving…"
             >
-              {status === "OPEN" ? (
-                <>
-                  <Play aria-hidden="true" />
-                  Start task
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 aria-hidden="true" />
-                  Mark complete
-                </>
-              )}
+              <CheckCircle2 aria-hidden="true" />
+              Mark complete
             </SubmitButton>
           </div>
         </form>

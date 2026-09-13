@@ -7,6 +7,7 @@ import { action, formAction, formError, formSuccess } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
 import { isWeekOff, parseDateInput } from "@/lib/dates";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { flash } from "@/lib/flash";
 import { toMoney } from "@/lib/money";
 import { notify, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
@@ -110,6 +111,7 @@ export const submitLeaveRequest = formAction(
     revalidatePath("/leave");
     revalidatePath("/admin/approvals");
 
+    await flash("Leave request submitted for approval.");
     redirect("/leave");
   },
 );

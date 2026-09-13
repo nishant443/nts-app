@@ -8,6 +8,7 @@ import { z } from "zod";
 import { action, formAction, formError } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { flash } from "@/lib/flash";
 import type { FormState } from "@/lib/form-state";
 import { prisma } from "@/lib/prisma";
 import { customerSchema } from "@/lib/validation";
@@ -86,6 +87,7 @@ export const saveCustomer = formAction(
     revalidatePath("/customers");
     revalidatePath(`/customers/${customerId}`);
 
+    await flash(isUpdate ? "Customer details saved." : "Customer added.");
     redirect(`/customers/${customerId}`);
   },
 );

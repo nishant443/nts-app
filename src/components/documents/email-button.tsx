@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { emailDocument } from "@/app/actions/email";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
+import { showSuccess } from "@/components/ui/success-popup";
 
 /**
  * Sends the document to the customer with the PDF attached.
@@ -57,7 +58,7 @@ export function EmailDocumentButton({
       });
 
       if (result.ok) {
-        toast.success(`Sent to ${result.data.sentTo}.`);
+        showSuccess(`Sent to ${result.data.sentTo}.`);
         setOpen(false);
         router.refresh();
       } else {

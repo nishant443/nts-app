@@ -7,6 +7,7 @@ import { action, formAction, formError, formSuccess } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
 import { formatMonthYear, parseDateInput } from "@/lib/dates";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { flash } from "@/lib/flash";
 import { notify } from "@/lib/notifications";
 import { buildPayslipFor, getWorkingDays } from "@/lib/payroll";
 import { prisma } from "@/lib/prisma";
@@ -56,6 +57,7 @@ export const createPayrollRun = formAction(
     });
 
     revalidatePath("/admin/payroll");
+    await flash("Payroll run created.");
     redirect(`/admin/payroll/${run.id}`);
   },
 );

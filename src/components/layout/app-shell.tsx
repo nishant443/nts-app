@@ -11,6 +11,7 @@ import {
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { ThemeToggle } from "@/components/layout/theme";
 import { UserMenu } from "@/components/layout/user-menu";
+import { FlashPopup } from "@/components/ui/success-popup";
 import type { SessionUser } from "@/lib/dal";
 
 /**
@@ -88,6 +89,8 @@ export function AppShell({
         <div className="border-b border-border bg-surface px-3 py-2 sm:hidden">
           <GlobalSearch />
         </div>
+
+        <FlashPopup />
 
         <main className="min-w-0 flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-7">
           <div className="mx-auto flex min-w-0 max-w-[92rem] flex-col gap-5">

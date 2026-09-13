@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { resetEmployeePassword } from "@/app/actions/employees";
 import { Button } from "@/components/ui/button";
+import { showSuccess } from "@/components/ui/success-popup";
 
 /**
  * Issues a new temporary password.
@@ -31,7 +32,7 @@ export function ResetPasswordButton({
 
       if (result.ok) {
         setIssued(result.data.temporaryPassword);
-        toast.success(`${employeeName} has been signed out of all devices.`);
+        showSuccess(`${employeeName} has been signed out of all devices.`);
       } else {
         toast.error(result.error);
       }

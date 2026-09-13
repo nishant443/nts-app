@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { showSuccess } from "@/components/ui/success-popup";
 
 import { cn } from "@/lib/utils";
 
@@ -37,7 +38,7 @@ export function StatusActions({
     startTransition(async () => {
       const result = await onChange({ id, status });
       if (result.ok) {
-        toast.success("Status updated.");
+        showSuccess("Status updated.");
         router.refresh();
       } else {
         toast.error(result.error);

@@ -214,6 +214,11 @@ model User {
   sessionVersion Int       @default(1)
   lastLoginAt    DateTime?
 
+  /// Set while the account is deactivated. Shown to the employee when they try
+  /// to sign in, so they know why and whom to ask. Cleared on reactivation.
+  deactivatedAt      DateTime?
+  deactivationReason String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

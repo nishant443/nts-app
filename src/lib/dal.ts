@@ -35,9 +35,19 @@ export interface SessionUser {
   avatarUrl: string | null;
 }
 
-export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
+/**
+ * Why a cookie-bearing request was refused a user. "inactive" and "stale" are
+ * surfaced to the visitor (see `requireUser`); "missing" is simply signed out.
+ */
+export type SessionDenial = "missing" | "inactive" | "stale";
+
+type ResolvedSession =
+  | { user: SessionUser; denial: null }
+  | { user: null; denial: SessionDenial };
+
+const resolveSession = cache(async (): Promise<ResolvedSession> => {
   const session = await readSessionCookie();
-  if (!session) return null;
+  if (!session) return { user: null, denial: "missing" };
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
@@ -55,28 +65,44 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   });
 
   // Deleted, deactivated, or the session was invalidated by a password change.
-  if (!user) return null;
-  if (user.status !== "ACTIVE") return null;
-  if (user.sessionVersion !== session.sv) return null;
+  if (!user) return { user: null, denial: "missing" };
+  if (user.status !== "ACTIVE") return { user: null, denial: "inactive" };
+  if (user.sessionVersion !== session.sv) return { user: null, denial: "stale" };
 
   return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    employeeCode: user.employeeCode,
-    phone: user.phone,
-    role: user.role,
-    avatarUrl: user.avatarUrl,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      employeeCode: user.employeeCode,
+      phone: user.phone,
+      role: user.role,
+      avatarUrl: user.avatarUrl,
+    },
+    denial: null,
   };
 });
+
+export async function getSessionUser(): Promise<SessionUser | null> {
+  return (await resolveSession()).user;
+}
 
 // --- Server Component guards -------------------------------------------------
 
 /** Guarantees a signed-in user, or sends the visitor to the login page. */
 export async function requireUser(): Promise<SessionUser> {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
-  return user;
+  const { user, denial } = await resolveSession();
+  if (user) return user;
+
+  // A cookie that no longer maps to a usable account has to be cleared, or the
+  // proxy will keep treating the visitor as signed in and bounce them straight
+  // back here. Server Components cannot touch cookies, so a Route Handler does
+  // it and then explains on the login page what happened.
+  if (denial === "inactive" || denial === "stale") {
+    redirect(`/api/auth/expire?reason=${denial}`);
+  }
+
+  redirect("/login");
 }
 
 /**

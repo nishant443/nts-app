@@ -5,10 +5,11 @@ import { redirect } from "next/navigation";
 
 import { action, formAction, formError, formSuccess } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
-import { formatDate, parseDateInput } from "@/lib/dates";
+import { formatDate, formatDateTime, parseDateInput } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { ConflictError, NotFoundError } from "@/lib/errors";
-import { isMailConfigured, sendMail, taskAssignedEmail } from "@/lib/mail";
+import { flash } from "@/lib/flash";
+import { isMailConfigured, sendMail, taskAssignedEmail, taskCompletedEmail } from "@/lib/mail";
 import { notify, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { getCompanySettings } from "@/lib/settings";
@@ -173,6 +174,7 @@ export const saveTask = formAction(
       revalidatePath("/tasks");
       revalidatePath(`/tasks/${updated.id}`);
       revalidatePath("/dashboard");
+      await flash("Task updated.");
       redirect(`/tasks/${updated.id}`);
     }
 
@@ -233,9 +235,43 @@ export const saveTask = formAction(
     revalidatePath("/tasks");
     revalidatePath("/dashboard");
 
+    await flash(`Task assigned to ${assignee.name}.`);
     redirect(`/tasks/${created.id}`);
   },
 );
+
+async function emailCompletion(options: {
+  task: {
+    id: string;
+    title: string;
+    customer: { name: string; companyName: string | null } | null;
+  };
+  recipient: { name: string; email: string };
+  completedBy: string;
+  note: string | null;
+  completedAt: Date;
+}): Promise<void> {
+  if (!isMailConfigured()) return;
+
+  try {
+    const settings = await getCompanySettings();
+    const { subject, text, html } = taskCompletedEmail({
+      recipientName: options.recipient.name,
+      completedBy: options.completedBy,
+      title: options.task.title,
+      note: options.note,
+      completedAt: formatDateTime(options.completedAt),
+      customer:
+        options.task.customer?.companyName ?? options.task.customer?.name ?? null,
+      companyName: settings.name,
+      link: `${env.NEXT_PUBLIC_APP_URL}/tasks/${options.task.id}`,
+    });
+    await sendMail({ to: options.recipient.email, subject, text, html });
+  } catch (error) {
+    // The in-app notification has already gone out; email is best effort.
+    console.error("[tasks] completion email failed", options.task.id, error);
+  }
+}
 
 /** The assignee starts or finishes their task. Admins may do it on their behalf. */
 export const progressTask = formAction(
@@ -249,6 +285,8 @@ export const progressTask = formAction(
         status: true,
         assigneeId: true,
         assignedById: true,
+        assignedBy: { select: { name: true, email: true } },
+        customer: { select: { name: true, companyName: true } },
       },
     });
 
@@ -292,9 +330,19 @@ export const progressTask = formAction(
         link: `/tasks/${task.id}`,
       };
 
-      // Tell whoever assigned it; fall back to every admin if they are gone.
+      // Tell whoever assigned it — in the app and by email — and fall back to
+      // every admin if they are gone.
       if (task.assignedById && task.assignedById !== user.id) {
         await notify({ userId: task.assignedById, ...notification });
+        if (task.assignedBy) {
+          await emailCompletion({
+            task,
+            recipient: task.assignedBy,
+            completedBy: user.name,
+            note: input.note ?? null,
+            completedAt: now,
+          });
+        }
       } else if (!task.assignedById) {
         await notifyAdmins(notification);
       }

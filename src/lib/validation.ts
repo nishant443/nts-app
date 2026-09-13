@@ -192,6 +192,13 @@ export const employeeCreateSchema = z.object({
   dateOfJoining: optionalDateString,
 });
 
+/** Deactivate / reactivate from the employee page. */
+export const employeeStatusSchema = z.object({
+  id: cuid,
+  active: z.boolean(),
+  reason: optionalText(500),
+});
+
 export const employeeUpdateSchema = z.object({
   id: cuid,
   name: requiredText("Name", 120),

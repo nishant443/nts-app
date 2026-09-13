@@ -119,3 +119,50 @@ export function ErrorPanel({
     </div>
   );
 }
+
+const calloutTones = {
+  warning: {
+    box: "border-warning/30 bg-warning-soft",
+    title: "text-warning",
+  },
+  danger: {
+    box: "border-danger/30 bg-danger-soft",
+    title: "text-danger",
+  },
+  accent: {
+    box: "border-accent/30 bg-accent-soft",
+    title: "text-accent",
+  },
+} as const;
+
+/** Inline notice for a state the reader should know about before acting. */
+export function Callout({
+  tone = "warning",
+  title,
+  children,
+}: {
+  tone?: keyof typeof calloutTones;
+  title: string;
+  children?: ReactNode;
+}) {
+  const styles = calloutTones[tone];
+
+  return (
+    <div
+      role="status"
+      className={cn("rounded-xl border px-4 py-3", styles.box)}
+    >
+      <p
+        className={cn(
+          "text-[12px] font-semibold uppercase tracking-wide",
+          styles.title,
+        )}
+      >
+        {title}
+      </p>
+      {children && (
+        <p className="mt-1 text-[13.5px] leading-relaxed text-fg">{children}</p>
+      )}
+    </div>
+  );
+}

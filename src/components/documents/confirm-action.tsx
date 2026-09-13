@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button, type ButtonVariant } from "@/components/ui/button";
+import { showSuccess } from "@/components/ui/success-popup";
 
 /**
  * Button that asks before running a destructive or irreversible Server Action.
@@ -57,7 +58,7 @@ export function ConfirmAction<TInput>({
       const result = await action(input);
 
       if (result.ok) {
-        if (successMessage) toast.success(successMessage);
+        if (successMessage) showSuccess(successMessage);
         setOpen(false);
         if (redirectTo) router.push(redirectTo);
         else router.refresh();

@@ -7,6 +7,7 @@ import { action, formAction, formError } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
 import { parseDateInput, today } from "@/lib/dates";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { flash } from "@/lib/flash";
 import { withLineItems } from "@/lib/line-items";
 import { toMoney } from "@/lib/money";
 import { withDocumentNumber } from "@/lib/numbering";
@@ -141,6 +142,7 @@ export const saveInvoice = formAction(
     revalidatePath(`/invoices/${invoiceId}`);
     revalidatePath("/dashboard");
 
+    await flash(input.id ? "Invoice saved." : "Invoice created.");
     redirect(`/invoices/${invoiceId}`);
   },
 );

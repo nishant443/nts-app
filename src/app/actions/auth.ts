@@ -9,6 +9,7 @@ import { recordAudit } from "@/lib/audit";
 import { getSessionUser } from "@/lib/dal";
 import { enforceRateLimit, RateLimits } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
+import { formatDate } from "@/lib/dates";
 import { createSession, destroySession } from "@/lib/session";
 import { changePasswordSchema, loginSchema } from "@/lib/validation";
 import { RateLimitError } from "@/lib/errors";
@@ -71,6 +72,8 @@ export async function signIn(
       role: true,
       status: true,
       sessionVersion: true,
+      deactivatedAt: true,
+      deactivationReason: true,
     },
   });
 
@@ -94,10 +97,17 @@ export async function signIn(
     return formError(GENERIC_FAILURE);
   }
 
+  // Only after the password checks out: the account's state is the owner's
+  // business, not something to reveal to whoever types in their email.
   if (user.status !== "ACTIVE") {
-    return formError(
-      "This account is not active. Please contact your administrator.",
-    );
+    await recordAudit({
+      userId: user.id,
+      action: "auth.login_blocked",
+      entity: "Auth",
+      entityId: user.id,
+      meta: { status: user.status },
+    });
+    return formError(deactivatedMessage(user));
   }
 
   await createSession({
@@ -119,6 +129,27 @@ export async function signIn(
   });
 
   redirect("/dashboard");
+}
+
+/**
+ * What a deactivated employee reads when they try to sign in. Spells out the
+ * date and the administrator's reason so the message is an explanation rather
+ * than a dead end.
+ */
+function deactivatedMessage(user: {
+  status: "INACTIVE" | "SUSPENDED" | "ACTIVE";
+  deactivatedAt: Date | null;
+  deactivationReason: string | null;
+}): string {
+  const when = user.deactivatedAt
+    ? ` on ${formatDate(user.deactivatedAt)}`
+    : "";
+  const reason = user.deactivationReason
+    ? ` Reason given: ${user.deactivationReason.replace(/[.!?]?$/, ".")}`
+    : "";
+  const verb = user.status === "SUSPENDED" ? "suspended" : "deactivated";
+
+  return `Your account was ${verb} by your administrator${when}.${reason} Please contact your administrator to restore access.`;
 }
 
 export async function signOut(): Promise<void> {

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { checkIn, checkOut } from "@/app/actions/attendance";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
+import { showSuccess } from "@/components/ui/success-popup";
 import { formatDuration, formatTime } from "@/lib/dates";
 
 /**
@@ -39,7 +40,7 @@ export function CheckInCard({
     startTransition(async () => {
       const result = await fn();
       if (result.ok) {
-        toast.success(successMessage);
+        showSuccess(successMessage);
         setOptimisticDone(true);
         router.refresh();
       } else {

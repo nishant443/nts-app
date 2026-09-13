@@ -9,6 +9,7 @@ import {
   Loader2,
   Lock,
   Mail,
+  ShieldAlert,
 } from "lucide-react";
 
 import { signIn } from "@/app/actions/auth";
@@ -26,7 +27,12 @@ function greeting(): string {
 
 const noop = () => () => {};
 
-export function LoginForm() {
+export function LoginForm({
+  notice,
+}: {
+  /** Explains an involuntary sign-out; shown until the first submit. */
+  notice?: { title: string; body: string };
+}) {
   const [state, formAction] = useActionState(signIn, emptyFormState);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
@@ -45,6 +51,24 @@ export function LoginForm() {
           Sign in to NTS
         </h1>
       </div>
+
+      {notice && !state.error && state.ts === undefined && (
+        <div
+          role="status"
+          className="animate-fade-in flex gap-3 rounded-xl border border-warning/40 bg-warning-soft px-3.5 py-3"
+        >
+          <ShieldAlert
+            aria-hidden="true"
+            className="mt-0.5 size-[18px] shrink-0 text-warning"
+          />
+          <div>
+            <p className="text-[13.5px] font-semibold text-fg">{notice.title}</p>
+            <p className="mt-0.5 text-[13px] leading-relaxed text-fg-muted">
+              {notice.body}
+            </p>
+          </div>
+        </div>
+      )}
 
       <FormError>{state.error}</FormError>
 

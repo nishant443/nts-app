@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 
 import { ThemeScript } from "@/components/layout/theme";
+import { SuccessPopupHost } from "@/components/ui/success-popup";
 
 import "./globals.css";
 
@@ -46,6 +47,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         {children}
+        <SuccessPopupHost />
         <Toaster
           position="top-right"
           richColors

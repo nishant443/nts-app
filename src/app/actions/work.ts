@@ -7,6 +7,7 @@ import { action, formAction, formError, formSuccess } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
 import { parseDateInput } from "@/lib/dates";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { flash } from "@/lib/flash";
 import { notify, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import {
@@ -62,6 +63,7 @@ export const saveWorkLog = formAction(
 
       revalidatePath("/work-logs");
       revalidatePath(`/work-logs/${input.id}`);
+      await flash("Work report updated.");
       redirect(`/work-logs/${input.id}`);
     }
 
@@ -96,6 +98,7 @@ export const saveWorkLog = formAction(
     revalidatePath("/work-logs");
     revalidatePath("/dashboard");
 
+    await flash("Work report submitted.");
     redirect(`/work-logs/${created.id}`);
   },
 );
@@ -235,7 +238,9 @@ export const saveExpense = formAction(
       });
 
       revalidatePath("/expenses");
-      redirect("/expenses");
+      await flash("Expense claim updated.");
+      await flash("Expense claim submitted.");
+    redirect("/expenses");
     }
 
     const created = await prisma.expense.create({

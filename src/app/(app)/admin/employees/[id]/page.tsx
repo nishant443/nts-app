@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { EmployeeEditForm } from "@/components/employees/employee-edit-form";
+import { EmployeeStatusButton } from "@/components/employees/employee-status-button";
 import { ResetPasswordButton } from "@/components/employees/reset-password-button";
 import { SalaryStructureForm } from "@/components/employees/salary-structure-form";
 import { Avatar } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/ui/badge";
 import { Card, CardHeader } from "@/components/ui/card";
+import { Callout } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { requireAdmin } from "@/lib/dal";
@@ -28,7 +30,7 @@ export async function generateMetadata(
 export default async function EmployeeDetailPage(
   props: PageProps<"/admin/employees/[id]">,
 ) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const { id } = await props.params;
 
   const now = today();
@@ -76,12 +78,36 @@ export default async function EmployeeDetailPage(
           { label: employee.name },
         ]}
         actions={
-          <ResetPasswordButton
-            employeeId={employee.id}
-            employeeName={employee.name}
-          />
+          <>
+            <ResetPasswordButton
+              employeeId={employee.id}
+              employeeName={employee.name}
+            />
+            <EmployeeStatusButton
+              employeeId={employee.id}
+              employeeName={employee.name}
+              active={employee.status === "ACTIVE"}
+              isSelf={employee.id === admin.id}
+            />
+          </>
         }
       />
+
+      {employee.status !== "ACTIVE" && (
+        <Callout tone="warning" title="This account is deactivated">
+          {employee.name} cannot sign in
+          {employee.deactivatedAt
+            ? ` since ${formatDate(employee.deactivatedAt)}`
+            : ""}
+          . Their records are kept and they can be reactivated at any time.
+          {employee.deactivationReason && (
+            <>
+              {" "}
+              Reason on file: <em>{employee.deactivationReason}</em>
+            </>
+          )}
+        </Callout>
+      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <Avatar name={employee.name} src={employee.avatarUrl} size="lg" />

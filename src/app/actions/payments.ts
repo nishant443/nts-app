@@ -7,6 +7,7 @@ import { action, formAction, formError } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
 import { parseDateInput, today } from "@/lib/dates";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { flash } from "@/lib/flash";
 import { round2, toMoney } from "@/lib/money";
 import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
@@ -179,6 +180,7 @@ export const savePayment = formAction(
     revalidatePath("/invoices");
     revalidatePath("/dashboard");
 
+    await flash("Payment recorded.");
     redirect("/payments");
   },
 );

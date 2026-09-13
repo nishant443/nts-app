@@ -8,7 +8,27 @@ export const metadata: Metadata = {
   title: "Sign in",
 };
 
-export default function LoginPage() {
+/**
+ * Why the visitor landed here without asking to — set by `/api/auth/expire`
+ * when a cookie stopped mapping to a usable account.
+ */
+const NOTICES: Record<string, { title: string; body: string }> = {
+  inactive: {
+    title: "Your account has been deactivated",
+    body: "An administrator has deactivated your account, so you have been signed out. Contact your administrator if you think this is a mistake.",
+  },
+  stale: {
+    title: "You were signed out",
+    body: "Your password was changed or reset on another device. Sign in again with your new password.",
+  },
+};
+
+export default async function LoginPage(props: {
+  searchParams: Promise<{ notice?: string | string[] }>;
+}) {
+  const { notice } = await props.searchParams;
+  const banner = typeof notice === "string" ? NOTICES[notice] : undefined;
+
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
       {/* Brand side — hidden on phones, where it would push the form below
@@ -29,7 +49,7 @@ export default function LoginPage() {
             <LogoAdaptive className="h-16" priority />
           </div>
 
-          <LoginForm />
+          <LoginForm notice={banner} />
         </div>
       </section>
     </main>

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { generatePayslips, setPayrollStatus } from "@/app/actions/payroll";
 import { ConfirmAction } from "@/components/documents/confirm-action";
 import { Button } from "@/components/ui/button";
+import { showSuccess } from "@/components/ui/success-popup";
 
 /**
  * Controls for a payroll run.
@@ -34,7 +35,7 @@ export function RunActions({
     startTransition(async () => {
       const result = await generatePayslips({ id: runId });
       if (result.ok) {
-        toast.success("Payslips generated from the latest data.");
+        showSuccess("Payslips generated from the latest data.");
         router.refresh();
       } else {
         toast.error(result.error);
