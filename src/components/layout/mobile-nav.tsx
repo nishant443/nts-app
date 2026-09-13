@@ -78,7 +78,7 @@ export function MobileNav({ role }: { role: Role }) {
         // screen readers while it is translated off-screen.
         inert={!open}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[min(17rem,85vw)] flex-col",
+          "fixed inset-y-0 left-0 z-50 flex w-[min(17rem,calc(85vw/var(--ui-zoom)))] flex-col",
           "border-r border-border bg-surface shadow-overlay",
           "transition-transform duration-250 ease-[cubic-bezier(0.25,1,0.5,1)] lg:hidden",
           open ? "translate-x-0" : "-translate-x-full",

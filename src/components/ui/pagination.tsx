@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -52,6 +57,10 @@ export function Pagination({
       </p>
 
       <div className="flex items-center gap-1.5">
+        <PageLink href={hrefFor(1)} disabled={page <= 1} label="First page">
+          <ChevronsLeft aria-hidden="true" className="size-4" />
+        </PageLink>
+
         <PageLink
           href={hrefFor(page - 1)}
           disabled={page <= 1}
@@ -72,6 +81,14 @@ export function Pagination({
         >
           <span className="hidden sm:inline">Next</span>
           <ChevronRight aria-hidden="true" className="size-4" />
+        </PageLink>
+
+        <PageLink
+          href={hrefFor(totalPages)}
+          disabled={page >= totalPages}
+          label="Last page"
+        >
+          <ChevronsRight aria-hidden="true" className="size-4" />
         </PageLink>
       </div>
     </nav>

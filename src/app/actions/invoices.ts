@@ -48,12 +48,15 @@ export const saveInvoice = formAction(
     });
 
     const dueDate = input.dueDate ? parseDateInput(input.dueDate) : null;
+    const poDate = input.poDate ? parseDateInput(input.poDate) : null;
 
     const shared = {
       customerId: customer.id,
       quotationId: input.quotationId ?? null,
       date: prepared.date,
       dueDate,
+      poNumber: input.poNumber ?? null,
+      poDate,
       subject: input.subject ?? null,
       notes: input.notes ?? null,
       terms: input.terms ?? null,

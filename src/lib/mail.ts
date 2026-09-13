@@ -1,5 +1,8 @@
 import "server-only";
 
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import nodemailer, { type Transporter } from "nodemailer";
 
 import { env } from "@/lib/env";
@@ -51,6 +54,35 @@ export interface MailAttachment {
   filename: string;
   content: Buffer;
   contentType: string;
+  /** Set to reference the attachment inline from HTML as `cid:<value>`. */
+  cid?: string;
+}
+
+/**
+ * The logo travels inside the message as an inline attachment rather than a
+ * link, so it renders whether or not the recipient's mail client fetches
+ * remote images and whether or not the app is publicly reachable.
+ */
+const LOGO_CID = "nts-logo";
+
+let logoCache: Buffer | null | undefined;
+
+async function loadLogo(): Promise<Buffer | null> {
+  if (logoCache !== undefined) return logoCache;
+  try {
+    logoCache = await readFile(
+      path.join(process.cwd(), "public", "brand", "nts-logo.png"),
+    );
+  } catch {
+    // A missing brand asset degrades to a text-only header, not a failed send.
+    logoCache = null;
+  }
+  return logoCache;
+}
+
+/** Letterhead strip for HTML mail; `companyName` is the alt text. */
+function brandHeader(companyName: string): string {
+  return `<p style="margin:0 0 18px"><img src="cid:${LOGO_CID}" width="150" height="69" alt="${escapeHtml(companyName)}" style="display:block;width:150px;height:auto;border:0"></p>`;
 }
 
 export async function sendMail(options: {
@@ -63,6 +95,20 @@ export async function sendMail(options: {
 }): Promise<void> {
   const transport = getTransporter();
 
+  // Any template that used brandHeader() gets the logo bytes attached inline.
+  const attachments = [...(options.attachments ?? [])];
+  if (options.html?.includes(`cid:${LOGO_CID}`)) {
+    const logo = await loadLogo();
+    if (logo) {
+      attachments.push({
+        filename: "nts-logo.png",
+        content: logo,
+        contentType: "image/png",
+        cid: LOGO_CID,
+      });
+    }
+  }
+
   try {
     await transport.sendMail({
       from: env.SMTP_FROM,
@@ -71,7 +117,7 @@ export async function sendMail(options: {
       subject: options.subject,
       text: options.text,
       html: options.html,
-      attachments: options.attachments,
+      attachments,
     });
   } catch (error) {
     console.error("[mail] send failed", error);
@@ -136,6 +182,7 @@ export function documentEmail(options: {
 
   const html = `
 <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#131a24;line-height:1.6">
+  ${brandHeader(options.companyName)}
   <p>Dear ${escapeHtml(options.customerName)},</p>
   <p>
     Please find attached ${options.kind.toLowerCase()}
@@ -206,6 +253,7 @@ export function taskAssignedEmail(options: {
 
   const html = `
 <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#131a24;line-height:1.6">
+  ${brandHeader(options.companyName)}
   <p>Hi ${escapeHtml(options.assigneeName)},</p>
   <p>
     <strong>${escapeHtml(options.assignedBy)}</strong> has

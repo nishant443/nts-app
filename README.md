@@ -181,6 +181,8 @@ prisma/
 
 scripts/
   check-calculations.ts  Business-rule checks
+  import-real-data.ts    One-off import of the operating spreadsheet (work log, tasks)
+  import-sales.ts        Rebuilds invoices/payments/customers from the Vyapar sale reports
 
 src/
   app/

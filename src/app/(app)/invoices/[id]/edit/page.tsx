@@ -35,6 +35,8 @@ export default async function EditInvoicePage(
         customerId: invoice.customerId,
         date: dayKey(invoice.date),
         secondaryDate: invoice.dueDate ? dayKey(invoice.dueDate) : "",
+        poNumber: invoice.poNumber ?? "",
+        poDate: invoice.poDate ? dayKey(invoice.poDate) : "",
         // Derived statuses are not editable, so fall back to a settable one.
         status: invoice.status === "DRAFT" ? "DRAFT" : "SENT",
         subject: invoice.subject ?? "",

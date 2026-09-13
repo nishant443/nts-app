@@ -230,7 +230,7 @@ export default async function ExpensesPage(props: {
             },
             {
               name: "status",
-              label: "Statuses",
+              label: "Status",
               options: STATUSES.map((value) => ({
                 value,
                 label: humanizeEnum(value),

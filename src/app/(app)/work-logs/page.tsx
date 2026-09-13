@@ -198,7 +198,7 @@ export default async function WorkLogsPage(props: {
           selects={[
             {
               name: "status",
-              label: "Statuses",
+              label: "Status",
               options: STATUSES.map((value) => ({
                 value,
                 label: value.charAt(0) + value.slice(1).toLowerCase(),

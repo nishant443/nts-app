@@ -1,13 +1,15 @@
 import "server-only";
 
 import { renderToBuffer } from "@react-pdf/renderer";
+import QRCode from "qrcode";
 
 import { formatDate } from "@/lib/dates";
 import { NotFoundError } from "@/lib/errors";
 import { round2, toMoney } from "@/lib/money";
 import { DocumentPdf, loadPdfAssets } from "@/lib/pdf/document-pdf";
+import { TaxInvoicePdf } from "@/lib/pdf/tax-invoice-pdf";
 import { prisma } from "@/lib/prisma";
-import { getCompanySettings } from "@/lib/settings";
+import { getCompanySettings, type CompanyProfile } from "@/lib/settings";
 
 /**
  * Builds the quotation and invoice PDFs.
@@ -113,13 +115,12 @@ export async function buildInvoicePdf(id: string): Promise<BuiltDocument> {
   const paid = toMoney(invoice.amountPaid);
 
   const buffer = await renderToBuffer(
-    DocumentPdf({
-      title: "Tax Invoice",
+    TaxInvoicePdf({
       number: invoice.number,
       date: formatDate(invoice.date),
-      secondaryLabel: "Due",
-      secondaryValue: invoice.dueDate ? formatDate(invoice.dueDate) : undefined,
-      partyLabel: "Bill to",
+      dueDate: invoice.dueDate ? formatDate(invoice.dueDate) : undefined,
+      poNumber: invoice.poNumber,
+      poDate: invoice.poDate ? formatDate(invoice.poDate) : undefined,
       party: invoice.customer,
       settings,
       subject: invoice.subject,
@@ -144,15 +145,11 @@ export async function buildInvoicePdf(id: string): Promise<BuiltDocument> {
         igstAmount: toMoney(invoice.igstAmount),
         total,
       },
-      // Only worth printing once something has actually been paid.
-      extraTotals:
-        paid > 0.009
-          ? [
-              { label: "Amount received", value: paid },
-              { label: "Balance due", value: round2(total - paid) },
-            ]
-          : undefined,
-      assets,
+      amountPaid: paid,
+      assets: {
+        ...assets,
+        upiQr: await upiQr(settings, invoice.number, round2(total - paid)),
+      },
     }),
   );
 
@@ -166,4 +163,32 @@ export async function buildInvoicePdf(id: string): Promise<BuiltDocument> {
     dueLabel: invoice.dueDate ? "Payment due" : undefined,
     dueValue: invoice.dueDate ? formatDate(invoice.dueDate) : undefined,
   };
+}
+
+/**
+ * "Scan to pay" QR for the bank-details box. Standard UPI deep link carrying
+ * the balance due and the invoice number so the payer's app pre-fills both.
+ * Nothing is printed when no UPI id is configured.
+ */
+async function upiQr(
+  settings: CompanyProfile,
+  invoiceNumber: string,
+  balance: number,
+): Promise<Buffer | undefined> {
+  if (!settings.upiId) return undefined;
+
+  const params = new URLSearchParams({
+    pa: settings.upiId,
+    pn: settings.name,
+    cu: "INR",
+    tn: `Invoice ${invoiceNumber}`,
+  });
+  if (balance > 0) params.set("am", balance.toFixed(2));
+
+  return QRCode.toBuffer(`upi://pay?${params.toString()}`, {
+    type: "png",
+    margin: 0,
+    width: 256,
+    errorCorrectionLevel: "M",
+  });
 }

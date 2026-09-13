@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Download, FileSpreadsheet, Users } from "lucide-react";
+import { ExternalLink, FileSpreadsheet, Users } from "lucide-react";
 
 import { RunActions } from "@/components/payroll/run-actions";
 import { StatusBadge } from "@/components/ui/badge";
@@ -150,9 +150,11 @@ export default async function PayrollRunPage(
       cell: (row) => (
         <a
           href={`/api/pdf/payslip/${row.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1 text-[12.5px] font-medium text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
         >
-          <Download aria-hidden="true" className="size-3.5" />
+          <ExternalLink aria-hidden="true" className="size-3.5" />
           PDF
         </a>
       ),

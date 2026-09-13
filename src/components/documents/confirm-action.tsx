@@ -81,7 +81,7 @@ export function ConfirmAction<TInput>({
           // Clicking the backdrop (the dialog element itself) closes it.
           if (event.target === dialogRef.current) setOpen(false);
         }}
-        className="max-w-[min(26rem,calc(100vw-2rem))] rounded-xl border border-border bg-surface p-0 text-fg shadow-overlay backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"
+        className="max-w-[min(26rem,calc(100vw/var(--ui-zoom)-2rem))] rounded-xl border border-border bg-surface p-0 text-fg shadow-overlay backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"
       >
         <div className="flex flex-col gap-2 p-5">
           <h2 className="text-[15px] font-semibold text-fg">{title}</h2>

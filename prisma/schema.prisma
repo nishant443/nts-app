@@ -679,6 +679,11 @@ model Invoice {
   dueDate DateTime?
   status  InvoiceStatus @default(DRAFT)
 
+  /// The customer's purchase order this invoice is raised against — printed
+  /// on the invoice because their accounts team matches on it.
+  poNumber String?
+  poDate   DateTime?
+
   subject String?
   notes   String?
   terms   String?
@@ -915,6 +920,7 @@ model CompanySettings {
   bankAccountNo  String?
   bankIfsc       String?
   bankBranch     String?
+  bankHolderName String?
   upiId          String?
 
   invoicesPrefix       String @default("NTS/INV/")

@@ -27,6 +27,7 @@ export interface CompanySettingsValues {
   bankAccountNo: string;
   bankIfsc: string;
   bankBranch: string;
+  bankHolderName: string;
   upiId: string;
   invoicesPrefix: string;
   quotationPrefix: string;
@@ -222,8 +223,20 @@ export function CompanySettingsForm({
               />
             </Field>
 
-            <Field label="UPI id" htmlFor="upiId" className="sm:col-span-2">
-              <Input id="upiId" name="upiId" defaultValue={values.upiId} />
+            <Field label="Account holder's name" htmlFor="bankHolderName">
+              <Input
+                id="bankHolderName"
+                name="bankHolderName"
+                defaultValue={values.bankHolderName}
+              />
+            </Field>
+
+            <Field
+              label="UPI id"
+              htmlFor="upiId"
+              hint="When set, invoices print a scan-to-pay QR code next to the bank details."
+            >
+              <Input id="upiId" name="upiId" defaultValue={values.upiId} placeholder="name@bank" />
             </Field>
           </FormGrid>
         </CardBody>

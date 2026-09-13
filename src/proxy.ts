@@ -144,6 +144,6 @@ export const config = {
   // Skip Next's own assets and the public brand files; everything else passes
   // through so no page is accidentally left unprotected.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|brand/|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|brand/|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)",
   ],
 };

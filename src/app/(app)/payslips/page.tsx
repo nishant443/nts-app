@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BadgeIndianRupee, Download } from "lucide-react";
+import { BadgeIndianRupee, ExternalLink } from "lucide-react";
 
 import { Card, CardHeader } from "@/components/ui/card";
 import { DataTable, type Column } from "@/components/ui/data-table";
@@ -126,9 +126,11 @@ export default async function PayslipsPage(props: {
       cell: (row) => (
         <a
           href={`/api/pdf/payslip/${row.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1 text-[12.5px] font-medium text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
         >
-          <Download aria-hidden="true" className="size-3.5" />
+          <ExternalLink aria-hidden="true" className="size-3.5" />
           PDF
         </a>
       ),

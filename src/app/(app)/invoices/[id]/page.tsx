@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Download, Pencil, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { deleteInvoice, setInvoiceStatus } from "@/app/actions/invoices";
 import { ConfirmAction } from "@/components/documents/confirm-action";
@@ -81,8 +81,13 @@ export default async function InvoiceDetailPage(
         ]}
         actions={
           <>
-            <Button href={`/api/pdf/invoice/${invoice.id}`} variant="secondary">
-              <Download aria-hidden="true" />
+            <Button
+              href={`/api/pdf/invoice/${invoice.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="secondary"
+            >
+              <ExternalLink aria-hidden="true" />
               PDF
             </Button>
 

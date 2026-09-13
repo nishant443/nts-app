@@ -22,7 +22,7 @@ export default function AppError({
   }, [error]);
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center px-4">
+    <div className="flex min-h-[calc(60vh/var(--ui-zoom))] items-center justify-center px-4">
       <div className="flex max-w-md flex-col items-center gap-4 text-center">
         <div className="flex size-12 items-center justify-center rounded-full bg-danger-soft text-danger">
           <RotateCw aria-hidden="true" className="size-5" />

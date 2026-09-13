@@ -27,6 +27,7 @@ export interface CompanyProfile {
   bankAccountNo: string | null;
   bankIfsc: string | null;
   bankBranch: string | null;
+  bankHolderName: string | null;
   upiId: string | null;
   invoicesPrefix: string;
   quotationPrefix: string;
@@ -55,6 +56,7 @@ const FALLBACK: CompanyProfile = {
   bankAccountNo: null,
   bankIfsc: null,
   bankBranch: null,
+  bankHolderName: null,
   upiId: null,
   invoicesPrefix: "NTS/INV/",
   quotationPrefix: "NTS/QT/",

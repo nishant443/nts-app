@@ -173,7 +173,7 @@ export function GlobalSearch() {
         <div
           id="global-search-results"
           role="listbox"
-          className="animate-pop absolute left-0 right-0 top-full z-50 mt-1.5 max-h-[min(24rem,60vh)] overflow-y-auto overscroll-contain rounded-xl border border-border bg-surface py-1 shadow-overlay"
+          className="animate-pop absolute left-0 right-0 top-full z-50 mt-1.5 max-h-[min(24rem,calc(60vh/var(--ui-zoom)))] overflow-y-auto overscroll-contain rounded-xl border border-border bg-surface py-1 shadow-overlay"
         >
           {visibleHits.length === 0 ? (
             <p className="px-3.5 py-6 text-center text-[13px] text-fg-muted">

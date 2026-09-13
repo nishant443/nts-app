@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { saveWorkLog } from "@/app/actions/work";
+import { CustomerPicker } from "@/components/customers/customer-picker";
 import { FormBanners, SubmitButton } from "@/components/forms/form-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -11,7 +12,6 @@ import {
   FormActions,
   FormGrid,
   Input,
-  Select,
   Textarea,
 } from "@/components/ui/field";
 import { emptyFormState, fieldError } from "@/lib/form-state";
@@ -85,18 +85,13 @@ export function WorkLogForm({
               hint="Link the visit so the work can be billed."
               className="sm:col-span-2"
             >
-              <Select
+              <CustomerPicker
                 id="customerId"
                 name="customerId"
+                customers={customers}
                 defaultValue={values.customerId}
-              >
-                <option value="">Not customer-specific</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.label}
-                  </option>
-                ))}
-              </Select>
+                emptyLabel="Not customer-specific"
+              />
             </Field>
 
             <Field

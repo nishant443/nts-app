@@ -222,7 +222,7 @@ export default async function TasksPage(props: {
           selects={[
             {
               name: "status",
-              label: "Statuses",
+              label: "Status",
               options: STATUSES.map((value) => ({
                 value,
                 label: humanizeEnum(value),
@@ -240,7 +240,8 @@ export default async function TasksPage(props: {
               ? [
                   {
                     name: "assignee",
-                    label: "Everyone",
+                    label: "Assignee",
+                    allLabel: "Everyone",
                     options: employees.map((employee) => ({
                       value: employee.id,
                       label: employee.name,

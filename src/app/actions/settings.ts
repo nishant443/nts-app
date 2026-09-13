@@ -37,6 +37,7 @@ export const saveCompanySettings = formAction(
       bankAccountNo: input.bankAccountNo ?? null,
       bankIfsc: input.bankIfsc ?? null,
       bankBranch: input.bankBranch ?? null,
+      bankHolderName: input.bankHolderName ?? null,
       upiId: input.upiId ?? null,
       invoicesPrefix: input.invoicesPrefix,
       quotationPrefix: input.quotationPrefix,

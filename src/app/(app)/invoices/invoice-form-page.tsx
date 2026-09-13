@@ -60,6 +60,7 @@ export async function InvoiceFormPage({
           secondaryDate: "Due date",
           secondaryDateField: "dueDate",
           secondaryDateHint: "Payment terms are typically 30 days.",
+          purchaseOrderRef: true,
           submit: values.id ? "Save changes" : "Create invoice",
           cancelHref: values.id ? `/invoices/${values.id}` : "/invoices",
         }}

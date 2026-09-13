@@ -179,7 +179,7 @@ export default async function PurchaseOrdersPage(props: {
           selects={[
             {
               name: "status",
-              label: "Statuses",
+              label: "Status",
               options: STATUSES.map((value) => ({
                 value,
                 label:

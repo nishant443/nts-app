@@ -2,6 +2,10 @@
 
 import { useActionState, useState } from "react";
 
+import {
+  CustomerPicker,
+  type CustomerPickOption,
+} from "@/components/customers/customer-picker";
 import { FormBanners, SubmitButton } from "@/components/forms/form-shell";
 import {
   LineItemsEditor,
@@ -45,6 +49,9 @@ export interface DocumentFormValues {
   placeOfSupply: string;
   discountAmount: string;
   items: LineItemValue[];
+  /** Customer purchase-order reference — invoices only. */
+  poNumber?: string;
+  poDate?: string;
 }
 
 export function DocumentForm({
@@ -69,6 +76,8 @@ export function DocumentForm({
     /** `validUntil` for quotations, `dueDate` for invoices, `expectedDate` for POs. */
     secondaryDateField: string;
     secondaryDateHint?: string;
+    /** Show the customer PO number/date fields (invoices). */
+    purchaseOrderRef?: boolean;
     submit: string;
     cancelHref: string;
   };
@@ -86,9 +95,8 @@ export function DocumentForm({
 
   // Picking a customer fills in place of supply from their state, which is what
   // decides IGST vs CGST/SGST on the totals below.
-  const onCustomerChange = (id: string) => {
+  const onCustomerChange = (id: string, next?: CustomerPickOption) => {
     setCustomerId(id);
-    const next = customers.find((customer) => customer.id === id);
     if (next?.state) setPlaceOfSupply(next.state);
   };
 
@@ -111,21 +119,18 @@ export function DocumentForm({
               required
               error={fieldError(state, labels.counterpartyField)}
             >
-              <Select
+              <CustomerPicker
                 id={labels.counterpartyField}
                 name={labels.counterpartyField}
+                customers={customers}
                 value={customerId}
-                onChange={(event) => onCustomerChange(event.target.value)}
+                onChange={onCustomerChange}
                 required
                 invalid={Boolean(fieldError(state, labels.counterpartyField))}
-              >
-                <option value="">Select…</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.label}
-                  </option>
-                ))}
-              </Select>
+                newType={
+                  labels.counterpartyField === "vendorId" ? "VENDOR" : "LEAD"
+                }
+              />
             </Field>
 
             <Field label="Status" htmlFor="status">
@@ -166,6 +171,33 @@ export function DocumentForm({
                 defaultValue={values.secondaryDate}
               />
             </Field>
+
+            {labels.purchaseOrderRef && (
+              <>
+                <Field
+                  label="Customer PO no."
+                  htmlFor="poNumber"
+                  hint="Printed on the invoice so their accounts can match it."
+                  error={fieldError(state, "poNumber")}
+                >
+                  <Input
+                    id="poNumber"
+                    name="poNumber"
+                    defaultValue={values.poNumber ?? ""}
+                    placeholder="EST-39"
+                  />
+                </Field>
+
+                <Field label="PO date" htmlFor="poDate" error={fieldError(state, "poDate")}>
+                  <Input
+                    id="poDate"
+                    name="poDate"
+                    type="date"
+                    defaultValue={values.poDate ?? ""}
+                  />
+                </Field>
+              </>
+            )}
 
             <Field
               label="Place of supply"

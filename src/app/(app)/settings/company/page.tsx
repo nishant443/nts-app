@@ -33,6 +33,7 @@ export default async function CompanySettingsPage() {
         bankAccountNo: settings.bankAccountNo ?? "",
         bankIfsc: settings.bankIfsc ?? "",
         bankBranch: settings.bankBranch ?? "",
+        bankHolderName: settings.bankHolderName ?? "",
         upiId: settings.upiId ?? "",
         invoicesPrefix: settings.invoicesPrefix,
         quotationPrefix: settings.quotationPrefix,

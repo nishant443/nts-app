@@ -441,6 +441,8 @@ export const quotationSchema = z.object({
 export const invoiceSchema = z.object({
   ...documentBase,
   dueDate: optionalDateString,
+  poNumber: optionalText(60),
+  poDate: optionalDateString,
   quotationId: optionalCuid,
   status: z
     .enum([
@@ -519,6 +521,7 @@ export const companySettingsSchema = z.object({
   bankAccountNo: optionalText(40),
   bankIfsc: optionalText(20),
   bankBranch: optionalText(120),
+  bankHolderName: optionalText(120),
   upiId: optionalText(120),
   invoicesPrefix: requiredText("Invoice prefix", 30),
   quotationPrefix: requiredText("Quotation prefix", 30),

@@ -20,10 +20,7 @@ export const metadata: Metadata = {
   description:
     "Operations and HR platform for Nutan Tech Solutions — CNC maintenance, retrofitting, automation and robotics.",
   applicationName: "NTS",
-  icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
-    apple: "/brand/nts-logo.png",
-  },
+  // Icons come from the app/icon.png and app/apple-icon.png file conventions.
   // Internal tool — keep it out of search engines.
   robots: { index: false, follow: false },
 };

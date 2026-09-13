@@ -30,6 +30,43 @@ export function LogoFull({
   );
 }
 
+/**
+ * Theme-aware logo on a transparent background, for placing directly on the
+ * app surface. The light variant is the original ink; the dark variant has the
+ * grey "N" and "TECH" lifted to a pale grey so they read on a dark surface,
+ * with the blue kept. Both are rendered and CSS shows the right one, so a
+ * theme toggle never flashes the wrong colours.
+ */
+export function LogoAdaptive({
+  className,
+  priority,
+}: {
+  className?: string;
+  priority?: boolean;
+}) {
+  return (
+    <>
+      <Image
+        src="/brand/nts-logo-light.png"
+        alt="Nutan Tech Solutions"
+        width={457}
+        height={209}
+        priority={priority}
+        className={cn("h-auto w-auto object-contain dark:hidden", className)}
+      />
+      <Image
+        src="/brand/nts-logo-dark.png"
+        alt=""
+        aria-hidden="true"
+        width={457}
+        height={209}
+        priority={priority}
+        className={cn("hidden h-auto w-auto object-contain dark:block", className)}
+      />
+    </>
+  );
+}
+
 /** Square monogram: grey "N", blue "TS" — the logo's stacked lockup. */
 export function LogoMark({ className }: { className?: string }) {
   return (
@@ -53,19 +90,11 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-/** Logo plus wordmark, for the sidebar header. */
+/** The logo sized for the sidebar and top bar, sitting directly on the surface. */
 export function LogoLockup({ className }: { className?: string }) {
   return (
-    <span className={cn("flex min-w-0 items-center gap-2.5", className)}>
-      <LogoMark className="size-8 shrink-0" />
-      <span className="flex min-w-0 flex-col leading-none">
-        <span className="truncate text-[15px] font-bold tracking-tight text-fg">
-          Nutan Tech
-        </span>
-        <span className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-fg-subtle">
-          Solutions
-        </span>
-      </span>
+    <span className={cn("inline-flex shrink-0 items-center", className)}>
+      <LogoAdaptive className="h-12" priority />
     </span>
   );
 }

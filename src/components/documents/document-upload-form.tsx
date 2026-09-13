@@ -5,6 +5,7 @@ import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { saveDocument } from "@/app/actions/documents";
+import { CustomerPicker } from "@/components/customers/customer-picker";
 import { FormBanners, SubmitButton } from "@/components/forms/form-shell";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -130,29 +131,30 @@ export function DocumentUploadForm({
                   htmlFor="ownerId"
                   error={fieldError(state, "ownerId")}
                 >
-                  <Select
-                    id="ownerId"
-                    name="ownerId"
-                    required
-                    defaultValue={
-                      ownerType === "EMPLOYEE" && !canFileForOthers
-                        ? currentUserId
-                        : ""
-                    }
-                  >
-                    <option value="">Select…</option>
-                    {ownerType === "CUSTOMER"
-                      ? customers.map((customer) => (
-                          <option key={customer.id} value={customer.id}>
-                            {customer.label}
-                          </option>
-                        ))
-                      : employees.map((employee) => (
-                          <option key={employee.id} value={employee.id}>
-                            {employee.name}
-                          </option>
-                        ))}
-                  </Select>
+                  {ownerType === "CUSTOMER" ? (
+                    <CustomerPicker
+                      id="ownerId"
+                      name="ownerId"
+                      customers={customers}
+                      required
+                      invalid={Boolean(fieldError(state, "ownerId"))}
+                    />
+                  ) : (
+                    <Select
+                      id="ownerId"
+                      name="ownerId"
+                      required
+                      defaultValue={canFileForOthers ? "" : currentUserId}
+                      invalid={Boolean(fieldError(state, "ownerId"))}
+                    >
+                      <option value="">Select…</option>
+                      {employees.map((employee) => (
+                        <option key={employee.id} value={employee.id}>
+                          {employee.name}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </Field>
 
                 <Field label="Category" htmlFor="category">

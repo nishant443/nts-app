@@ -206,7 +206,7 @@ export default async function InvoicesPage(props: {
           selects={[
             {
               name: "status",
-              label: "Statuses",
+              label: "Status",
               options: STATUSES.map((value) => ({
                 value,
                 label:

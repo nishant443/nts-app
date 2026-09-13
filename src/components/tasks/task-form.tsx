@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { saveTask } from "@/app/actions/tasks";
+import { CustomerPicker } from "@/components/customers/customer-picker";
 import { FormBanners, SubmitButton } from "@/components/forms/form-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -120,18 +121,13 @@ export function TaskForm({
               htmlFor="customerId"
               hint="Link the site so the engineer knows where to go."
             >
-              <Select
+              <CustomerPicker
                 id="customerId"
                 name="customerId"
+                customers={customers}
                 defaultValue={values.customerId}
-              >
-                <option value="">Not customer-specific</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.label}
-                  </option>
-                ))}
-              </Select>
+                emptyLabel="Not customer-specific"
+              />
             </Field>
 
             <Field

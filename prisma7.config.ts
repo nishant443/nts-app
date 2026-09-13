@@ -14,6 +14,10 @@ import { defineConfig } from "prisma/config";
  * those environments `SHADOW_DATABASE_URL` can be left unset and Prisma will
  * create and drop the shadow database itself.
  */
+function directUrl(url: string | undefined): string | undefined {
+  return url?.replace("-pooler.", ".");
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -21,7 +25,11 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Migrations take a session-level advisory lock, which a connection pooler
+    // (Neon's "-pooler" host, PgBouncer) can hand to another client and never
+    // release. Always migrate over the direct host; the app itself keeps
+    // using the pooled URL.
+    url: directUrl(process.env["DATABASE_URL"]),
     shadowDatabaseUrl: process.env["SHADOW_DATABASE_URL"],
   },
 });

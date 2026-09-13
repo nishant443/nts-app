@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { LogoMark } from "@/components/brand/logo";
+import { LogoAdaptive } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
@@ -8,7 +8,7 @@ export default function NotFound() {
     <main className="flex min-h-dvh items-center justify-center px-5 py-12">
       <div className="flex max-w-md flex-col items-center gap-5 text-center">
         <Link href="/dashboard">
-          <LogoMark className="size-11" />
+          <LogoAdaptive className="h-14" priority />
         </Link>
 
         <div>

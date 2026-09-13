@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Download, FileCheck2, Pencil } from "lucide-react";
+import { ExternalLink, FileCheck2, Pencil } from "lucide-react";
 
 import {
   convertQuotationToInvoice,
@@ -66,8 +66,13 @@ export default async function QuotationDetailPage(
         ]}
         actions={
           <>
-            <Button href={`/api/pdf/quotation/${quotation.id}`} variant="secondary">
-              <Download aria-hidden="true" />
+            <Button
+              href={`/api/pdf/quotation/${quotation.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="secondary"
+            >
+              <ExternalLink aria-hidden="true" />
               PDF
             </Button>
 

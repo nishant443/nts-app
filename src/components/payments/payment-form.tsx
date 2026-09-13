@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 
 import { savePayment } from "@/app/actions/payments";
+import { CustomerPicker } from "@/components/customers/customer-picker";
 import { FormBanners, SubmitButton } from "@/components/forms/form-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -120,21 +121,16 @@ export function PaymentForm({
               required
               error={fieldError(state, "customerId")}
             >
-              <Select
+              <CustomerPicker
                 id="customerId"
                 name="customerId"
+                customers={customers}
                 value={customerId}
-                onChange={(event) => onCustomerChange(event.target.value)}
+                onChange={onCustomerChange}
                 required
                 invalid={Boolean(fieldError(state, "customerId"))}
-              >
-                <option value="">Select…</option>
-                {customers.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.label}
-                  </option>
-                ))}
-              </Select>
+                newType="ACTIVE"
+              />
             </Field>
 
             <Field

@@ -85,6 +85,11 @@
   /* The app shell reads these so page content can size against them. */
   --sidebar-width: 16rem;
   --topbar-height: 3.75rem;
+
+  /* The whole interface renders at 90% — the density the team found right at
+     "90% browser zoom". Viewport-unit sizes are divided by this so full-height
+     panels still fill the screen (zoom scales those units too). */
+  --ui-zoom: 0.9;
 }
 
 .dark {
@@ -158,6 +163,7 @@
   }
 
   html {
+    zoom: var(--ui-zoom);
     -webkit-text-size-adjust: 100%;
     /* Guards against any single element forcing the page sideways. Data-dense
        regions scroll inside their own container instead. */
@@ -244,6 +250,15 @@
 }
 
 @layer utilities {
+  /* Viewport heights compensated for --ui-zoom (see :root). */
+  .h-dvh {
+    height: calc(100dvh / var(--ui-zoom));
+  }
+
+  .min-h-dvh {
+    min-height: calc(100dvh / var(--ui-zoom));
+  }
+
   .animate-in-up {
     animation: in-up 0.24s var(--ease-out-quart) both;
   }

@@ -209,3 +209,12 @@ export function stateFromGstin(gstin: string): string | null {
 }
 
 export const INDIAN_STATES = Object.values(GST_STATE_CODES).sort();
+
+/** "29" for Karnataka — the code GST documents print in front of the state. */
+export function stateCode(stateName: string | null | undefined): string | null {
+  if (!stateName) return null;
+  const match = Object.entries(GST_STATE_CODES).find(
+    ([, name]) => name.toLowerCase() === stateName.toLowerCase(),
+  );
+  return match ? match[0] : null;
+}
