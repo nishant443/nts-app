@@ -21,6 +21,7 @@ export type AuditEntity =
   | "Payslip"
   | "DailyWorkLog"
   | "Expense"
+  | "Task"
   | "Customer"
   | "Quotation"
   | "Invoice"

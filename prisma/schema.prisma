@@ -81,6 +81,20 @@ enum WorkLogStatus {
   REJECTED
 }
 
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 enum ExpenseCategory {
   TRAVEL
   FUEL
@@ -174,6 +188,10 @@ enum NotificationType {
   PAYMENT_RECEIVED
   PAYMENT_OVERDUE
   QUOTATION_ACCEPTED
+  TASK_ASSIGNED
+  TASK_UPDATED
+  TASK_COMPLETED
+  TASK_CANCELLED
   GENERAL
 }
 
@@ -210,6 +228,8 @@ model User {
   workLogReviews  DailyWorkLog[]  @relation("WorkLogReviewer")
   expenses        Expense[]       @relation("ExpenseOwner")
   expenseReviews  Expense[]       @relation("ExpenseReviewer")
+  assignedTasks   Task[]          @relation("TaskAssignee")
+  createdTasks    Task[]          @relation("TaskAssigner")
   notifications   Notification[]
   auditLogs       AuditLog[]
 
@@ -468,6 +488,44 @@ model DailyWorkLog {
   @@map("daily_work_logs")
 }
 
+/// Work an administrator hands to an employee. The assignee moves it through
+/// OPEN → IN_PROGRESS → COMPLETED; only an admin can cancel or reassign.
+model Task {
+  id String @id @default(cuid())
+
+  title       String
+  description String
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(OPEN)
+  dueDate     DateTime?
+
+  assigneeId String
+  assignee   User   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+
+  assignedById String?
+  assignedBy   User?   @relation("TaskAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  startedAt      DateTime?
+  completedAt    DateTime?
+  completionNote String?
+
+  /// When the assignment email was delivered to the assignee; null if mail is
+  /// not configured or the send failed. The in-app notification always goes out.
+  emailedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([assigneeId, status])
+  @@index([status, dueDate])
+  @@index([assignedById])
+  @@index([customerId])
+  @@map("tasks")
+}
+
 model Expense {
   id     String @id @default(cuid())
   userId String
@@ -536,6 +594,7 @@ model Customer {
   payments       Payment[]
   purchaseOrders PurchaseOrder[]
   workLogs       DailyWorkLog[]
+  tasks          Task[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

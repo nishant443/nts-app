@@ -306,6 +306,7 @@ async function main() {
   await prisma.$transaction([
     prisma.auditLog.deleteMany(),
     prisma.notification.deleteMany(),
+    prisma.task.deleteMany(),
     prisma.document.deleteMany(),
     prisma.payment.deleteMany(),
     prisma.invoiceItem.deleteMany(),
@@ -897,6 +898,84 @@ async function main() {
     });
   }
   console.log(`  ✓ payroll run for ${payrollMonth}/${payrollYear}`);
+
+  // --- Tasks ---------------------------------------------------------------
+  const TASKS = [
+    {
+      title: "Spindle vibration check — VMC 850",
+      description:
+        "Customer reports chatter above 6,000 rpm on the VMC 850. Run a vibration analysis on the spindle, check drawbar force and tool holder taper condition. Bring the vibration analyser and a set of test bars.",
+      priority: "HIGH",
+      status: "OPEN",
+      dueOffset: 2,
+    },
+    {
+      title: "Quarterly preventive maintenance",
+      description:
+        "Scheduled PM visit: way lube system check, coolant concentration, axis backlash measurement on X/Y/Z, filter replacement. Complete the PM checklist and get it signed by the shift supervisor.",
+      priority: "MEDIUM",
+      status: "IN_PROGRESS",
+      dueOffset: 5,
+    },
+    {
+      title: "Retrofit proposal — site survey",
+      description:
+        "Survey the two older lathes for a Fanuc control retrofit. Note existing control model, servo drive ratings, encoder types and cabinet space. Photograph the panel layout for the quotation.",
+      priority: "URGENT",
+      status: "OPEN",
+      dueOffset: -1,
+    },
+    {
+      title: "Collect signed service report",
+      description:
+        "Pick up the signed copy of last week's breakdown service report from the stores office so the invoice can be raised.",
+      priority: "LOW",
+      status: "COMPLETED",
+      dueOffset: -3,
+      completionNote: "Collected and handed to accounts.",
+    },
+  ] as const;
+
+  for (const task of TASKS) {
+    const assignee = pick(staff);
+    const due = addDays(day(THIS_YEAR, THIS_MONTH, TODAY.getUTCDate()), task.dueOffset);
+    const created = addDays(due, -between(3, 7));
+
+    await prisma.task.create({
+      data: {
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        status: task.status,
+        dueDate: due,
+        assigneeId: assignee.id,
+        assignedById: admin.id,
+        customerId: pick(clients).id,
+        createdAt: created,
+        startedAt:
+          task.status === "IN_PROGRESS" || task.status === "COMPLETED"
+            ? addDays(created, 1)
+            : null,
+        completedAt: task.status === "COMPLETED" ? addDays(created, 2) : null,
+        completionNote:
+          "completionNote" in task ? task.completionNote : null,
+      },
+    });
+
+    if (task.status !== "COMPLETED") {
+      await prisma.notification.create({
+        data: {
+          userId: assignee.id,
+          type: "TASK_ASSIGNED",
+          title: `${admin.name} assigned you a task`,
+          body: task.title,
+          link: "/tasks",
+          createdAt: created,
+        },
+      });
+    }
+  }
+  console.log(`  ✓ ${TASKS.length} tasks`);
 
   // --- Notifications -------------------------------------------------------
   const pendingLeave = await prisma.leaveRequest.findMany({

@@ -227,6 +227,7 @@ message.
 | `work` | `saveWorkLog`, `reviewWorkLog`, `deleteWorkLog`, `saveExpense`, `reviewExpense`, `deleteExpense` | user · admin (review) |
 | `payroll` | `createPayrollRun`, `generatePayslips`, `setPayrollStatus`, `deletePayrollRun`, `saveSalaryStructure` | admin |
 | `employees` | `createEmployee`, `updateEmployee`, `resetEmployeePassword`, `updateOwnProfile` | admin · user (own profile) |
+| `tasks` | `saveTask`, `cancelTask` · `progressTask` | admin · user (assignee) |
 | `documents` | `saveDocument`, `deleteDocument` | user |
 | `settings` | `saveCompanySettings`, `addHoliday`, `deleteHoliday` | admin |
 | `notifications` | `markNotificationRead`, `markAllNotificationsRead` | user |
@@ -250,6 +251,9 @@ interface allows:
   they cannot be set by hand.
 - Emailing a draft quotation or invoice moves it to `Sent`, because that is what
   actually happened.
+- A task can only be assigned to an active employee, only its assignee (or an
+  admin) can start or complete it, and a completed or cancelled task is frozen.
+  Reassigning resets it to `Open` for the new person.
 
 ### Email
 
@@ -263,11 +267,17 @@ With no `SMTP_HOST` configured, `isMailConfigured()` returns false and the UI
 disables the button with an explanation. Nothing else in the app depends on
 mail being available.
 
+Task assignment (`saveTask`) also emails the assignee — full description,
+priority, due date, customer, who assigned it and a link — but best-effort: the
+task is saved and the in-app notification delivered whether or not mail is set
+up, and `Task.emailedAt` records whether the message actually left. Reassigning
+a task emails the new assignee; ordinary edits do not send mail.
+
 ---
 
 ## Data model
 
-Twenty-three models. The ones that matter most:
+Twenty-four models. The ones that matter most:
 
 ```
 User ─┬─ EmployeeProfile (1:1)
@@ -275,6 +285,7 @@ User ─┬─ EmployeeProfile (1:1)
       ├─ Attendance      (unique: userId + date)
       ├─ LeaveRequest / LeaveBalance
       ├─ DailyWorkLog ── Expense
+      ├─ Task            (assignee · assignedBy · optional Customer)
       └─ Payslip ─────── PayrollRun (unique: year + month)
 
 Customer ─┬─ Quotation ── QuotationItem

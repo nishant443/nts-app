@@ -333,6 +333,27 @@ export const workLogReviewSchema = z.object({
   reviewNote: optionalText(500),
 });
 
+// --- Tasks -------------------------------------------------------------------
+
+export const TASK_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
+
+export const taskSchema = z.object({
+  id: optionalCuid,
+  title: requiredText("Title", 160),
+  description: requiredText("Description", 4000),
+  assigneeId: cuid,
+  priority: z.enum(TASK_PRIORITIES),
+  dueDate: optionalDateString,
+  customerId: optionalCuid,
+});
+
+/** The assignee's two moves. Cancelling is an admin action, not a form. */
+export const taskProgressSchema = z.object({
+  id: cuid,
+  status: z.enum(["IN_PROGRESS", "COMPLETED"]),
+  note: optionalText(1000),
+});
+
 export const expenseSchema = z.object({
   id: optionalCuid,
   date: dateString,

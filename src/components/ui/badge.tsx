@@ -66,6 +66,15 @@ const STATUS_TONES: Record<string, BadgeTone> = {
   DRAFT: "neutral",
   REIMBURSED: "success",
 
+  // Tasks
+  OPEN: "info",
+  IN_PROGRESS: "warning",
+  COMPLETED: "success",
+  LOW: "neutral",
+  MEDIUM: "info",
+  HIGH: "warning",
+  URGENT: "danger",
+
   // Users
   ACTIVE: "success",
   INACTIVE: "neutral",

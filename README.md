@@ -44,6 +44,7 @@ an administrator can see and what an employee can see.
 
 | Module | Notes |
 | --- | --- |
+| **Tasks** | Admins assign work to an employee — title, description, priority, due date, optional customer site. The employee is notified in-app and by email with the full details, then marks it started and completed; the assigning admin is told when it is done. |
 | **Attendance** | Self check-in/out plus an admin register for corrections. Month calendar per employee; Sundays and declared holidays are implied, not stored. |
 | **Leave** | Requests with balance tracking. Approving debits the balance *and* blocks out the calendar so payroll counts it as paid leave. |
 | **Daily work** | What each engineer did, optionally linked to a customer, reviewed by an admin. |
@@ -186,7 +187,7 @@ src/
     (app)/               Authenticated pages — share the app shell
       dashboard/         Role-aware landing page
       customers/  quotations/  invoices/  payments/  purchase-orders/
-      attendance/ leave/ work-logs/ expenses/ payslips/
+      tasks/      attendance/ leave/ work-logs/ expenses/ payslips/
       documents/  notifications/  reports/  settings/
       admin/             Admin-only: employees, attendance register,
                          approvals, payroll

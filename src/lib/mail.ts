@@ -162,6 +162,81 @@ export function documentEmail(options: {
   return { subject, text, html };
 }
 
+/**
+ * Email an employee receives when an administrator assigns them a task, or
+ * reassigns an existing one to them. Carries the full description so the
+ * person can act on it from their inbox without signing in first.
+ */
+export function taskAssignedEmail(options: {
+  assigneeName: string;
+  title: string;
+  description: string;
+  priority: string;
+  dueDate: string | null;
+  customer: string | null;
+  assignedBy: string;
+  companyName: string;
+  link: string;
+  reassigned?: boolean;
+}): { subject: string; text: string; html: string } {
+  const subject = `${options.reassigned ? "Task reassigned to you" : "New task"}: ${options.title}`;
+
+  const details: [string, string][] = [
+    ["Priority", options.priority],
+    ["Due", options.dueDate ?? "No due date"],
+    ["Customer", options.customer ?? "Not customer-specific"],
+    ["Assigned by", options.assignedBy],
+  ];
+
+  const text = [
+    `Hi ${options.assigneeName},`,
+    "",
+    `${options.assignedBy} has ${options.reassigned ? "reassigned a task to you" : "assigned you a new task"}.`,
+    "",
+    options.title,
+    "",
+    options.description,
+    "",
+    ...details.map(([label, value]) => `${label}: ${value}`),
+    "",
+    `Open the task: ${options.link}`,
+    "",
+    options.companyName,
+  ].join("\n");
+
+  const html = `
+<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#131a24;line-height:1.6">
+  <p>Hi ${escapeHtml(options.assigneeName)},</p>
+  <p>
+    <strong>${escapeHtml(options.assignedBy)}</strong> has
+    ${options.reassigned ? "reassigned a task to you" : "assigned you a new task"}.
+  </p>
+  <h2 style="margin:20px 0 8px;font-size:17px;color:#131a24">${escapeHtml(options.title)}</h2>
+  <p style="white-space:pre-line;margin:0 0 18px">${escapeHtml(options.description)}</p>
+  <table cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13.5px">
+    ${details
+      .map(
+        ([label, value]) => `<tr>
+      <td style="padding:4px 18px 4px 0;color:#566274;vertical-align:top">${escapeHtml(label)}</td>
+      <td style="padding:4px 0;color:#131a24">${escapeHtml(value)}</td>
+    </tr>`,
+      )
+      .join("")}
+  </table>
+  <p style="margin:22px 0">
+    <a href="${escapeHtml(options.link)}"
+       style="display:inline-block;padding:10px 18px;background:#1f4e79;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold">
+      Open the task
+    </a>
+  </p>
+  <p style="margin-top:20px;padding-top:14px;border-top:1px solid #e3e8ef;color:#566274">
+    <strong style="color:#131a24">${escapeHtml(options.companyName)}</strong>
+  </p>
+</div>`.trim();
+
+  return { subject, text, html };
+}
+
 /** Customer and company names are user-controlled; never interpolate raw. */
 function escapeHtml(value: string): string {
   return value

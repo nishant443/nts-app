@@ -3,6 +3,7 @@ import {
   BadgeIndianRupee,
   CalendarCheck,
   ClipboardList,
+  ListChecks,
   Receipt,
   Wallet,
 } from "lucide-react";
@@ -84,6 +85,64 @@ export function EmployeeDashboardView({ data }: { data: EmployeeDashboard }) {
           }
         />
       </StatGrid>
+
+      {/* Tasks ------------------------------------------------------------ */}
+      <Card>
+        <CardHeader
+          title="Your tasks"
+          description={
+            data.openTaskCount > 0
+              ? `${data.openTaskCount} open`
+              : "Nothing assigned right now"
+          }
+          action={
+            <Button href="/tasks" variant="ghost" size="sm">
+              All tasks
+              <ArrowRight aria-hidden="true" />
+            </Button>
+          }
+        />
+        {data.openTasks.length === 0 ? (
+          <EmptyState
+            title="No open tasks"
+            description="When your administrator assigns you work it will appear here."
+            icon={<ListChecks />}
+          />
+        ) : (
+          <ul className="divide-y divide-border">
+            {data.openTasks.map((task) => (
+              <li key={task.id}>
+                <a
+                  href={`/tasks/${task.id}`}
+                  className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-muted sm:px-5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13.5px] font-medium text-fg">
+                      {task.title}
+                    </p>
+                    <p
+                      className={
+                        task.overdue
+                          ? "truncate text-[12px] font-medium text-danger"
+                          : "truncate text-[12px] text-fg-muted"
+                      }
+                    >
+                      {task.dueDate
+                        ? `${task.overdue ? "Overdue — was due" : "Due"} ${formatDate(task.dueDate)}`
+                        : "No due date"}
+                      {task.customer ? ` · ${task.customer}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <StatusBadge status={task.priority} dot={false} />
+                    <StatusBadge status={task.status} dot={false} />
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
 
       <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Leave ---------------------------------------------------------- */}

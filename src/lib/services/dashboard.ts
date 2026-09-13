@@ -338,6 +338,17 @@ export interface EmployeeDashboard {
     status: string;
     customer: string | null;
   }[];
+  /** Work handed to this employee that is not yet finished, most urgent first. */
+  openTasks: {
+    id: string;
+    title: string;
+    priority: string;
+    status: string;
+    dueDate: Date | null;
+    overdue: boolean;
+    customer: string | null;
+  }[];
+  openTaskCount: number;
 }
 
 export async function getEmployeeDashboard(
@@ -358,6 +369,8 @@ export async function getEmployeeDashboard(
     latestPayslip,
     followUpInvoices,
     recentWork,
+    openTasks,
+    openTaskCount,
   ] = await Promise.all([
     prisma.attendance.findUnique({
       where: { userId_date: { userId: user.id, date: now } },
@@ -432,6 +445,26 @@ export async function getEmployeeDashboard(
         customer: { select: { companyName: true, name: true } },
       },
     }),
+    prisma.task.findMany({
+      where: { assigneeId: user.id, status: { in: ["OPEN", "IN_PROGRESS"] } },
+      orderBy: [
+        { priority: "desc" },
+        { dueDate: { sort: "asc", nulls: "last" } },
+        { createdAt: "desc" },
+      ],
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        priority: true,
+        status: true,
+        dueDate: true,
+        customer: { select: { companyName: true, name: true } },
+      },
+    }),
+    prisma.task.count({
+      where: { assigneeId: user.id, status: { in: ["OPEN", "IN_PROGRESS"] } },
+    }),
   ]);
 
   const summary = monthAttendance.reduce(
@@ -503,5 +536,15 @@ export async function getEmployeeDashboard(
       status: log.status,
       customer: log.customer?.companyName ?? log.customer?.name ?? null,
     })),
+    openTasks: openTasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      priority: task.priority,
+      status: task.status,
+      dueDate: task.dueDate,
+      overdue: Boolean(task.dueDate && task.dueDate < now),
+      customer: task.customer?.companyName ?? task.customer?.name ?? null,
+    })),
+    openTaskCount,
   };
 }

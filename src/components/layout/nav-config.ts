@@ -7,6 +7,7 @@ import {
   FileText,
   FolderOpen,
   LayoutDashboard,
+  ListChecks,
   Receipt,
   ScrollText,
   Settings,
@@ -53,6 +54,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "My workspace",
     items: [
+      { label: "Tasks", href: "/tasks", icon: ListChecks, matchPrefix: true },
       {
         label: "Attendance",
         href: "/attendance",
