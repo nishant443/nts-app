@@ -2,15 +2,7 @@
 
 import { useActionState, useState, useSyncExternalStore } from "react";
 import { useFormStatus } from "react-dom";
-import {
-  ArrowRight,
-  Eye,
-  EyeOff,
-  Loader2,
-  Lock,
-  Mail,
-  ShieldAlert,
-} from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Loader2, ShieldAlert } from "lucide-react";
 
 import { signIn } from "@/app/actions/auth";
 import { FormError } from "@/components/ui/field";
@@ -26,6 +18,12 @@ function greeting(): string {
 }
 
 const noop = () => () => {};
+
+const inputClass =
+  "h-[3.25rem] w-full rounded-full border bg-white/80 px-5 text-[15px] text-fg outline-none " +
+  "shadow-[0_1px_2px_rgb(16_24_40/0.04)] transition-[border-color,box-shadow,background-color] " +
+  "placeholder:text-fg-subtle focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/15 " +
+  "dark:bg-white/5 dark:focus:bg-white/10";
 
 export function LoginForm({
   notice,
@@ -45,17 +43,20 @@ export function LoginForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-5" noValidate>
-      <div>
+      <div className="text-center">
         <p className="h-5 text-[13px] font-medium text-accent">{hello}</p>
         <h1 className="mt-1 text-[28px] font-semibold tracking-tight text-fg">
           Sign in to NTS
         </h1>
+        <p className="mt-1.5 text-[13.5px] text-fg-muted">
+          Enter your work email and password to continue.
+        </p>
       </div>
 
       {notice && !state.error && state.ts === undefined && (
         <div
           role="status"
-          className="animate-fade-in flex gap-3 rounded-xl border border-warning/40 bg-warning-soft px-3.5 py-3"
+          className="animate-fade-in flex gap-3 rounded-2xl border border-warning/40 bg-warning-soft px-4 py-3"
         >
           <ShieldAlert
             aria-hidden="true"
@@ -72,42 +73,31 @@ export function LoginForm({
 
       <FormError>{state.error}</FormError>
 
-      <label className="group block">
-        <span className="mb-1.5 block text-[13px] font-medium text-fg">
+      <label className="block">
+        <span className="mb-1.5 block px-1 text-[13px] font-medium text-fg-muted">
           Email
         </span>
-        <span className="relative block">
-          <Mail
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-fg-subtle transition-colors group-focus-within:text-accent"
-          />
-          <input
-            name="email"
-            type="email"
-            autoComplete="username"
-            inputMode="email"
-            placeholder="you@ntss.co.in"
-            required
-            autoFocus
-            aria-invalid={invalid || undefined}
-            className={cn(
-              "h-12 w-full rounded-xl border bg-surface pl-11 pr-4 text-[15px] text-fg outline-none transition-[border-color,box-shadow]",
-              "placeholder:text-fg-subtle focus:border-accent focus:ring-4 focus:ring-accent/15",
-              invalid ? "border-danger" : "border-border-strong",
-            )}
-          />
-        </span>
+        <input
+          name="email"
+          type="email"
+          autoComplete="username"
+          inputMode="email"
+          placeholder="you@ntss.co.in"
+          required
+          autoFocus
+          aria-invalid={invalid || undefined}
+          className={cn(
+            inputClass,
+            invalid ? "border-danger" : "border-border-strong/70",
+          )}
+        />
       </label>
 
-      <label className="group block">
-        <span className="mb-1.5 block text-[13px] font-medium text-fg">
+      <label className="block">
+        <span className="mb-1.5 block px-1 text-[13px] font-medium text-fg-muted">
           Password
         </span>
         <span className="relative block">
-          <Lock
-            aria-hidden="true"
-            className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-fg-subtle transition-colors group-focus-within:text-accent"
-          />
           <input
             name="password"
             type={showPassword ? "text" : "password"}
@@ -117,9 +107,9 @@ export function LoginForm({
             aria-invalid={invalid || undefined}
             onKeyUp={(event) => setCapsLock(event.getModifierState("CapsLock"))}
             className={cn(
-              "h-12 w-full rounded-xl border bg-surface pl-11 pr-12 text-[15px] text-fg outline-none transition-[border-color,box-shadow]",
-              "placeholder:text-fg-subtle focus:border-accent focus:ring-4 focus:ring-accent/15",
-              invalid ? "border-danger" : "border-border-strong",
+              inputClass,
+              "pr-14",
+              invalid ? "border-danger" : "border-border-strong/70",
             )}
           />
           <button
@@ -127,7 +117,7 @@ export function LoginForm({
             onClick={() => setShowPassword((v) => !v)}
             aria-label={showPassword ? "Hide password" : "Show password"}
             aria-pressed={showPassword}
-            className="absolute right-2 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg"
+            className="absolute right-2.5 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-full text-fg-subtle transition-colors hover:bg-accent-soft hover:text-accent"
           >
             {showPassword ? (
               <EyeOff aria-hidden="true" className="size-[18px]" />
@@ -137,17 +127,13 @@ export function LoginForm({
           </button>
         </span>
         {capsLock && (
-          <span className="animate-fade-in mt-1.5 block text-[12.5px] text-warning">
+          <span className="animate-fade-in mt-1.5 block px-1 text-[12.5px] text-warning">
             Caps Lock is on.
           </span>
         )}
       </label>
 
       <SubmitButton />
-
-      <p className="text-center text-[13px] text-fg-subtle">
-        Forgotten your password? Ask your administrator to reset it.
-      </p>
     </form>
   );
 }
@@ -163,7 +149,7 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="group mt-1 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-accent text-[15px] font-semibold text-accent-fg shadow-raised transition-[background-color,transform,box-shadow] duration-150 hover:bg-accent-hover hover:shadow-overlay active:translate-y-px disabled:pointer-events-none disabled:opacity-60"
+      className="group mt-1 inline-flex h-[3.25rem] w-full items-center justify-center gap-2 rounded-full bg-accent text-[15px] font-semibold text-accent-fg shadow-[0_10px_24px_-8px_rgb(26_109_255/0.6)] transition-[background-color,transform,box-shadow] duration-150 hover:bg-accent-hover hover:shadow-[0_14px_28px_-8px_rgb(26_109_255/0.6)] active:translate-y-px disabled:pointer-events-none disabled:opacity-60"
     >
       {pending ? (
         <>
@@ -175,7 +161,7 @@ function SubmitButton() {
           Sign in
           <ArrowRight
             aria-hidden="true"
-            className="size-[18px] transition-transform duration-200 group-hover:translate-x-1"
+            className="size-[18px] transition-transform duration-150 group-hover:translate-x-0.5"
           />
         </>
       )}
