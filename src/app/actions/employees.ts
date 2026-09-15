@@ -7,7 +7,10 @@ import { action, formAction, formError, formSuccess } from "@/lib/action";
 import { generateTemporaryPassword, hashPassword } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { parseDateInput } from "@/lib/dates";
+import { env } from "@/lib/env";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
+import { isMailConfigured, notificationEmail, sendMail } from "@/lib/mail";
+import { getCompanySettings } from "@/lib/settings";
 import { flash } from "@/lib/flash";
 import { formatEmployeeCode } from "@/lib/numbering";
 import { prisma } from "@/lib/prisma";
@@ -82,6 +85,17 @@ export const createEmployee = formAction(
       entityId: created.id,
       meta: { name: input.name, role: input.role },
     });
+
+    // Welcome note. The password is never emailed — the admin passes it on.
+    await emailEmployee(
+      { name: input.name, email: input.email },
+      {
+        category: "Welcome to NTS",
+        title: `Your account is ready, ${input.name.split(" ")[0]}`,
+        body: `${user.name} has set you up on the NTS platform as ${created.employeeCode}. Sign in with this email address and the password your administrator gives you, then change it under Settings → Password.`,
+        link: "/login",
+      },
+    );
 
     revalidatePath("/admin/employees");
     await flash(`${input.name} added as ${created.employeeCode}.`);
@@ -307,7 +321,7 @@ export const setEmployeeStatus = action<
 
   const employee = await prisma.user.findUnique({
     where: { id: input.id },
-    select: { id: true, name: true, role: true, status: true },
+    select: { id: true, name: true, email: true, role: true, status: true },
   });
 
   if (!employee) throw new NotFoundError("That employee no longer exists.");
@@ -351,11 +365,61 @@ export const setEmployeeStatus = action<
     meta: { employee: employee.name, reason: input.reason ?? null },
   });
 
+  await emailEmployee(
+    employee,
+    input.active
+      ? {
+          category: "Account reactivated",
+          title: "Your NTS account is active again",
+          body: "You can sign in as before.",
+          link: "/login",
+        }
+      : {
+          category: "Account deactivated",
+          title: "Your NTS account has been deactivated",
+          body: input.reason
+            ? `Reason given: ${input.reason}. Contact your administrator if you have any questions.`
+            : "Contact your administrator if you have any questions.",
+          link: null,
+        },
+  );
+
   revalidatePath("/admin/employees");
   revalidatePath(`/admin/employees/${employee.id}`);
 
   return { name: employee.name, active: input.active };
 });
+
+/**
+ * Account emails go straight to the address on file rather than through
+ * `notify()`, which only reaches active users — a deactivated person still
+ * needs to hear about it. Best effort; never fails the action.
+ */
+async function emailEmployee(
+  recipient: { name: string; email: string },
+  message: {
+    category: string;
+    title: string;
+    body: string;
+    link: string | null;
+  },
+): Promise<void> {
+  if (!isMailConfigured()) return;
+  try {
+    const settings = await getCompanySettings();
+    const { subject, text, html } = notificationEmail({
+      recipientName: recipient.name,
+      category: message.category,
+      title: message.title,
+      body: message.body,
+      link: message.link ? `${env.NEXT_PUBLIC_APP_URL}${message.link}` : null,
+      companyName: settings.name,
+    });
+    await sendMail({ to: recipient.email, subject, text, html });
+  } catch (error) {
+    console.error("[employees] email failed", recipient.email, error);
+  }
+}
 
 /**
  * Issues a new temporary password and signs the employee out everywhere. The

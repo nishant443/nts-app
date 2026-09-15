@@ -360,6 +360,56 @@ export function taskCompletedEmail(options: {
   return { subject, text, html };
 }
 
+/**
+ * The email twin of an in-app notification — leave decisions, expense and
+ * work-report reviews, payslips, payments. One layout, so every message from
+ * the system looks the same: what happened, one line of detail, a button.
+ */
+export function notificationEmail(options: {
+  recipientName: string;
+  category: string;
+  title: string;
+  body: string | null;
+  link: string | null;
+  companyName: string;
+}): { subject: string; text: string; html: string } {
+  const subject = `${options.category}: ${options.title}`;
+
+  const text = [
+    `Hi ${options.recipientName},`,
+    "",
+    options.title,
+    ...(options.body ? ["", options.body] : []),
+    ...(options.link ? ["", `Open in NTS: ${options.link}`] : []),
+    "",
+    options.companyName,
+  ].join("\n");
+
+  const html = `
+<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#131a24;line-height:1.6">
+  ${brandHeader(options.companyName)}
+  <p style="margin:0 0 6px;font-size:12px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:#1f4e79">${escapeHtml(options.category)}</p>
+  <p>Hi ${escapeHtml(options.recipientName)},</p>
+  <h2 style="margin:12px 0 8px;font-size:17px;color:#131a24">${escapeHtml(options.title)}</h2>
+  ${options.body ? `<p style="white-space:pre-line;margin:0 0 18px;color:#334155">${escapeHtml(options.body)}</p>` : ""}
+  ${
+    options.link
+      ? `<p style="margin:22px 0">
+    <a href="${escapeHtml(options.link)}"
+       style="display:inline-block;padding:10px 18px;background:#1f4e79;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold">
+      Open in NTS
+    </a>
+  </p>`
+      : ""
+  }
+  <p style="margin-top:20px;padding-top:14px;border-top:1px solid #e3e8ef;color:#566274">
+    <strong style="color:#131a24">${escapeHtml(options.companyName)}</strong>
+  </p>
+</div>`.trim();
+
+  return { subject, text, html };
+}
+
 /** Customer and company names are user-controlled; never interpolate raw. */
 function escapeHtml(value: string): string {
   return value

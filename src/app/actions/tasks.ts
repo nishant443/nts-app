@@ -139,6 +139,7 @@ export const saveTask = formAction(
           title: `${user.name} assigned you a task`,
           body: input.title,
           link: `/tasks/${updated.id}`,
+          email: false, // the detailed assignment email follows
         });
 
         const emailedAt = await emailAssignment({
@@ -205,6 +206,7 @@ export const saveTask = formAction(
       title: `${user.name} assigned you a task`,
       body: input.title,
       link: `/tasks/${created.id}`,
+      email: false, // the detailed assignment email follows
     });
 
     const emailedAt = await emailAssignment({
@@ -333,7 +335,11 @@ export const progressTask = formAction(
       // Tell whoever assigned it — in the app and by email — and fall back to
       // every admin if they are gone.
       if (task.assignedById && task.assignedById !== user.id) {
-        await notify({ userId: task.assignedById, ...notification });
+        await notify({
+          userId: task.assignedById,
+          ...notification,
+          email: false, // the detailed completion email follows
+        });
         if (task.assignedBy) {
           await emailCompletion({
             task,

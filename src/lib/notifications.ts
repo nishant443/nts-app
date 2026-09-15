@@ -1,11 +1,18 @@
 import "server-only";
 
 import type { NotificationType } from "@/generated/prisma/enums";
+import { env } from "@/lib/env";
+import { isMailConfigured, notificationEmail, sendMail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
+import { getCompanySettings } from "@/lib/settings";
 
 /**
- * In-app notifications. Delivery is best-effort — a failure here must not undo
- * the leave approval (or whatever) that triggered it.
+ * Notifications: an in-app row for the bell, and the same message by email.
+ *
+ * Delivery is best-effort — a failure here must not undo the leave approval
+ * (or whatever) that triggered it. Email is skipped when SMTP is not
+ * configured, and callers that send their own richer email (task assignment,
+ * task completion) pass `email: false` so nobody gets the news twice.
  */
 
 interface NotifyInput {
@@ -14,7 +21,31 @@ interface NotifyInput {
   title: string;
   body?: string;
   link?: string;
+  /** Also email the person. Default true. */
+  email?: boolean;
 }
+
+/** Subject prefix / eyebrow for each kind of event. */
+const CATEGORY: Record<NotificationType, string> = {
+  LEAVE_SUBMITTED: "Leave request",
+  LEAVE_APPROVED: "Leave approved",
+  LEAVE_REJECTED: "Leave not approved",
+  WORKLOG_SUBMITTED: "Work report",
+  WORKLOG_APPROVED: "Work report approved",
+  WORKLOG_REJECTED: "Work report returned",
+  EXPENSE_SUBMITTED: "Expense claim",
+  EXPENSE_APPROVED: "Expense approved",
+  EXPENSE_REJECTED: "Expense not approved",
+  PAYSLIP_READY: "Payslip",
+  PAYMENT_RECEIVED: "Payment received",
+  PAYMENT_OVERDUE: "Payment overdue",
+  QUOTATION_ACCEPTED: "Quotation accepted",
+  TASK_ASSIGNED: "Task assigned",
+  TASK_UPDATED: "Task updated",
+  TASK_COMPLETED: "Task completed",
+  TASK_CANCELLED: "Task cancelled",
+  GENERAL: "Notification",
+};
 
 export async function notify(input: NotifyInput): Promise<void> {
   try {
@@ -30,16 +61,25 @@ export async function notify(input: NotifyInput): Promise<void> {
   } catch (error) {
     console.error("[notify] failed", input.type, error);
   }
+
+  if (input.email !== false) {
+    const user = await prisma.user.findUnique({
+      where: { id: input.userId },
+      select: { name: true, email: true, status: true },
+    });
+    if (user && user.status === "ACTIVE") await emailNotification(user, input);
+  }
 }
 
 /** Fan out to every active admin — used when an employee submits something. */
 export async function notifyAdmins(
   input: Omit<NotifyInput, "userId">,
 ): Promise<void> {
+  let admins: { id: string; name: string; email: string }[] = [];
   try {
-    const admins = await prisma.user.findMany({
+    admins = await prisma.user.findMany({
       where: { role: "ADMIN", status: "ACTIVE" },
-      select: { id: true },
+      select: { id: true, name: true, email: true },
     });
 
     if (admins.length === 0) return;
@@ -55,6 +95,33 @@ export async function notifyAdmins(
     });
   } catch (error) {
     console.error("[notify] admin fan-out failed", input.type, error);
+  }
+
+  if (input.email !== false) {
+    for (const admin of admins) await emailNotification(admin, input);
+  }
+}
+
+async function emailNotification(
+  recipient: { name: string; email: string },
+  input: Omit<NotifyInput, "userId">,
+): Promise<void> {
+  if (!isMailConfigured()) return;
+
+  try {
+    const settings = await getCompanySettings();
+    const { subject, text, html } = notificationEmail({
+      recipientName: recipient.name,
+      category: CATEGORY[input.type],
+      title: input.title,
+      body: input.body ?? null,
+      link: input.link ? `${env.NEXT_PUBLIC_APP_URL}${input.link}` : null,
+      companyName: settings.name,
+    });
+    await sendMail({ to: recipient.email, subject, text, html });
+  } catch (error) {
+    // The in-app notification is already saved; email is best effort.
+    console.error("[notify] email failed", input.type, error);
   }
 }
 
