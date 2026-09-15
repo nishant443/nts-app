@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import { saveCompanySettings } from "@/app/actions/settings";
 import { FormBanners, SubmitButton } from "@/components/forms/form-shell";
+import { OfficeLocationFields } from "@/components/settings/office-location-fields";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, FormGrid, Input, Select } from "@/components/ui/field";
 import { emptyFormState, fieldError } from "@/lib/form-state";
@@ -34,6 +35,9 @@ export interface CompanySettingsValues {
   purchaseOrderPrefix: string;
   defaultTaxRate: string;
   homeState: string;
+  officeLatitude: string;
+  officeLongitude: string;
+  checkInRadiusMeters: string;
 }
 
 export function CompanySettingsForm({
@@ -239,6 +243,23 @@ export function CompanySettingsForm({
               <Input id="upiId" name="upiId" defaultValue={values.upiId} placeholder="name@bank" />
             </Field>
           </FormGrid>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title="Attendance location"
+          description="When set, employees can check in and out only from within this distance of the office. Leave the coordinates blank to allow check-in from anywhere."
+        />
+        <CardBody>
+          <OfficeLocationFields
+            state={state}
+            values={{
+              officeLatitude: values.officeLatitude,
+              officeLongitude: values.officeLongitude,
+              checkInRadiusMeters: values.checkInRadiusMeters,
+            }}
+          />
         </CardBody>
       </Card>
 

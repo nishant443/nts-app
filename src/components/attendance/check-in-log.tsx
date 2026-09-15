@@ -5,6 +5,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
+import { formatDistance } from "@/lib/attendance-rules";
 import {
   dayKey,
   formatDate,
@@ -27,6 +28,9 @@ export interface CheckInLogRow {
   workedMinutes: number;
   source: string | null;
   notes: string | null;
+  /** Metres from the office at check-in / check-out; null when no fence was set. */
+  checkInDistanceM: number | null;
+  checkOutDistanceM: number | null;
 }
 
 /**
@@ -115,6 +119,9 @@ export function CheckInLog({
                 Hours
               </th>
               <th scope="col" className="px-4 py-2.5 text-left">
+                From office
+              </th>
+              <th scope="col" className="px-4 py-2.5 text-left">
                 Status
               </th>
               <th scope="col" className="px-4 py-2.5 text-left sm:px-5">
@@ -170,6 +177,25 @@ export function CheckInLog({
                 </td>
                 <td className="tnum whitespace-nowrap px-4 py-2.5 text-right text-[13.5px] text-fg">
                   {formatDuration(row.workedMinutes)}
+                </td>
+                <td className="tnum whitespace-nowrap px-4 py-2.5 text-[12.5px] text-fg-muted">
+                  {row.checkInDistanceM === null && row.checkOutDistanceM === null ? (
+                    <span className="text-fg-subtle">—</span>
+                  ) : (
+                    <>
+                      {row.checkInDistanceM !== null && (
+                        <span title="Distance from office at check-in">
+                          in {formatDistance(row.checkInDistanceM)}
+                        </span>
+                      )}
+                      {row.checkInDistanceM !== null && row.checkOutDistanceM !== null && " · "}
+                      {row.checkOutDistanceM !== null && (
+                        <span title="Distance from office at check-out">
+                          out {formatDistance(row.checkOutDistanceM)}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </td>
                 <td className="px-4 py-2.5">
                   {row.status ? (

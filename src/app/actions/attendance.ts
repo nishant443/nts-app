@@ -3,12 +3,18 @@
 import { revalidatePath } from "next/cache";
 
 import { action, formAction, formError, formSuccess } from "@/lib/action";
+import {
+  checkGeofence,
+  type Geofence,
+  type Position,
+} from "@/lib/attendance-rules";
 import { recordAudit } from "@/lib/audit";
 import { BUSINESS_UTC_OFFSET, today } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { getCheckInGate } from "@/lib/services/check-in";
-import { attendanceMarkSchema } from "@/lib/validation";
+import { getGeofence } from "@/lib/settings";
+import { attendanceMarkSchema, positionSchema } from "@/lib/validation";
 
 /**
  * Attendance actions.
@@ -18,9 +24,32 @@ import { attendanceMarkSchema } from "@/lib/validation";
  * second record or reset the morning's check-in time. It is only accepted
  * inside the window in `lib/attendance-rules.ts` — from 9:00 am IST, not on
  * Sundays or holidays — and the button in the UI reflects the same rule.
+ *
+ * When the admin has set an office location, both buttons also need a GPS fix
+ * from the browser and refuse anything outside the allowed radius. The
+ * position and distance are stored so the admin can see where each check-in
+ * came from.
  */
 
-export const checkIn = action<void>({ access: "user" }, async ({ user }) => {
+/**
+ * Validate the browser-supplied position against the office fence. Returns
+ * the distance to record, or null when no fence is configured.
+ */
+async function verifyPosition(
+  raw: unknown,
+  fence: Geofence | null,
+): Promise<{ position: Position | null; distance: number | null }> {
+  const parsed = positionSchema.safeParse(raw ?? null);
+  const position = parsed.success ? parsed.data : null;
+
+  if (!fence) return { position, distance: null };
+
+  const result = checkGeofence(fence, position);
+  if (!result.ok) throw new AppError(result.message);
+  return { position, distance: result.distance };
+}
+
+export const checkIn = action<Position | null>({ access: "user" }, async ({ input, user }) => {
   const date = today();
   const now = new Date();
 
@@ -36,6 +65,13 @@ export const checkIn = action<void>({ access: "user" }, async ({ user }) => {
   const gate = await getCheckInGate();
   if (!gate.open) throw new AppError(gate.message);
 
+  const { position, distance } = await verifyPosition(input, await getGeofence());
+  const where = {
+    checkInLatitude: position?.latitude ?? null,
+    checkInLongitude: position?.longitude ?? null,
+    checkInDistanceM: distance,
+  };
+
   await prisma.attendance.upsert({
     where: { userId_date: { userId: user.id, date } },
     create: {
@@ -44,22 +80,23 @@ export const checkIn = action<void>({ access: "user" }, async ({ user }) => {
       status: "PRESENT",
       checkInAt: now,
       source: "SELF_CHECK_IN",
+      ...where,
     },
-    update: { status: "PRESENT", checkInAt: now, source: "SELF_CHECK_IN" },
+    update: { status: "PRESENT", checkInAt: now, source: "SELF_CHECK_IN", ...where },
   });
 
   await recordAudit({
     userId: user.id,
     action: "attendance.check_in",
     entity: "Attendance",
-    meta: { date: date.toISOString() },
+    meta: { date: date.toISOString(), distanceM: distance },
   });
 
   revalidatePath("/dashboard");
   revalidatePath("/attendance");
 });
 
-export const checkOut = action<void>({ access: "user" }, async ({ user }) => {
+export const checkOut = action<Position | null>({ access: "user" }, async ({ input, user }) => {
   const date = today();
   const now = new Date();
 
@@ -75,6 +112,8 @@ export const checkOut = action<void>({ access: "user" }, async ({ user }) => {
     throw new AppError("You have already checked out today.");
   }
 
+  const { position, distance } = await verifyPosition(input, await getGeofence());
+
   const workedMinutes = Math.max(
     0,
     Math.round((now.getTime() - existing.checkInAt.getTime()) / 60_000),
@@ -87,6 +126,9 @@ export const checkOut = action<void>({ access: "user" }, async ({ user }) => {
       workedMinutes,
       // Less than four hours on site is recorded as a half day.
       status: workedMinutes < 240 ? "HALF_DAY" : "PRESENT",
+      checkOutLatitude: position?.latitude ?? null,
+      checkOutLongitude: position?.longitude ?? null,
+      checkOutDistanceM: distance,
     },
   });
 
@@ -95,7 +137,7 @@ export const checkOut = action<void>({ access: "user" }, async ({ user }) => {
     action: "attendance.check_out",
     entity: "Attendance",
     entityId: existing.id,
-    meta: { workedMinutes },
+    meta: { workedMinutes, distanceM: distance },
   });
 
   revalidatePath("/dashboard");

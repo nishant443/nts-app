@@ -42,6 +42,32 @@ const optionalDateString = z
   );
 
 /** Numeric form field: arrives as a string, must end up a finite number. */
+/** Like `numeric`, but an empty field means "not set" (undefined). */
+const nullableNumeric = (
+  label: string,
+  options: { min?: number; max?: number } = {},
+) =>
+  z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((value) =>
+      value === undefined || value === "" ? undefined : String(value).trim(),
+    )
+    .refine((value) => value === undefined || Number.isFinite(Number(value)), {
+      message: `${label} must be a number.`,
+    })
+    .transform((value) => (value === undefined ? undefined : Number(value)))
+    .refine(
+      (value) =>
+        value === undefined || options.min === undefined || value >= options.min,
+      { message: `${label} must be at least ${options.min}.` },
+    )
+    .refine(
+      (value) =>
+        value === undefined || options.max === undefined || value <= options.max,
+      { message: `${label} must be at most ${options.max}.` },
+    );
+
 const numeric = (label: string, options: { min?: number; max?: number } = {}) =>
   z
     .union([z.string(), z.number()])
@@ -535,7 +561,28 @@ export const companySettingsSchema = z.object({
   purchaseOrderPrefix: requiredText("Purchase order prefix", 30),
   defaultTaxRate: numeric("Default tax rate", { min: 0, max: 100 }),
   homeState: requiredText("Home state", 100),
-});
+  officeLatitude: nullableNumeric("Office latitude", { min: -90, max: 90 }),
+  officeLongitude: nullableNumeric("Office longitude", { min: -180, max: 180 }),
+  checkInRadiusMeters: numeric("Check-in radius", { min: 10, max: 5000 }),
+})
+  .refine(
+    (value) =>
+      (value.officeLatitude === undefined) ===
+      (value.officeLongitude === undefined),
+    {
+      message: "Enter both latitude and longitude, or leave both blank.",
+      path: ["officeLongitude"],
+    },
+  );
+
+/** GPS fix sent along with a self check-in / check-out. */
+export const positionSchema = z
+  .object({
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    accuracy: z.number().min(0).optional(),
+  })
+  .nullable();
 
 export const holidaySchema = z.object({
   date: dateString,

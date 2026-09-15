@@ -111,7 +111,7 @@ everything, approve everything, run payroll and hold the company-wide numbers.
 | | |
 | --- | --- |
 | **Tasks** | Admin assigns work → employee is notified in-app **and by email** → marks it complete with a note → admin is told back the same way. |
-| **Attendance** | Self check-in from **9:00 am IST**, never on Sundays or holidays. Check-in/out times are tracked and visible to admins day by day. |
+| **Attendance** | Self check-in from **9:00 am IST**, never on Sundays or holidays. Optional **office geofence** — set the office coordinates and a radius (default 30 m) in Settings → Company and check-in/out only works on site. Times and distance from the office are visible to admins day by day. |
 | **Leave** | Requests with balances; approval debits the balance and blocks the calendar. |
 | **Daily work** | What each engineer did, per customer, reviewed by an admin. |
 | **Expenses** | Claims with receipt upload, approved and folded into the next payslip. |
@@ -231,6 +231,12 @@ Sundays or declared holidays (`src/lib/attendance-rules.ts`). The rule runs on
 the server *and* drives what the button shows. Times are stored as real instants
 and read in Indian Standard Time wherever the app is hosted. Less than four hours
 on site becomes a half day.
+
+When an office location is set (Settings → Company → *Attendance location*),
+the Check in / Check out buttons first ask the browser for a GPS fix and the
+server refuses anything farther than the allowed radius (default 30 m) from the
+office. The distance is recorded with every check-in and shown in the admin
+day log. Leave the coordinates blank and check-in works from anywhere.
 
 **Payroll.** Working days = calendar days − Sundays − holidays. Paid days =
 present (1) + half day (0.5) + approved paid leave. Loss of pay is the shortfall
@@ -368,7 +374,7 @@ src/
     session.ts           JWT encode/decode and cookie handling
     action.ts / api.ts   Server Action and Route Handler wrappers
     validation.ts        Zod schemas for every form and endpoint
-    attendance-rules.ts  Check-in window (9 am IST, no Sundays/holidays)
+    attendance-rules.ts  Check-in window (9 am IST, no Sundays/holidays) + office geofence
     tax.ts               GST computation
     payroll-math.ts      Pure payroll arithmetic
     dates.ts / money.ts  Calendar (IST-aware) and money helpers

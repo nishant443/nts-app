@@ -2,14 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarOff, Clock, LogIn, LogOut } from "lucide-react";
+import { CalendarOff, Clock, LogIn, LogOut, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 import { checkIn, checkOut } from "@/app/actions/attendance";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
 import { showSuccess } from "@/components/ui/success-popup";
-import type { CheckInGate } from "@/lib/attendance-rules";
+import type { CheckInGate, Position } from "@/lib/attendance-rules";
 import { formatDuration, formatTime } from "@/lib/dates";
 
 /**
@@ -18,7 +18,40 @@ import { formatDuration, formatTime } from "@/lib/dates";
  * The elapsed time shown after checking in is computed once on the server and
  * ticks locally — deliberately not a live-updating clock, which would keep the
  * whole tree re-rendering all day for no real benefit.
+ *
+ * When the office fence is on (`gate.geofence`), the button first asks the
+ * browser for a fresh GPS fix and sends it with the action; the server does
+ * the distance check, so a tampered client gains nothing.
  */
+
+/** A fresh, high-accuracy fix — or a message explaining why there is none. */
+function locate(): Promise<Position> {
+  return new Promise((resolve, reject) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      reject(new Error("This browser cannot share your location."));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) =>
+        resolve({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          accuracy: coords.accuracy,
+        }),
+      (error) =>
+        reject(
+          new Error(
+            error.code === error.PERMISSION_DENIED
+              ? "Location access is blocked. Allow it for this site in your browser and try again."
+              : error.code === error.TIMEOUT
+                ? "Could not get your location in time. Move somewhere with better signal and try again."
+                : "Your location is unavailable right now. Try again in a moment.",
+          ),
+        ),
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
+    );
+  });
+}
 export function CheckInCard({
   status,
   checkInAt,
@@ -35,6 +68,7 @@ export function CheckInCard({
 }) {
   const [pending, startTransition] = useTransition();
   const [optimisticDone, setOptimisticDone] = useState(false);
+  const [locating, setLocating] = useState(false);
   const router = useRouter();
 
   const run = (
@@ -42,7 +76,20 @@ export function CheckInCard({
     successMessage: string,
   ) => {
     startTransition(async () => {
-      const result = await fn();
+      let position: Position | null = null;
+      if (gate.geofence) {
+        setLocating(true);
+        try {
+          position = await locate();
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : String(error));
+          return;
+        } finally {
+          setLocating(false);
+        }
+      }
+
+      const result = await fn(position);
       if (result.ok) {
         showSuccess(successMessage);
         setOptimisticDone(true);
@@ -84,6 +131,14 @@ export function CheckInCard({
               </>
             )}
           </p>
+
+          {gate.geofence && !hasCheckedOut && (
+            <p className="mt-1 inline-flex items-center gap-1 text-[12px] text-fg-subtle">
+              <MapPin aria-hidden="true" className="size-3.5" />
+              Works only within {gate.geofence.radiusMeters} m of the office —
+              your location is checked.
+            </p>
+          )}
         </div>
       </div>
 
@@ -97,7 +152,7 @@ export function CheckInCard({
             className="sm:w-auto"
           >
             <LogIn aria-hidden="true" />
-            {pending ? "Checking in…" : "Check in"}
+            {locating ? "Finding you…" : pending ? "Checking in…" : "Check in"}
           </Button>
         )}
 
@@ -121,7 +176,7 @@ export function CheckInCard({
             className="sm:w-auto"
           >
             <LogOut aria-hidden="true" />
-            {pending ? "Checking out…" : "Check out"}
+            {locating ? "Finding you…" : pending ? "Checking out…" : "Check out"}
           </Button>
         )}
 

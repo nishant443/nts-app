@@ -5,7 +5,8 @@ import { useActionState } from "react";
 import { changePassword } from "@/app/actions/auth";
 import { FormBanners, SubmitButton } from "@/components/forms/form-shell";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { Field, Input } from "@/components/ui/field";
+import { Field } from "@/components/ui/field";
+import { PasswordInput } from "@/components/ui/password-input";
 import { emptyFormState, fieldError } from "@/lib/form-state";
 
 export function ChangePasswordForm() {
@@ -27,10 +28,9 @@ export function ChangePasswordForm() {
             required
             error={fieldError(state, "currentPassword")}
           >
-            <Input
+            <PasswordInput
               id="currentPassword"
               name="currentPassword"
-              type="password"
               autoComplete="current-password"
               required
               invalid={Boolean(fieldError(state, "currentPassword"))}
@@ -44,10 +44,9 @@ export function ChangePasswordForm() {
             hint="At least 10 characters, with an upper case letter, a lower case letter and a number."
             error={fieldError(state, "newPassword")}
           >
-            <Input
+            <PasswordInput
               id="newPassword"
               name="newPassword"
-              type="password"
               autoComplete="new-password"
               required
               invalid={Boolean(fieldError(state, "newPassword"))}
@@ -60,10 +59,9 @@ export function ChangePasswordForm() {
             required
             error={fieldError(state, "confirmPassword")}
           >
-            <Input
+            <PasswordInput
               id="confirmPassword"
               name="confirmPassword"
-              type="password"
               autoComplete="new-password"
               required
               invalid={Boolean(fieldError(state, "confirmPassword"))}

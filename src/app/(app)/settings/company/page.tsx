@@ -40,6 +40,9 @@ export default async function CompanySettingsPage() {
         purchaseOrderPrefix: settings.purchaseOrderPrefix,
         defaultTaxRate: String(settings.defaultTaxRate),
         homeState: settings.homeState,
+        officeLatitude: settings.officeLatitude?.toString() ?? "",
+        officeLongitude: settings.officeLongitude?.toString() ?? "",
+        checkInRadiusMeters: String(settings.checkInRadiusMeters),
       }}
     />
   );
