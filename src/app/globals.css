@@ -293,14 +293,9 @@
     animation: pop 0.16s var(--ease-out-quart) both;
   }
 
-  /* Slow drift for the light blooms and twinkle for the stars on the
-     sign-in visual. Long and gentle, never attention-grabbing. */
-  .animate-drift {
-    animation: drift 14s ease-in-out infinite alternate;
-  }
-
-  .animate-twinkle {
-    animation: twinkle 3.2s ease-in-out infinite;
+  /* Slow push-in on the sign-in slideshow photo while it is showing. */
+  .animate-kenburns {
+    animation: kenburns 4.5s ease-out both;
   }
 
   /* Skeleton shimmer used by loading.tsx files. */
@@ -356,24 +351,12 @@
   }
 }
 
-@keyframes drift {
+@keyframes kenburns {
   from {
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: scale(1);
   }
   to {
-    transform: translate3d(2.5rem, -1.5rem, 0) scale(1.08);
-  }
-}
-
-@keyframes twinkle {
-  0%,
-  100% {
-    opacity: 0.25;
-    transform: scale(0.8);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1);
+    transform: scale(1.08);
   }
 }
 

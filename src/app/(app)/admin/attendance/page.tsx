@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { CheckInLog } from "@/components/attendance/check-in-log";
 import { MarkAttendanceForm } from "@/components/attendance/mark-attendance-form";
 import { Avatar } from "@/components/ui/avatar";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -9,7 +10,16 @@ import { MonthPicker } from "@/components/ui/month-picker";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { requireAdmin } from "@/lib/dal";
-import { dayKey, daysInMonth, formatDuration, isWeekOff, monthRange, today } from "@/lib/dates";
+import {
+  dayKey,
+  daysInMonth,
+  formatDuration,
+  formatTime,
+  isWeekOff,
+  monthRange,
+  parseDateInput,
+  today,
+} from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { param, type SearchParams } from "@/lib/query";
 import { resolveMonth } from "@/lib/services/attendance";
@@ -42,31 +52,74 @@ export default async function AttendanceRegisterPage(props: {
   const { from, to } = monthRange(month, year);
   const now = today();
 
-  const [employees, records, holidays] = await Promise.all([
-    prisma.user.findMany({
-      where: { status: "ACTIVE" },
-      orderBy: { employeeCode: "asc" },
-      select: {
-        id: true,
-        name: true,
-        employeeCode: true,
-        avatarUrl: true,
-      },
-    }),
-    prisma.attendance.findMany({
-      where: { date: { gte: from, lte: to } },
-      select: {
-        userId: true,
-        date: true,
-        status: true,
-        workedMinutes: true,
-      },
-    }),
-    prisma.holiday.findMany({
-      where: { date: { gte: from, lte: to } },
-      select: { date: true, name: true },
-    }),
-  ]);
+  // The check-in log shows one day in full; defaults to today, never later.
+  const requestedDay = param(searchParams, "day");
+  let logDay = now;
+  if (requestedDay && /^\d{4}-\d{2}-\d{2}$/.test(requestedDay)) {
+    const parsed = parseDateInput(requestedDay);
+    if (parsed <= now) logDay = parsed;
+  }
+
+  const [employees, records, holidays, logRecords, logHoliday] =
+    await Promise.all([
+      prisma.user.findMany({
+        where: { status: "ACTIVE" },
+        orderBy: { employeeCode: "asc" },
+        select: {
+          id: true,
+          name: true,
+          employeeCode: true,
+          avatarUrl: true,
+        },
+      }),
+      prisma.attendance.findMany({
+        where: { date: { gte: from, lte: to } },
+        select: {
+          userId: true,
+          date: true,
+          status: true,
+          workedMinutes: true,
+          checkInAt: true,
+          checkOutAt: true,
+        },
+      }),
+      prisma.holiday.findMany({
+        where: { date: { gte: from, lte: to } },
+        select: { date: true, name: true },
+      }),
+      prisma.attendance.findMany({
+        where: { date: logDay },
+        select: {
+          userId: true,
+          status: true,
+          checkInAt: true,
+          checkOutAt: true,
+          workedMinutes: true,
+          source: true,
+          notes: true,
+        },
+      }),
+      prisma.holiday.findUnique({
+        where: { date: logDay },
+        select: { name: true },
+      }),
+    ]);
+
+  const logByUser = new Map(
+    logRecords.map((record) => [record.userId, record]),
+  );
+  const logRows = employees.map((employee) => {
+    const record = logByUser.get(employee.id);
+    return {
+      employee,
+      status: record?.status ?? null,
+      checkInAt: record?.checkInAt ?? null,
+      checkOutAt: record?.checkOutAt ?? null,
+      workedMinutes: record?.workedMinutes ?? 0,
+      source: record?.source ?? null,
+      notes: record?.notes ?? null,
+    };
+  });
 
   const days = daysInMonth(month, year);
   const holidayKeys = new Map(
@@ -76,12 +129,19 @@ export default async function AttendanceRegisterPage(props: {
   // Keyed lookup so the grid below is a plain O(1) read per cell.
   const byUserDay = new Map<
     string,
-    { status: string; workedMinutes: number }
+    {
+      status: string;
+      workedMinutes: number;
+      checkInAt: Date | null;
+      checkOutAt: Date | null;
+    }
   >();
   for (const record of records) {
     byUserDay.set(`${record.userId}:${dayKey(record.date)}`, {
       status: record.status,
       workedMinutes: record.workedMinutes,
+      checkInAt: record.checkInAt,
+      checkOutAt: record.checkOutAt,
     });
   }
 
@@ -133,11 +193,7 @@ export default async function AttendanceRegisterPage(props: {
         description="Everyone's month at a glance. Click a name to see their calendar."
         breadcrumbs={[{ label: "Administration" }, { label: "Attendance" }]}
         actions={
-          <MonthPicker
-            month={month}
-            year={year}
-            basePath="/admin/attendance"
-          />
+          <MonthPicker month={month} year={year} basePath="/admin/attendance" />
         }
       />
 
@@ -155,6 +211,14 @@ export default async function AttendanceRegisterPage(props: {
           tone="neutral"
         />
       </StatGrid>
+
+      <CheckInLog
+        day={logDay}
+        today={now}
+        holiday={logHoliday?.name ?? null}
+        rows={logRows}
+        basePath="/admin/attendance"
+      />
 
       <MarkAttendanceForm
         employees={employees.map((employee) => ({
@@ -239,11 +303,20 @@ export default async function AttendanceRegisterPage(props: {
                       const status = resolve(row.employee.id, date);
                       const style = status ? CELL[status] : undefined;
                       const future = date > now;
+                      const record = byUserDay.get(
+                        `${row.employee.id}:${dayKey(date)}`,
+                      );
+                      const times = record?.checkInAt
+                        ? ` · in ${formatTime(record.checkInAt)}${record.checkOutAt ? `, out ${formatTime(record.checkOutAt)}` : ""}`
+                        : "";
 
                       return (
-                        <td key={dayKey(date)} className="px-0 py-2 text-center">
+                        <td
+                          key={dayKey(date)}
+                          className="px-0 py-2 text-center"
+                        >
                           <span
-                            title={`${row.employee.name} — ${dayKey(date)}: ${status?.toLowerCase().replace("_", " ") ?? "not marked"}`}
+                            title={`${row.employee.name} — ${dayKey(date)}: ${status?.toLowerCase().replace("_", " ") ?? "not marked"}${times}`}
                             className={cn(
                               "mx-auto flex size-6 items-center justify-center rounded text-[10.5px] font-semibold",
                               style?.className ??

@@ -9,6 +9,7 @@ import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { requireUser } from "@/lib/dal";
 import { formatDuration, monthRange, today } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { getCheckInGate } from "@/lib/services/check-in";
 import { param, type SearchParams } from "@/lib/query";
 import { getAttendanceMonth, resolveMonth } from "@/lib/services/attendance";
 
@@ -31,7 +32,7 @@ export default async function AttendancePage(props: {
   const isCurrentMonth =
     month === now.getUTCMonth() + 1 && year === now.getUTCFullYear();
 
-  const [{ days, summary }, todayRecord] = await Promise.all([
+  const [{ days, summary }, todayRecord, gate] = await Promise.all([
     getAttendanceMonth(user.id, month, year),
     prisma.attendance.findUnique({
       where: { userId_date: { userId: user.id, date: now } },
@@ -42,6 +43,7 @@ export default async function AttendancePage(props: {
         workedMinutes: true,
       },
     }),
+    getCheckInGate(),
   ]);
 
   const { from } = monthRange(month, year);
@@ -63,6 +65,7 @@ export default async function AttendancePage(props: {
           checkInAt={todayRecord?.checkInAt?.toISOString() ?? null}
           checkOutAt={todayRecord?.checkOutAt?.toISOString() ?? null}
           workedMinutes={todayRecord?.workedMinutes ?? 0}
+          gate={gate}
         />
       )}
 

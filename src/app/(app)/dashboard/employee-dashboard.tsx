@@ -34,6 +34,7 @@ export function EmployeeDashboardView({ data }: { data: EmployeeDashboard }) {
         checkInAt={data.todayStatus.checkInAt?.toISOString() ?? null}
         checkOutAt={data.todayStatus.checkOutAt?.toISOString() ?? null}
         workedMinutes={data.todayStatus.workedMinutes}
+        gate={data.checkInGate}
       />
 
       <StatGrid>

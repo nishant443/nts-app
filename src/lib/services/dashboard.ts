@@ -3,7 +3,9 @@ import "server-only";
 import { financialYearRange, monthRange, recentMonths, today } from "@/lib/dates";
 import type { SessionUser } from "@/lib/dal";
 import { round2, toMoney } from "@/lib/money";
+import type { CheckInGate } from "@/lib/attendance-rules";
 import { prisma } from "@/lib/prisma";
+import { getCheckInGate } from "@/lib/services/check-in";
 
 /**
  * Dashboard aggregates.
@@ -300,6 +302,7 @@ export interface EmployeeDashboard {
     checkOutAt: Date | null;
     workedMinutes: number;
   };
+  checkInGate: CheckInGate;
   month: {
     label: string;
     presentDays: number;
@@ -492,6 +495,7 @@ export async function getEmployeeDashboard(
       checkOutAt: todayRecord?.checkOutAt ?? null,
       workedMinutes: todayRecord?.workedMinutes ?? 0,
     },
+    checkInGate: await getCheckInGate(),
     month: {
       label: now.toLocaleString("en-IN", { month: "long", timeZone: "UTC" }),
       ...summary,

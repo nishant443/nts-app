@@ -4,9 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { action, formAction, formError, formSuccess } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
-import { today } from "@/lib/dates";
+import { BUSINESS_UTC_OFFSET, today } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
+import { getCheckInGate } from "@/lib/services/check-in";
 import { attendanceMarkSchema } from "@/lib/validation";
 
 /**
@@ -14,7 +15,9 @@ import { attendanceMarkSchema } from "@/lib/validation";
  *
  * Self check-in writes exactly one row per employee per day (enforced by a
  * unique constraint on `userId + date`), so a double submit cannot create a
- * second record or reset the morning's check-in time.
+ * second record or reset the morning's check-in time. It is only accepted
+ * inside the window in `lib/attendance-rules.ts` — from 9:00 am IST, not on
+ * Sundays or holidays — and the button in the UI reflects the same rule.
  */
 
 export const checkIn = action<void>({ access: "user" }, async ({ user }) => {
@@ -29,6 +32,9 @@ export const checkIn = action<void>({ access: "user" }, async ({ user }) => {
   if (existing?.checkInAt) {
     throw new AppError("You have already checked in today.");
   }
+
+  const gate = await getCheckInGate();
+  if (!gate.open) throw new AppError(gate.message);
 
   await prisma.attendance.upsert({
     where: { userId_date: { userId: user.id, date } },
@@ -109,13 +115,12 @@ export const markAttendance = formAction(
 
     if (!employee) return formError("That employee could not be found.");
 
-    // Times arrive as "HH:mm" from a <input type="time">.
+    // Times arrive as "HH:mm" from a <input type="time">, meant as Indian
+    // wall-clock time — stored as the real instant so they line up with
+    // employees' own check-ins.
     const toDateTime = (value: string | undefined) => {
       if (!value || !/^\d{2}:\d{2}$/.test(value)) return null;
-      const [hours, minutes] = value.split(":").map(Number);
-      const result = new Date(date);
-      result.setUTCHours(hours!, minutes!, 0, 0);
-      return result;
+      return new Date(`${input.date}T${value}:00${BUSINESS_UTC_OFFSET}`);
     };
 
     const checkInAt = toDateTime(input.checkInAt);

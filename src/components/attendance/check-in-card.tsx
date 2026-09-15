@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, LogIn, LogOut } from "lucide-react";
+import { CalendarOff, Clock, LogIn, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
 import { checkIn, checkOut } from "@/app/actions/attendance";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
 import { showSuccess } from "@/components/ui/success-popup";
+import type { CheckInGate } from "@/lib/attendance-rules";
 import { formatDuration, formatTime } from "@/lib/dates";
 
 /**
@@ -23,11 +24,14 @@ export function CheckInCard({
   checkInAt,
   checkOutAt,
   workedMinutes,
+  gate,
 }: {
   status: string | null;
   checkInAt: string | null;
   checkOutAt: string | null;
   workedMinutes: number;
+  /** Whether check-in is open right now; see `lib/attendance-rules.ts`. */
+  gate: CheckInGate;
 }) {
   const [pending, startTransition] = useTransition();
   const [optimisticDone, setOptimisticDone] = useState(false);
@@ -66,7 +70,8 @@ export function CheckInCard({
           </div>
 
           <p className="mt-0.5 text-[13px] text-fg-muted">
-            {!hasCheckedIn && "You have not checked in yet."}
+            {!hasCheckedIn && gate.open && "You have not checked in yet."}
+            {!hasCheckedIn && !gate.open && gate.message}
             {hasCheckedIn && !hasCheckedOut && (
               <>In since {formatTime(checkInAt)}</>
             )}
@@ -83,7 +88,7 @@ export function CheckInCard({
       </div>
 
       <div className="shrink-0">
-        {!hasCheckedIn && (
+        {!hasCheckedIn && gate.open && (
           <Button
             variant="primary"
             onClick={() => run(checkIn, "Checked in. Have a good shift.")}
@@ -94,6 +99,17 @@ export function CheckInCard({
             <LogIn aria-hidden="true" />
             {pending ? "Checking in…" : "Check in"}
           </Button>
+        )}
+
+        {!hasCheckedIn && !gate.open && (
+          <span className="inline-flex items-center gap-2 rounded-lg bg-surface-muted px-3.5 py-2 text-[13px] font-medium text-fg-muted">
+            <CalendarOff aria-hidden="true" className="size-4" />
+            {gate.reason === "before_hours"
+              ? `Opens at ${gate.opensAt}`
+              : gate.reason === "sunday"
+                ? "Weekly off"
+                : "Holiday"}
+          </span>
         )}
 
         {hasCheckedIn && !hasCheckedOut && (

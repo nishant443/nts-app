@@ -1,6 +1,5 @@
 import {
   differenceInCalendarDays,
-  eachDayOfInterval,
   endOfMonth,
   format,
   isValid,
@@ -20,12 +19,51 @@ export function toDayStart(value: Date | string): Date {
   );
 }
 
-/** Today at UTC midnight, derived from the local calendar date. */
+/**
+ * The company runs on Indian Standard Time. Anything that depends on "what
+ * time is it" — today's date, check-in windows — is read in this zone, so a
+ * server hosted elsewhere still agrees with the wall clock in Bengaluru.
+ */
+export const BUSINESS_TIMEZONE = "Asia/Kolkata";
+/** IST has no daylight saving, so a fixed offset is safe for building instants. */
+export const BUSINESS_UTC_OFFSET = "+05:30";
+
+const clockFormat = new Intl.DateTimeFormat("en-GB", {
+  timeZone: BUSINESS_TIMEZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** The wall clock in `BUSINESS_TIMEZONE` for an instant (default: now). */
+export function businessClock(at: Date = new Date()): {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  /** Sunday = 0 … Saturday = 6 */
+  weekday: number;
+  /** Today at UTC midnight — the calendar-day key used throughout. */
+  date: Date;
+} {
+  const parts = Object.fromEntries(
+    clockFormat
+      .formatToParts(at)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, Number(part.value)]),
+  ) as Record<"year" | "month" | "day" | "hour" | "minute", number>;
+
+  const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+  return { ...parts, weekday: date.getUTCDay(), date };
+}
+
+/** Today at UTC midnight, for the company's calendar day. */
 export function today(): Date {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
-  );
+  return businessClock().date;
 }
 
 /**
@@ -122,8 +160,12 @@ export function monthRange(month: number, year: number): DateRange {
 
 /** Every calendar day in a month, at UTC midnight. */
 export function daysInMonth(month: number, year: number): Date[] {
-  const { from, to } = monthRange(month, year);
-  return eachDayOfInterval({ start: from, end: to }).map(toDayStart);
+  // Built in UTC directly: `eachDayOfInterval` steps in server-local time,
+  // which on an IST server shifts every day back by one.
+  const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return Array.from({ length: count }, (_, index) =>
+    new Date(Date.UTC(year, month - 1, index + 1)),
+  );
 }
 
 /** Sunday = 0, Saturday = 6 (UTC). */

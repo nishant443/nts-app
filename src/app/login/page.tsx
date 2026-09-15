@@ -39,7 +39,7 @@ export default async function LoginPage(props: {
       {/* On desktop the card is sized to the viewport so the whole screen is
           visible without scrolling; only a very short window falls back to
           scrolling. */}
-      <div className="animate-in-up grid w-full max-w-[80rem] overflow-hidden rounded-[1.75rem] bg-surface shadow-[0_40px_90px_-30px_rgb(16_24_40/0.45)] sm:rounded-[2.25rem] lg:h-[max(36rem,calc(100dvh/var(--ui-zoom)-2.5rem))] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+      <div className="animate-in-up grid w-full max-w-[80rem] overflow-hidden rounded-[1.75rem] bg-surface shadow-[0_40px_90px_-30px_rgb(16_24_40/0.45)] sm:rounded-[2.25rem] lg:h-[max(36rem,calc(100dvh/var(--ui-zoom)-2.5rem))] lg:grid-cols-2">
         {/* Form side --------------------------------------------------- */}
         <section className="relative flex min-h-0 flex-col bg-[linear-gradient(165deg,#f8fafc_0%,#eef4ff_55%,#dfeaff_100%)] px-6 pb-6 pt-6 sm:px-10 sm:pb-7 sm:pt-7 dark:bg-[linear-gradient(165deg,#151b23_0%,#131c2c_55%,#10203a_100%)]">
           <div className="flex items-center justify-between">
