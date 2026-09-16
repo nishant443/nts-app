@@ -60,9 +60,11 @@ function securityHeaders(response: NextResponse, isDev: boolean): NextResponse {
   headers.set("X-Content-Type-Options", "nosniff");
   headers.set("X-Frame-Options", "DENY");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  // Geolocation is needed by check-in (`components/attendance/check-in-card`);
+  // `self` keeps it to our own pages and out of any embedded frame.
   headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    "camera=(), microphone=(), geolocation=(self), interest-cohort=()",
   );
   headers.set("X-DNS-Prefetch-Control", "off");
 
