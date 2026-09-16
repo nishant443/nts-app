@@ -42,32 +42,6 @@ const optionalDateString = z
   );
 
 /** Numeric form field: arrives as a string, must end up a finite number. */
-/** Like `numeric`, but an empty field means "not set" (undefined). */
-const nullableNumeric = (
-  label: string,
-  options: { min?: number; max?: number } = {},
-) =>
-  z
-    .union([z.string(), z.number()])
-    .optional()
-    .transform((value) =>
-      value === undefined || value === "" ? undefined : String(value).trim(),
-    )
-    .refine((value) => value === undefined || Number.isFinite(Number(value)), {
-      message: `${label} must be a number.`,
-    })
-    .transform((value) => (value === undefined ? undefined : Number(value)))
-    .refine(
-      (value) =>
-        value === undefined || options.min === undefined || value >= options.min,
-      { message: `${label} must be at least ${options.min}.` },
-    )
-    .refine(
-      (value) =>
-        value === undefined || options.max === undefined || value <= options.max,
-      { message: `${label} must be at most ${options.max}.` },
-    );
-
 const numeric = (label: string, options: { min?: number; max?: number } = {}) =>
   z
     .union([z.string(), z.number()])
@@ -561,19 +535,19 @@ export const companySettingsSchema = z.object({
   purchaseOrderPrefix: requiredText("Purchase order prefix", 30),
   defaultTaxRate: numeric("Default tax rate", { min: 0, max: 100 }),
   homeState: requiredText("Home state", 100),
-  officeLatitude: nullableNumeric("Office latitude", { min: -90, max: 90 }),
-  officeLongitude: nullableNumeric("Office longitude", { min: -180, max: 180 }),
-  checkInRadiusMeters: numeric("Check-in radius", { min: 10, max: 5000 }),
-})
-  .refine(
-    (value) =>
-      (value.officeLatitude === undefined) ===
-      (value.officeLongitude === undefined),
-    {
-      message: "Enter both latitude and longitude, or leave both blank.",
-      path: ["officeLongitude"],
-    },
-  );
+});
+
+export const workLocationSchema = z.object({
+  userId: z.string().min(1, "Choose an employee."),
+  date: dateString,
+  label: requiredText("Location name", 120),
+  latitude: numeric("Latitude", { min: -90, max: 90 }),
+  longitude: numeric("Longitude", { min: -180, max: 180 }),
+  radiusMeters: numeric("Radius", { min: 10, max: 5000 }),
+  notes: optionalText(500),
+  /** Email the employee now. Off by default — the admin decides. */
+  emailEmployee: checkbox,
+});
 
 /** GPS fix sent along with a self check-in / check-out. */
 export const positionSchema = z
@@ -605,3 +579,4 @@ export type PurchaseOrderInput = z.infer<typeof purchaseOrderSchema>;
 export type PaymentInput = z.infer<typeof paymentSchema>;
 export type LineItemInput = z.infer<typeof lineItemSchema>;
 export type CompanySettingsInput = z.infer<typeof companySettingsSchema>;
+export type WorkLocationInput = z.infer<typeof workLocationSchema>;

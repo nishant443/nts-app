@@ -44,6 +44,7 @@ const CATEGORY: Record<NotificationType, string> = {
   TASK_UPDATED: "Task updated",
   TASK_COMPLETED: "Task completed",
   TASK_CANCELLED: "Task cancelled",
+  WORK_LOCATION_SET: "Work location",
   GENERAL: "Notification",
 };
 

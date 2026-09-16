@@ -43,7 +43,7 @@ export default async function AttendancePage(props: {
         workedMinutes: true,
       },
     }),
-    getCheckInGate(),
+    getCheckInGate(user.id),
   ]);
 
   const { from } = monthRange(month, year);

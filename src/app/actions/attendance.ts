@@ -13,7 +13,7 @@ import { BUSINESS_UTC_OFFSET, today } from "@/lib/dates";
 import { AppError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { getCheckInGate } from "@/lib/services/check-in";
-import { getGeofence } from "@/lib/settings";
+import { getEffectiveLocation } from "@/lib/services/work-locations";
 import { attendanceMarkSchema, positionSchema } from "@/lib/validation";
 
 /**
@@ -21,32 +21,34 @@ import { attendanceMarkSchema, positionSchema } from "@/lib/validation";
  *
  * Self check-in writes exactly one row per employee per day (enforced by a
  * unique constraint on `userId + date`), so a double submit cannot create a
- * second record or reset the morning's check-in time. It is only accepted
- * inside the window in `lib/attendance-rules.ts` — from 9:00 am IST, not on
- * Sundays or holidays — and the button in the UI reflects the same rule.
+ * second record or reset the morning's check-in time. It is refused on
+ * Sundays and holidays (`lib/attendance-rules.ts`), and the button in the UI
+ * reflects the same rule.
  *
- * When the admin has set an office location, both buttons also need a GPS fix
- * from the browser and refuse anything outside the allowed radius. The
- * position and distance are stored so the admin can see where each check-in
- * came from.
+ * Both buttons need a GPS fix from the browser and refuse anything outside
+ * the allowed radius of the employee's work location for the day — the one
+ * the admin set, or the last one set before it. The position and distance
+ * are stored so the admin can see where each check-in came from.
  */
 
 /**
- * Validate the browser-supplied position against the office fence. Returns
- * the distance to record, or null when no fence is configured.
+ * Validate the browser-supplied position against the employee's fence.
+ * Returns the distance to record. Fails closed when no location was ever set.
  */
 async function verifyPosition(
   raw: unknown,
   fence: Geofence | null,
-): Promise<{ position: Position | null; distance: number | null }> {
+): Promise<{ position: Position; distance: number }> {
+  if (!fence) {
+    throw new AppError(
+      "No work location has been set for you yet. Ask your admin to set one.",
+    );
+  }
+
   const parsed = positionSchema.safeParse(raw ?? null);
-  const position = parsed.success ? parsed.data : null;
-
-  if (!fence) return { position, distance: null };
-
-  const result = checkGeofence(fence, position);
+  const result = checkGeofence(fence, parsed.success ? parsed.data : null);
   if (!result.ok) throw new AppError(result.message);
-  return { position, distance: result.distance };
+  return { position: parsed.data as Position, distance: result.distance };
 }
 
 export const checkIn = action<Position | null>({ access: "user" }, async ({ input, user }) => {
@@ -62,13 +64,16 @@ export const checkIn = action<Position | null>({ access: "user" }, async ({ inpu
     throw new AppError("You have already checked in today.");
   }
 
-  const gate = await getCheckInGate();
+  const gate = await getCheckInGate(user.id);
   if (!gate.open) throw new AppError(gate.message);
 
-  const { position, distance } = await verifyPosition(input, await getGeofence());
+  const { position, distance } = await verifyPosition(
+    input,
+    await getEffectiveLocation(user.id, date),
+  );
   const where = {
-    checkInLatitude: position?.latitude ?? null,
-    checkInLongitude: position?.longitude ?? null,
+    checkInLatitude: position.latitude,
+    checkInLongitude: position.longitude,
     checkInDistanceM: distance,
   };
 
@@ -112,7 +117,10 @@ export const checkOut = action<Position | null>({ access: "user" }, async ({ inp
     throw new AppError("You have already checked out today.");
   }
 
-  const { position, distance } = await verifyPosition(input, await getGeofence());
+  const { position, distance } = await verifyPosition(
+    input,
+    await getEffectiveLocation(user.id, date),
+  );
 
   const workedMinutes = Math.max(
     0,
@@ -126,8 +134,8 @@ export const checkOut = action<Position | null>({ access: "user" }, async ({ inp
       workedMinutes,
       // Less than four hours on site is recorded as a half day.
       status: workedMinutes < 240 ? "HALF_DAY" : "PRESENT",
-      checkOutLatitude: position?.latitude ?? null,
-      checkOutLongitude: position?.longitude ?? null,
+      checkOutLatitude: position.latitude,
+      checkOutLongitude: position.longitude,
       checkOutDistanceM: distance,
     },
   });

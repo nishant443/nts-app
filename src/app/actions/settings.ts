@@ -44,9 +44,6 @@ export const saveCompanySettings = formAction(
       purchaseOrderPrefix: input.purchaseOrderPrefix,
       defaultTaxRate: input.defaultTaxRate,
       homeState: input.homeState,
-      officeLatitude: input.officeLatitude ?? null,
-      officeLongitude: input.officeLongitude ?? null,
-      checkInRadiusMeters: input.checkInRadiusMeters,
     };
 
     await prisma.companySettings.upsert({
@@ -62,7 +59,7 @@ export const saveCompanySettings = formAction(
       entityId: SETTINGS_ID,
     });
 
-    // Settings feed the PDF header, tax logic and the check-in fence everywhere.
+    // Settings feed the PDF header and tax logic everywhere.
     revalidatePath("/", "layout");
 
     return formSuccess("Company details saved.");

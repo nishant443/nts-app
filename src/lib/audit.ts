@@ -16,6 +16,7 @@ export type AuditEntity =
   | "User"
   | "SalaryStructure"
   | "Attendance"
+  | "WorkLocation"
   | "LeaveRequest"
   | "PayrollRun"
   | "Payslip"

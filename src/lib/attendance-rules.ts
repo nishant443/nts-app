@@ -1,89 +1,28 @@
 import { businessClock, formatDate } from "@/lib/dates";
 
 /**
- * When self check-in is allowed.
+ * When and where self check-in is allowed.
  *
- *   - not before the working day starts (9:00 am IST)
  *   - not on Sundays, the weekly off
  *   - not on a declared holiday
+ *   - only within a short radius of the employee's work location for the day
  *
- * And, when the admin has set an office location, only from within a short
- * radius of it (see `Geofence` below).
- *
+ * The work location is set by an admin per employee; a day without its own
+ * entry inherits the most recent earlier one (`lib/services/work-locations.ts`).
  * Admins can still correct the register by hand for any day.
  */
 
-export const CHECK_IN_OPENS = { hour: 9, minute: 0 } as const;
+export const DEFAULT_CHECK_IN_RADIUS_M = 50;
 
-export type CheckInGate = (
-  | { open: true; opensAt: string }
-  | {
-      open: false;
-      opensAt: string;
-      reason: "before_hours" | "sunday" | "holiday";
-      message: string;
-    }
-) & {
-  /** Set when check-in must happen near the office; only the radius is shared with the browser. */
-  geofence: { radiusMeters: number } | null;
-};
-
-function formatClock(hour: number, minute: number): string {
-  const h12 = hour % 12 === 0 ? 12 : hour % 12;
-  return `${h12}:${String(minute).padStart(2, "0")} ${hour < 12 ? "am" : "pm"}`;
-}
-
-export function checkInGate(
-  holiday: { name: string; date: Date } | null,
-  fence: Geofence | null = null,
-  at: Date = new Date(),
-): CheckInGate {
-  const clock = businessClock(at);
-  const opensAt = formatClock(CHECK_IN_OPENS.hour, CHECK_IN_OPENS.minute);
-  const geofence = fence ? { radiusMeters: fence.radiusMeters } : null;
-
-  if (holiday) {
-    return {
-      open: false,
-      opensAt,
-      geofence,
-      reason: "holiday",
-      message: `Today is a holiday — ${holiday.name} (${formatDate(holiday.date)}). No check-in needed.`,
-    };
-  }
-
-  if (clock.weekday === 0) {
-    return {
-      open: false,
-      opensAt,
-      geofence,
-      reason: "sunday",
-      message: "Sunday is the weekly off. Check-in opens again on Monday.",
-    };
-  }
-
-  const minutesNow = clock.hour * 60 + clock.minute;
-  const minutesOpen = CHECK_IN_OPENS.hour * 60 + CHECK_IN_OPENS.minute;
-  if (minutesNow < minutesOpen) {
-    return {
-      open: false,
-      opensAt,
-      geofence,
-      reason: "before_hours",
-      message: `Check-in opens at ${opensAt}. It is ${formatClock(clock.hour, clock.minute)} now.`,
-    };
-  }
-
-  return { open: true, opensAt, geofence };
-}
-
-// --- Where check-in is allowed ----------------------------------------------
-
-/** Office point and the radius around it inside which check-in counts. */
+/** Where an employee must be to check in, and how close counts. */
 export interface Geofence {
   latitude: number;
   longitude: number;
   radiusMeters: number;
+  /** What the admin called the place — "BFW plant, Bengaluru". */
+  label: string;
+  /** The day the entry was recorded for; earlier than today when inherited. */
+  date: Date;
 }
 
 /** A position as reported by the browser's Geolocation API. */
@@ -94,7 +33,72 @@ export interface Position {
   accuracy?: number;
 }
 
-export const DEFAULT_CHECK_IN_RADIUS_M = 30;
+/** What the check-in button needs to know — coordinates stay on the server. */
+export interface GateLocation {
+  label: string;
+  radiusMeters: number;
+  /** ISO date the location was set for; null when it applies to today itself. */
+  inheritedFrom: string | null;
+}
+
+export type CheckInGate = (
+  | { open: true }
+  | {
+      open: false;
+      reason: "sunday" | "holiday" | "no_location";
+      message: string;
+    }
+) & { location: GateLocation | null };
+
+export function checkInGate(
+  holiday: { name: string; date: Date } | null,
+  fence: Geofence | null,
+  at: Date = new Date(),
+): CheckInGate {
+  const clock = businessClock(at);
+  const location: GateLocation | null = fence
+    ? {
+        label: fence.label,
+        radiusMeters: fence.radiusMeters,
+        inheritedFrom:
+          fence.date.getTime() < clock.date.getTime()
+            ? fence.date.toISOString()
+            : null,
+      }
+    : null;
+
+  if (holiday) {
+    return {
+      open: false,
+      location,
+      reason: "holiday",
+      message: `Today is a holiday — ${holiday.name} (${formatDate(holiday.date)}). No check-in needed.`,
+    };
+  }
+
+  if (clock.weekday === 0) {
+    return {
+      open: false,
+      location,
+      reason: "sunday",
+      message: "Sunday is the weekly off. Check-in opens again on Monday.",
+    };
+  }
+
+  if (!fence) {
+    return {
+      open: false,
+      location,
+      reason: "no_location",
+      message:
+        "No work location has been set for you yet. Ask your admin to set one, then check in from there.",
+    };
+  }
+
+  return { open: true, location };
+}
+
+// --- Distance -----------------------------------------------------------------
 
 /**
  * Great-circle distance between two points in metres (haversine). Accurate to
@@ -118,9 +122,9 @@ export type GeofenceCheck =
   | { ok: false; distance: number | null; message: string };
 
 /**
- * Is this position close enough to the office? A missing position fails
- * closed — no location, no check-in — because the point of the fence is that
- * the button only works on site.
+ * Is this position close enough to the work location? A missing position
+ * fails closed — no location, no check-in — because the point of the fence is
+ * that the button only works on site.
  */
 export function checkGeofence(
   fence: Geofence,
@@ -140,7 +144,7 @@ export function checkGeofence(
     return {
       ok: false,
       distance,
-      message: `You are about ${formatDistance(distance)} from the office. Check-in and check-out work only within ${fence.radiusMeters} m of it.`,
+      message: `You are about ${formatDistance(distance)} from ${fence.label}. Check-in and check-out work only within ${fence.radiusMeters} m of it.`,
     };
   }
 

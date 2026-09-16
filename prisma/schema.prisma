@@ -192,6 +192,7 @@ enum NotificationType {
   TASK_UPDATED
   TASK_COMPLETED
   TASK_CANCELLED
+  WORK_LOCATION_SET
   GENERAL
 }
 
@@ -237,6 +238,8 @@ model User {
   createdTasks    Task[]          @relation("TaskAssigner")
   notifications   Notification[]
   auditLogs       AuditLog[]
+  workLocations   WorkLocation[] @relation("WorkLocationEmployee")
+  setLocations    WorkLocation[] @relation("WorkLocationSetter")
 
   createdCustomers      Customer[]      @relation("CustomerCreator")
   ownedCustomers        Customer[]      @relation("CustomerOwner")
@@ -318,6 +321,37 @@ model SalaryStructure {
   @@unique([userId, effectiveFrom])
   @@index([userId, effectiveFrom])
   @@map("salary_structures")
+}
+
+/// Where an employee is expected to be on a given day — a customer site, the
+/// office, wherever the admin sends them. Self check-in and check-out must
+/// happen within `radiusMeters` of it. A day with no entry inherits the most
+/// recent earlier one, so the admin only records a location when it changes.
+model WorkLocation {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation("WorkLocationEmployee", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Date at UTC midnight — the first day this location applies from.
+  date         DateTime
+  label        String
+  latitude     Float
+  longitude    Float
+  radiusMeters Int    @default(50)
+  notes        String?
+
+  setById String
+  setBy   User   @relation("WorkLocationSetter", fields: [setById], references: [id])
+
+  /// When the admin last emailed this entry to the employee — never automatic.
+  emailedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@map("work_locations")
 }
 
 model Attendance {
@@ -944,12 +978,6 @@ model CompanySettings {
   defaultTaxRate       Decimal @default(18) @db.Decimal(5, 2)
   /// Company's own state — compared with place of supply to pick IGST vs CGST/SGST.
   homeState            String @default("Maharashtra")
-
-  /// Office coordinates. When set, employees can only check in and out from
-  /// within `checkInRadiusMeters` of this point.
-  officeLatitude      Float?
-  officeLongitude     Float?
-  checkInRadiusMeters Int    @default(30)
 
   updatedAt DateTime @updatedAt
 

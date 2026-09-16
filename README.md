@@ -111,7 +111,7 @@ everything, approve everything, run payroll and hold the company-wide numbers.
 | | |
 | --- | --- |
 | **Tasks** | Admin assigns work → employee is notified in-app **and by email** → marks it complete with a note → admin is told back the same way. |
-| **Attendance** | Self check-in from **9:00 am IST**, never on Sundays or holidays. Optional **office geofence** — set the office coordinates and a radius (default 30 m) in Settings → Company and check-in/out only works on site. Times and distance from the office are visible to admins day by day. |
+| **Attendance** | **Location-based self check-in.** Admins set each employee's work location (Admin → Work locations); a day without its own entry inherits the last one. Check-in/out needs a GPS fix within the allowed radius (default 50 m). Never on Sundays or holidays. Times and distance from site are visible to admins day by day. |
 | **Leave** | Requests with balances; approval debits the balance and blocks the calendar. |
 | **Daily work** | What each engineer did, per customer, reviewed by an admin. |
 | **Expenses** | Claims with receipt upload, approved and folded into the next payslip. |
@@ -226,17 +226,21 @@ the Indian financial year (April–March) and the sequence resets each April.
 Allocated inside the insert transaction, with a unique constraint and a retry as
 backstop.
 
-**Attendance.** Self check-in is accepted only from 9:00 am IST, never on
-Sundays or declared holidays (`src/lib/attendance-rules.ts`). The rule runs on
-the server *and* drives what the button shows. Times are stored as real instants
-and read in Indian Standard Time wherever the app is hosted. Less than four hours
-on site becomes a half day.
+**Attendance.** Self check-in is refused on Sundays and declared holidays
+(`src/lib/attendance-rules.ts`). The rule runs on the server *and* drives what
+the button shows. Times are stored as real instants and read in Indian Standard
+Time wherever the app is hosted. Less than four hours on site becomes a half day.
 
-When an office location is set (Settings → Company → *Attendance location*),
-the Check in / Check out buttons first ask the browser for a GPS fix and the
-server refuses anything farther than the allowed radius (default 30 m) from the
-office. The distance is recorded with every check-in and shown in the admin
-day log. Leave the coordinates blank and check-in works from anywhere.
+Check-in is tied to **where** the employee is, not when. An admin records each
+employee's work location — a customer plant, the office, anywhere — from a
+given date (Admin → *Work locations*); every later day inherits it until a
+newer entry is recorded, so only changes need to be entered. The Check in /
+Check out buttons ask the browser for a GPS fix and the server refuses anything
+farther than the allowed radius (default 50 m) from that day's location. The
+distance is recorded with every check-in and shown in the admin day log. An
+employee with no location set cannot check in until one is recorded. Saving a
+location raises an in-app notification only; the email goes out when the admin
+ticks "Also email" on the form or presses *Email* on the page — never on its own.
 
 **Payroll.** Working days = calendar days − Sundays − holidays. Paid days =
 present (1) + half day (0.5) + approved paid leave. Loss of pay is the shortfall
@@ -374,7 +378,7 @@ src/
     session.ts           JWT encode/decode and cookie handling
     action.ts / api.ts   Server Action and Route Handler wrappers
     validation.ts        Zod schemas for every form and endpoint
-    attendance-rules.ts  Check-in window (9 am IST, no Sundays/holidays) + office geofence
+    attendance-rules.ts  Check-in rules (no Sundays/holidays) + work-location geofence
     tax.ts               GST computation
     payroll-math.ts      Pure payroll arithmetic
     dates.ts / money.ts  Calendar (IST-aware) and money helpers

@@ -495,7 +495,7 @@ export async function getEmployeeDashboard(
       checkOutAt: todayRecord?.checkOutAt ?? null,
       workedMinutes: todayRecord?.workedMinutes ?? 0,
     },
-    checkInGate: await getCheckInGate(),
+    checkInGate: await getCheckInGate(user.id),
     month: {
       label: now.toLocaleString("en-IN", { month: "long", timeZone: "UTC" }),
       ...summary,

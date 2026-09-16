@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarOff, Clock, LogIn, LogOut, MapPin } from "lucide-react";
+import {
+  CalendarOff,
+  Clock,
+  LogIn,
+  LogOut,
+  MapPin,
+  MapPinOff,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { checkIn, checkOut } from "@/app/actions/attendance";
@@ -10,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/badge";
 import { showSuccess } from "@/components/ui/success-popup";
 import type { CheckInGate, Position } from "@/lib/attendance-rules";
-import { formatDuration, formatTime } from "@/lib/dates";
+import { formatDate, formatDuration, formatTime } from "@/lib/dates";
 
 /**
  * Today's check-in / check-out.
@@ -19,9 +26,9 @@ import { formatDuration, formatTime } from "@/lib/dates";
  * ticks locally — deliberately not a live-updating clock, which would keep the
  * whole tree re-rendering all day for no real benefit.
  *
- * When the office fence is on (`gate.geofence`), the button first asks the
- * browser for a fresh GPS fix and sends it with the action; the server does
- * the distance check, so a tampered client gains nothing.
+ * The button first asks the browser for a fresh GPS fix and sends it with the
+ * action; the server does the distance check against the employee's work
+ * location for the day, so a tampered client gains nothing.
  */
 
 /** A fresh, high-accuracy fix — or a message explaining why there is none. */
@@ -71,22 +78,17 @@ export function CheckInCard({
   const [locating, setLocating] = useState(false);
   const router = useRouter();
 
-  const run = (
-    fn: typeof checkIn,
-    successMessage: string,
-  ) => {
+  const run = (fn: typeof checkIn, successMessage: string) => {
     startTransition(async () => {
-      let position: Position | null = null;
-      if (gate.geofence) {
-        setLocating(true);
-        try {
-          position = await locate();
-        } catch (error) {
-          toast.error(error instanceof Error ? error.message : String(error));
-          return;
-        } finally {
-          setLocating(false);
-        }
+      let position: Position;
+      setLocating(true);
+      try {
+        position = await locate();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : String(error));
+        return;
+      } finally {
+        setLocating(false);
       }
 
       const result = await fn(position);
@@ -132,11 +134,19 @@ export function CheckInCard({
             )}
           </p>
 
-          {gate.geofence && !hasCheckedOut && (
-            <p className="mt-1 inline-flex items-center gap-1 text-[12px] text-fg-subtle">
-              <MapPin aria-hidden="true" className="size-3.5" />
-              Works only within {gate.geofence.radiusMeters} m of the office —
-              your location is checked.
+          {gate.location && !hasCheckedOut && (
+            <p className="mt-1 flex items-start gap-1 text-[12px] text-fg-subtle">
+              <MapPin aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+              <span>
+                Today&apos;s location:{" "}
+                <span className="font-medium text-fg-muted">
+                  {gate.location.label}
+                </span>
+                {gate.location.inheritedFrom && (
+                  <> (set on {formatDate(gate.location.inheritedFrom)})</>
+                )}{" "}
+                — check-in works within {gate.location.radiusMeters} m of it.
+              </span>
             </p>
           )}
         </div>
@@ -158,9 +168,13 @@ export function CheckInCard({
 
         {!hasCheckedIn && !gate.open && (
           <span className="inline-flex items-center gap-2 rounded-lg bg-surface-muted px-3.5 py-2 text-[13px] font-medium text-fg-muted">
-            <CalendarOff aria-hidden="true" className="size-4" />
-            {gate.reason === "before_hours"
-              ? `Opens at ${gate.opensAt}`
+            {gate.reason === "no_location" ? (
+              <MapPinOff aria-hidden="true" className="size-4" />
+            ) : (
+              <CalendarOff aria-hidden="true" className="size-4" />
+            )}
+            {gate.reason === "no_location"
+              ? "No location set"
               : gate.reason === "sunday"
                 ? "Weekly off"
                 : "Holiday"}
@@ -176,14 +190,16 @@ export function CheckInCard({
             className="sm:w-auto"
           >
             <LogOut aria-hidden="true" />
-            {locating ? "Finding you…" : pending ? "Checking out…" : "Check out"}
+            {locating
+              ? "Finding you…"
+              : pending
+                ? "Checking out…"
+                : "Check out"}
           </Button>
         )}
 
         {hasCheckedIn && hasCheckedOut && (
-          <p className="text-[13px] font-medium text-success">
-            Day complete
-          </p>
+          <p className="text-[13px] font-medium text-success">Day complete</p>
         )}
       </div>
     </div>

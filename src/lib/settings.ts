@@ -2,7 +2,6 @@ import "server-only";
 
 import { cache } from "react";
 
-import type { Geofence } from "@/lib/attendance-rules";
 import { toMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
@@ -36,9 +35,6 @@ export interface CompanyProfile {
   currency: string;
   defaultTaxRate: number;
   homeState: string;
-  officeLatitude: number | null;
-  officeLongitude: number | null;
-  checkInRadiusMeters: number;
 }
 
 const FALLBACK: CompanyProfile = {
@@ -68,9 +64,6 @@ const FALLBACK: CompanyProfile = {
   currency: "INR",
   defaultTaxRate: 18,
   homeState: "Karnataka",
-  officeLatitude: null,
-  officeLongitude: null,
-  checkInRadiusMeters: 30,
 };
 
 /**
@@ -89,19 +82,6 @@ export const getCompanySettings = cache(async (): Promise<CompanyProfile> => {
     defaultTaxRate: toMoney(row.defaultTaxRate),
   };
 });
-
-/** The office geofence, or null when the admin has not set a location. */
-export async function getGeofence(): Promise<Geofence | null> {
-  const settings = await getCompanySettings();
-  if (settings.officeLatitude === null || settings.officeLongitude === null) {
-    return null;
-  }
-  return {
-    latitude: settings.officeLatitude,
-    longitude: settings.officeLongitude,
-    radiusMeters: settings.checkInRadiusMeters,
-  };
-}
 
 /** Single-line postal address, for PDF headers and the customer card. */
 export function formatAddress(
