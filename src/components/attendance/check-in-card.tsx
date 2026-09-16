@@ -49,7 +49,7 @@ function locate(): Promise<Position> {
         reject(
           new Error(
             error.code === error.PERMISSION_DENIED
-              ? "Location access is blocked. Allow it for this site in your browser and try again."
+              ? "Location access is blocked for this site. Tap the lock icon next to the address, set Location to Allow, make sure your phone's location is on, then try again."
               : error.code === error.TIMEOUT
                 ? "Could not get your location in time. Move somewhere with better signal and try again."
                 : "Your location is unavailable right now. Try again in a moment.",

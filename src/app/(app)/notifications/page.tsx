@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Bell } from "lucide-react";
 
 import { MarkAllReadButton } from "@/components/notifications/mark-all-read";
+import { NotificationRow } from "@/components/notifications/notification-row";
 import { Card, CardHeader } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
@@ -93,16 +93,13 @@ export default async function NotificationsPage(props: {
 
               return (
                 <li key={notification.id}>
-                  {notification.link ? (
-                    <Link
-                      href={notification.link}
-                      className="flex gap-3 px-4 py-3.5 transition-colors hover:bg-surface-muted sm:px-5"
-                    >
-                      {body}
-                    </Link>
-                  ) : (
-                    <div className="flex gap-3 px-4 py-3.5 sm:px-5">{body}</div>
-                  )}
+                  <NotificationRow
+                    id={notification.id}
+                    href={notification.link}
+                    isUnread={isUnread}
+                  >
+                    {body}
+                  </NotificationRow>
                 </li>
               );
             })}

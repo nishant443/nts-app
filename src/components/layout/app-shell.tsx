@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { LogoLockup } from "@/components/brand/logo";
 import { GlobalSearch } from "@/components/layout/global-search";
+import { LiveRefresh } from "@/components/layout/live-refresh";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import {
   NotificationBell,
@@ -91,6 +92,8 @@ export function AppShell({
         </div>
 
         <FlashPopup />
+        {/* Other people's changes show up without a manual reload. */}
+        <LiveRefresh />
 
         <main className="min-w-0 flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-7">
           <div className="mx-auto flex min-w-0 max-w-[92rem] flex-col gap-5">
