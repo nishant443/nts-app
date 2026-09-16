@@ -52,6 +52,9 @@ export default function RootLayout({
           position="top-right"
           richColors
           closeButton
+          // On a phone the toast spans the full width; let it be flicked
+          // away in any direction, not only towards the edge it sits on.
+          swipeDirections={["left", "right", "top"]}
           toastOptions={{
             style: { borderRadius: "0.6rem", fontSize: "13.5px" },
           }}

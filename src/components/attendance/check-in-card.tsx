@@ -32,6 +32,34 @@ import { formatDate, formatDuration, formatTime } from "@/lib/dates";
  */
 
 /** A fresh, high-accuracy fix — or a message explaining why there is none. */
+/**
+ * A denied fix means one of two very different things: the *site* is blocked
+ * in the browser, or the browser is allowed but the *operating system* has
+ * location switched off (Windows "Location services", macOS "Location
+ * Services"). Chromium reports both as PERMISSION_DENIED; the Permissions API
+ * tells them apart — if the site is "granted", the block is the OS.
+ */
+async function deniedMessage(): Promise<string> {
+  let siteGranted = false;
+  try {
+    const status = await navigator.permissions.query({ name: "geolocation" });
+    siteGranted = status.state === "granted";
+  } catch {
+    // Permissions API unavailable — fall through to the generic advice.
+  }
+
+  if (siteGranted) {
+    const os = /Windows/i.test(navigator.userAgent)
+      ? "Windows: Settings → Privacy & security → Location → turn on Location services and “Let desktop apps access your location”, then restart the browser."
+      : /Mac OS X/i.test(navigator.userAgent)
+        ? "macOS: System Settings → Privacy & Security → Location Services → turn it on and allow your browser."
+        : "turn on location in your device settings and allow your browser to use it.";
+    return `Your browser allows this site, but the device is blocking location. ${os}`;
+  }
+
+  return "Location access is blocked for this site. Tap the lock icon next to the address, set Location to Allow, make sure your device's location is on, then try again.";
+}
+
 function locate(): Promise<Position> {
   return new Promise((resolve, reject) => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -45,20 +73,24 @@ function locate(): Promise<Position> {
           longitude: coords.longitude,
           accuracy: coords.accuracy,
         }),
-      (error) =>
+      async (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          reject(new Error(await deniedMessage()));
+          return;
+        }
         reject(
           new Error(
-            error.code === error.PERMISSION_DENIED
-              ? "Location access is blocked for this site. Tap the lock icon next to the address, set Location to Allow, make sure your phone's location is on, then try again."
-              : error.code === error.TIMEOUT
-                ? "Could not get your location in time. Move somewhere with better signal and try again."
-                : "Your location is unavailable right now. Try again in a moment.",
+            error.code === error.TIMEOUT
+              ? "Could not get your location in time. Move somewhere with better signal and try again."
+              : "Your location is unavailable right now. Try again in a moment.",
           ),
-        ),
+        );
+      },
       { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
     );
   });
 }
+
 export function CheckInCard({
   status,
   checkInAt,
