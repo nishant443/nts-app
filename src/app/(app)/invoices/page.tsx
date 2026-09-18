@@ -27,15 +27,6 @@ export const metadata: Metadata = {
   title: "Invoices",
 };
 
-const STATUSES = [
-  "DRAFT",
-  "SENT",
-  "PARTIALLY_PAID",
-  "PAID",
-  "OVERDUE",
-  "CANCELLED",
-] as const;
-
 /**
  * Everything still awaiting money. Not a stored status — an invoice sits in
  * one of three of them while unpaid, and "who still owes us?" is the question
@@ -43,12 +34,17 @@ const STATUSES = [
  */
 const PENDING_STATUSES = ["SENT", "PARTIALLY_PAID", "OVERDUE"] as const;
 
-/** Filter values accepted in `?status=`: the real ones plus "PENDING". */
-const STATUS_FILTERS = ["PENDING", ...STATUSES] as const;
+/**
+ * What the dropdown offers, and the only values `?status=` accepts.
+ *
+ * Draft, Sent, Partially paid and Overdue are deliberately not listed on
+ * their own: the first three unpaid states are what "Pending payment" means,
+ * and each row's badge already says which one it is.
+ */
+const STATUS_FILTERS = ["PENDING", "PAID", "CANCELLED"] as const;
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "Pending payment",
-  PARTIALLY_PAID: "Partially paid",
 };
 
 function statusLabel(value: string): string {
