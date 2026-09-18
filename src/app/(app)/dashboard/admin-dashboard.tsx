@@ -46,12 +46,16 @@ export function AdminDashboardView({ data }: { data: AdminDashboard }) {
           hint={`${collectionRate.toFixed(0)}% of invoiced`}
         />
         <StatCard
-          label="Outstanding"
+          label="Outstanding (this FY)"
           value={formatCurrency(data.outstanding)}
           icon={<Wallet />}
           tone={data.outstanding > 0 ? "warning" : "neutral"}
-          href="/invoices?status=PARTIALLY_PAID"
-          hint="Awaiting collection"
+          href="/invoices?status=PENDING"
+          hint={
+            data.priorOutstanding > 0.009
+              ? `+ ${formatCurrency(data.priorOutstanding)} from earlier years`
+              : "Awaiting collection"
+          }
         />
         <StatCard
           label="Overdue"

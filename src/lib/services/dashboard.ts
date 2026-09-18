@@ -1,6 +1,11 @@
 import "server-only";
 
-import { financialYearRange, monthRange, recentMonths, today } from "@/lib/dates";
+import {
+  financialYearRange,
+  monthRange,
+  recentMonths,
+  today,
+} from "@/lib/dates";
 import type { SessionUser } from "@/lib/dal";
 import { round2, toMoney } from "@/lib/money";
 import type { CheckInGate } from "@/lib/attendance-rules";
@@ -23,9 +28,17 @@ const REVENUE_STATUSES = ["SENT", "PARTIALLY_PAID", "PAID", "OVERDUE"] as const;
 
 export interface AdminDashboard {
   financialYear: { from: Date; to: Date };
+  /**
+   * The three headline money figures describe the same set of invoices — the
+   * ones dated in this financial year — so they always add up:
+   * totalSales = totalReceived + outstanding.
+   */
   totalSales: number;
   totalReceived: number;
   outstanding: number;
+  /** Still owed on invoices from earlier financial years; shown alongside. */
+  priorOutstanding: number;
+  /** Past due across all years — a risk figure, deliberately not FY-scoped. */
   overdueAmount: number;
   overdueCount: number;
   monthSales: number;
@@ -80,7 +93,6 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
 
   const [
     salesAggregate,
-    receivedAggregate,
     outstandingInvoices,
     monthSalesAggregate,
     previousMonthAggregate,
@@ -92,13 +104,11 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     attendanceRows,
     recentInvoiceRows,
   ] = await Promise.all([
+    // Invoiced and collected for the year come from the same rows, so the
+    // received figure can never include money against last year's invoices.
     prisma.invoice.aggregate({
       where: { ...revenueWhere, date: { gte: fy.from, lte: fy.to } },
-      _sum: { total: true },
-    }),
-    prisma.payment.aggregate({
-      where: { status: "RECEIVED", date: { gte: fy.from, lte: fy.to } },
-      _sum: { amount: true },
+      _sum: { total: true, amountPaid: true },
     }),
     prisma.invoice.findMany({
       where: revenueWhere,
@@ -112,11 +122,17 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
       },
     }),
     prisma.invoice.aggregate({
-      where: { ...revenueWhere, date: { gte: thisMonth.from, lte: thisMonth.to } },
+      where: {
+        ...revenueWhere,
+        date: { gte: thisMonth.from, lte: thisMonth.to },
+      },
       _sum: { total: true },
     }),
     prisma.invoice.aggregate({
-      where: { ...revenueWhere, date: { gte: lastMonth.from, lte: lastMonth.to } },
+      where: {
+        ...revenueWhere,
+        date: { gte: lastMonth.from, lte: lastMonth.to },
+      },
       _sum: { total: true },
     }),
     prisma.user.count({ where: { status: "ACTIVE" } }),
@@ -154,8 +170,9 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
   ]);
 
   // Outstanding is derived per invoice rather than as a single SQL expression
-  // because Prisma cannot subtract two columns in an aggregate.
-  let outstanding = 0;
+  // because Prisma cannot subtract two columns in an aggregate. This pass is
+  // across all years: overdue and the per-customer list need the old debt too.
+  let allTimeOutstanding = 0;
   let overdueAmount = 0;
   let overdueCount = 0;
   const byCustomer = new Map<
@@ -164,10 +181,12 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
   >();
 
   for (const invoice of outstandingInvoices) {
-    const balance = round2(toMoney(invoice.total) - toMoney(invoice.amountPaid));
+    const balance = round2(
+      toMoney(invoice.total) - toMoney(invoice.amountPaid),
+    );
     if (balance <= 0.009) continue;
 
-    outstanding += balance;
+    allTimeOutstanding += balance;
 
     if (invoice.dueDate && invoice.dueDate < now) {
       overdueAmount += balance;
@@ -203,11 +222,16 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     (attendanceCounts.ABSENT ?? 0) +
     (attendanceCounts.ON_LEAVE ?? 0);
 
+  const totalSales = toMoney(salesAggregate._sum.total);
+  const totalReceived = toMoney(salesAggregate._sum.amountPaid);
+  const outstanding = round2(totalSales - totalReceived);
+
   return {
     financialYear: fy,
-    totalSales: toMoney(salesAggregate._sum.total),
-    totalReceived: toMoney(receivedAggregate._sum.amount),
-    outstanding: round2(outstanding),
+    totalSales,
+    totalReceived,
+    outstanding,
+    priorOutstanding: round2(Math.max(0, allTimeOutstanding - outstanding)),
     overdueAmount: round2(overdueAmount),
     overdueCount,
     monthSales,
@@ -314,7 +338,11 @@ export interface EmployeeDashboard {
   pendingLeaveCount: number;
   leaveBalances: { type: string; allocated: number; used: number }[];
   workLogs: { thisMonth: number; awaitingReview: number };
-  expenses: { pendingCount: number; pendingAmount: number; approvedThisMonth: number };
+  expenses: {
+    pendingCount: number;
+    pendingAmount: number;
+    approvedThisMonth: number;
+  };
   latestPayslip: {
     id: string;
     month: number;
