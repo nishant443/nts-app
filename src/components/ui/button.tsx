@@ -13,7 +13,11 @@ export type ButtonVariant =
   | "secondary"
   | "ghost"
   | "danger"
-  | "subtle";
+  | "subtle"
+  /** Soft green — the "yes" in a yes/no pair: approve, accept, mark done. */
+  | "success"
+  /** Soft red — the "no", or a destructive trigger whose dialog does the real warning. */
+  | "dangerSoft";
 
 export type ButtonSize = "sm" | "md" | "lg" | "icon";
 
@@ -34,7 +38,14 @@ const variants: Record<ButtonVariant, string> = {
     "hover:bg-surface-muted hover:border-border-strong",
   ghost: "text-fg-muted hover:bg-surface-muted hover:text-fg",
   danger: "bg-danger text-white shadow-card hover:brightness-110",
-  subtle: "bg-accent-soft text-accent hover:brightness-95 dark:hover:brightness-125",
+  subtle:
+    "bg-accent-soft text-accent hover:brightness-95 dark:hover:brightness-125",
+  success:
+    "border border-success/25 bg-success-soft text-success shadow-card " +
+    "hover:border-success/50 hover:brightness-[0.97] dark:hover:brightness-110",
+  dangerSoft:
+    "border border-danger/25 bg-danger-soft text-danger shadow-card " +
+    "hover:border-danger/50 hover:brightness-[0.97] dark:hover:brightness-110",
 };
 
 const sizes: Record<ButtonSize, string> = {

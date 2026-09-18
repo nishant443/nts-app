@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Check, MessageSquare, X } from "lucide-react";
+import { Banknote, Check, MessageSquare, X } from "lucide-react";
 
 import { SubmitButton } from "@/components/forms/form-shell";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,9 @@ import { emptyFormState, type FormState } from "@/lib/form-state";
  * The note field is revealed on demand rather than always taking up space —
  * most approvals need no comment, but a rejection almost always does, so
  * choosing "Reject" opens it automatically.
+ *
+ * The three choices are tinted so they can be told apart at a glance: green
+ * for approve, red for reject, plain for the optional third step.
  */
 export function ReviewPanel({
   action,
@@ -38,7 +41,7 @@ export function ReviewPanel({
         )}
 
         <Button
-          variant="secondary"
+          variant="success"
           size="sm"
           onClick={() => setDecision("APPROVED")}
         >
@@ -47,7 +50,7 @@ export function ReviewPanel({
         </Button>
 
         <Button
-          variant="ghost"
+          variant="dangerSoft"
           size="sm"
           onClick={() => setDecision("REJECTED")}
         >
@@ -57,10 +60,11 @@ export function ReviewPanel({
 
         {extraChoice && (
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             onClick={() => setDecision(extraChoice.value)}
           >
+            <Banknote aria-hidden="true" />
             {extraChoice.label}
           </Button>
         )}

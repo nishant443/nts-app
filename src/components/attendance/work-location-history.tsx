@@ -51,6 +51,7 @@ export function WorkLocationHistory({
             confirmLabel="Remove"
             variant="ghost"
             size="sm"
+            className="text-fg-subtle hover:bg-danger-soft hover:text-danger"
             successMessage="Location entry removed."
             trigger={
               <>

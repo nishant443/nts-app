@@ -95,6 +95,7 @@ export function HolidayList({
             confirmLabel="Remove"
             variant="ghost"
             size="sm"
+            className="text-fg-subtle hover:bg-danger-soft hover:text-danger"
             successMessage="Holiday removed."
             trigger={
               <>

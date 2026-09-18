@@ -26,6 +26,7 @@ export function ConfirmAction<TInput>({
   successMessage,
   /** Where to go after success; defaults to refreshing in place. */
   redirectTo,
+  className,
 }: {
   action: (
     input: TInput,
@@ -35,7 +36,13 @@ export function ConfirmAction<TInput>({
   body: string;
   confirmLabel: string;
   trigger: React.ReactNode;
+  /**
+   * Styling of the trigger. "danger" renders the trigger as a soft red tint —
+   * the dialog's confirm button carries the solid red, so the page itself
+   * stays calm — and any other value is used as-is.
+   */
   variant?: ButtonVariant;
+  className?: string;
   size?: "sm" | "md";
   successMessage?: string;
   redirectTo?: string;
@@ -71,7 +78,12 @@ export function ConfirmAction<TInput>({
 
   return (
     <>
-      <Button variant={variant} size={size} onClick={() => setOpen(true)}>
+      <Button
+        variant={variant === "danger" ? "dangerSoft" : variant}
+        size={size}
+        className={className}
+        onClick={() => setOpen(true)}
+      >
         {trigger}
       </Button>
 

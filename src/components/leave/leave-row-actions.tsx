@@ -14,7 +14,7 @@ export function LeaveRowActions({ id }: { id: string }) {
       title="Withdraw this request?"
       body="The request will be cancelled. You can submit a new one for the same dates afterwards."
       confirmLabel="Withdraw"
-      variant="ghost"
+      variant="dangerSoft"
       size="sm"
       successMessage="Leave request withdrawn."
       trigger={

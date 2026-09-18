@@ -26,6 +26,7 @@ export function ExpenseRowActions({ id }: { id: string }) {
         confirmLabel="Delete"
         variant="ghost"
         size="sm"
+        className="text-fg-subtle hover:bg-danger-soft hover:text-danger"
         successMessage="Expense deleted."
         trigger={
           <>

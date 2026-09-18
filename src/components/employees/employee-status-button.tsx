@@ -90,7 +90,7 @@ export function EmployeeStatusButton({
   return (
     <>
       <Button
-        variant="danger"
+        variant="dangerSoft"
         size="sm"
         onClick={() => setOpen(true)}
         disabled={isSelf}
@@ -124,9 +124,9 @@ export function EmployeeStatusButton({
               </h2>
               <p className="text-[13.5px] leading-relaxed text-fg-muted">
                 They will be signed out of every device immediately and will not
-                be able to sign in until you reactivate them. Nothing is
-                deleted — their attendance, work reports, payslips and other
-                records stay exactly as they are.
+                be able to sign in until you reactivate them. Nothing is deleted
+                — their attendance, work reports, payslips and other records
+                stay exactly as they are.
               </p>
             </div>
 
