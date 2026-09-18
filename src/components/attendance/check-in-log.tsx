@@ -64,7 +64,9 @@ export function CheckInLog({
   return (
     <Card>
       <CardHeader
-        title={isToday ? "Today's check-ins" : `Check-ins on ${formatDate(day)}`}
+        title={
+          isToday ? "Today's check-ins" : `Check-ins on ${formatDate(day)}`
+        }
         description={
           offDay
             ? `${offDay}. Self check-in is closed.`
@@ -119,7 +121,7 @@ export function CheckInLog({
                 Hours
               </th>
               <th scope="col" className="px-4 py-2.5 text-left">
-                From site
+                Distance from site
               </th>
               <th scope="col" className="px-4 py-2.5 text-left">
                 Status
@@ -178,20 +180,28 @@ export function CheckInLog({
                 <td className="tnum whitespace-nowrap px-4 py-2.5 text-right text-[13.5px] text-fg">
                   {formatDuration(row.workedMinutes)}
                 </td>
-                <td className="tnum whitespace-nowrap px-4 py-2.5 text-[12.5px] text-fg-muted">
-                  {row.checkInDistanceM === null && row.checkOutDistanceM === null ? (
+                <td className="tnum px-4 py-2.5 text-[12.5px] leading-relaxed text-fg-muted">
+                  {row.checkInDistanceM === null &&
+                  row.checkOutDistanceM === null ? (
                     <span className="text-fg-subtle">—</span>
                   ) : (
                     <>
                       {row.checkInDistanceM !== null && (
-                        <span title="Distance from work location at check-in">
-                          in {formatDistance(row.checkInDistanceM)}
+                        <span
+                          title={`${row.checkInDistanceM} metres from the work location when checking in`}
+                        >
+                          {formatDistance(row.checkInDistanceM)} away at
+                          check-in
                         </span>
                       )}
-                      {row.checkInDistanceM !== null && row.checkOutDistanceM !== null && " · "}
+                      {row.checkInDistanceM !== null &&
+                        row.checkOutDistanceM !== null && <br />}
                       {row.checkOutDistanceM !== null && (
-                        <span title="Distance from work location at check-out">
-                          out {formatDistance(row.checkOutDistanceM)}
+                        <span
+                          title={`${row.checkOutDistanceM} metres from the work location when checking out`}
+                        >
+                          {formatDistance(row.checkOutDistanceM)} away at
+                          check-out
                         </span>
                       )}
                     </>

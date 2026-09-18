@@ -4,7 +4,7 @@ import { AdminDashboardView } from "@/app/(app)/dashboard/admin-dashboard";
 import { EmployeeDashboardView } from "@/app/(app)/dashboard/employee-dashboard";
 import { PageHeader } from "@/components/ui/page-header";
 import { requireUser } from "@/lib/dal";
-import { formatDate, today } from "@/lib/dates";
+import { businessClock, formatDate, today } from "@/lib/dates";
 import {
   getAdminDashboard,
   getEmployeeDashboard,
@@ -14,8 +14,9 @@ export const metadata: Metadata = {
   title: "Dashboard",
 };
 
+/** Read off the Indian clock, not the server's — this renders on Vercel (UTC). */
 function greeting(): string {
-  const hour = new Date().getHours();
+  const { hour } = businessClock();
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";

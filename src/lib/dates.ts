@@ -73,7 +73,9 @@ export function today(): Date {
  */
 export function parseDateInput(value: string): Date {
   const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
-  const parsed = dateOnly ? new Date(`${value}T00:00:00.000Z`) : parseISO(value);
+  const parsed = dateOnly
+    ? new Date(`${value}T00:00:00.000Z`)
+    : parseISO(value);
   if (!isValid(parsed)) {
     throw new Error(`Invalid date: ${value}`);
   }
@@ -88,31 +90,87 @@ export function dayKey(value: Date | string): string {
 
 // --- Display -----------------------------------------------------------------
 
-/** "11 Sep 2026" */
+/**
+ * Everything on screen is shown in Indian Standard Time, whoever is looking
+ * and wherever the server runs.
+ *
+ * This matters more than it sounds: date-fns `format` uses the *runtime's*
+ * timezone, so the same check-in rendered on a UTC host (Vercel) read 6:22 am
+ * while the employee's phone rendered it 11:52 am. Formatting through
+ * `Intl` with an explicit zone makes server and browser agree — which also
+ * removes a hydration mismatch — and keeps times honest for anyone travelling.
+ *
+ * The parts are assembled by hand because no locale produces exactly the
+ * house style: en-GB says "Sept", en-US says "Sep 18, 2026" and "AM".
+ */
+const displayFormat = new Intl.DateTimeFormat("en-GB", {
+  timeZone: BUSINESS_TIMEZONE,
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+});
+
+function displayParts(date: Date): {
+  day: string;
+  month: string;
+  year: string;
+  hour: string;
+  minute: string;
+  period: string;
+} {
+  const parts = Object.fromEntries(
+    displayFormat.formatToParts(date).map((part) => [part.type, part.value]),
+  ) as Record<string, string>;
+
+  return {
+    day: parts.day,
+    // "Sept" -> "Sep"; some locales add a trailing dot.
+    month: parts.month.replace(/\./g, "").slice(0, 3),
+    year: parts.year,
+    hour: parts.hour,
+    minute: parts.minute,
+    // Strip the narrow no-break space Intl puts before "am"/"pm".
+    period: parts.dayPeriod.toLowerCase().replace(/[\s.]/g, ""),
+  };
+}
+
+/** Accepts the Date, ISO string or null every caller might hold. */
+function toDate(value: Date | string | null | undefined): Date | null {
+  if (!value) return null;
+  const date = typeof value === "string" ? new Date(value) : value;
+  return isValid(date) ? date : null;
+}
+
+/** "11 Sep 2026" (IST) */
 export function formatDate(value: Date | string | null | undefined): string {
-  if (!value) return "—";
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (!isValid(date)) return "—";
-  return format(date, "dd MMM yyyy");
+  const date = toDate(value);
+  if (!date) return "—";
+  const { day, month, year } = displayParts(date);
+  return `${day} ${month} ${year}`;
 }
 
-/** "11 Sep 2026, 4:05 pm" */
-export function formatDateTime(value: Date | string | null | undefined): string {
-  if (!value) return "—";
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (!isValid(date)) return "—";
-  return format(date, "dd MMM yyyy, h:mm a");
+/** "11 Sep 2026, 4:05 pm" (IST) */
+export function formatDateTime(
+  value: Date | string | null | undefined,
+): string {
+  const date = toDate(value);
+  if (!date) return "—";
+  const { day, month, year, hour, minute, period } = displayParts(date);
+  return `${day} ${month} ${year}, ${hour}:${minute} ${period}`;
 }
 
-/** "4:05 pm" */
+/** "4:05 pm" (IST) */
 export function formatTime(value: Date | string | null | undefined): string {
-  if (!value) return "—";
-  const date = typeof value === "string" ? new Date(value) : value;
-  if (!isValid(date)) return "—";
-  return format(date, "h:mm a");
+  const date = toDate(value);
+  if (!date) return "—";
+  const { hour, minute, period } = displayParts(date);
+  return `${hour}:${minute} ${period}`;
 }
 
-/** "September 2026" */
+/** "September 2026" — month and year are already plain numbers, no zone involved. */
 export function formatMonthYear(month: number, year: number): string {
   return format(new Date(Date.UTC(year, month - 1, 1)), "MMMM yyyy");
 }
@@ -163,8 +221,9 @@ export function daysInMonth(month: number, year: number): Date[] {
   // Built in UTC directly: `eachDayOfInterval` steps in server-local time,
   // which on an IST server shifts every day back by one.
   const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  return Array.from({ length: count }, (_, index) =>
-    new Date(Date.UTC(year, month - 1, index + 1)),
+  return Array.from(
+    { length: count },
+    (_, index) => new Date(Date.UTC(year, month - 1, index + 1)),
   );
 }
 

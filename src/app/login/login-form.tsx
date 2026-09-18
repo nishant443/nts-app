@@ -6,12 +6,13 @@ import { ArrowRight, Eye, EyeOff, Loader2, ShieldAlert } from "lucide-react";
 
 import { signIn } from "@/app/actions/auth";
 import { FormError } from "@/components/ui/field";
+import { businessClock } from "@/lib/dates";
 import { emptyFormState } from "@/lib/form-state";
 import { cn } from "@/lib/utils";
 
-/** "Good morning" and friends — computed on the client so it uses local time. */
+/** "Good morning" and friends, on the company clock (IST) wherever you are. */
 function greeting(): string {
-  const hour = new Date().getHours();
+  const { hour } = businessClock();
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";
@@ -63,7 +64,9 @@ export function LoginForm({
             className="mt-0.5 size-[18px] shrink-0 text-warning"
           />
           <div>
-            <p className="text-[13.5px] font-semibold text-fg">{notice.title}</p>
+            <p className="text-[13.5px] font-semibold text-fg">
+              {notice.title}
+            </p>
             <p className="mt-0.5 text-[13px] leading-relaxed text-fg-muted">
               {notice.body}
             </p>
