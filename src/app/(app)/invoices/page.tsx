@@ -36,6 +36,25 @@ const STATUSES = [
   "CANCELLED",
 ] as const;
 
+/**
+ * Everything still awaiting money. Not a stored status — an invoice sits in
+ * one of three of them while unpaid, and "who still owes us?" is the question
+ * actually being asked. Draft (not issued yet), Paid and Cancelled are out.
+ */
+const PENDING_STATUSES = ["SENT", "PARTIALLY_PAID", "OVERDUE"] as const;
+
+/** Filter values accepted in `?status=`: the real ones plus "PENDING". */
+const STATUS_FILTERS = ["PENDING", ...STATUSES] as const;
+
+const STATUS_LABEL: Record<string, string> = {
+  PENDING: "Pending payment",
+  PARTIALLY_PAID: "Partially paid",
+};
+
+function statusLabel(value: string): string {
+  return STATUS_LABEL[value] ?? value.charAt(0) + value.slice(1).toLowerCase();
+}
+
 interface InvoiceRow {
   id: string;
   number: string;
@@ -56,12 +75,16 @@ export default async function InvoicesPage(props: {
 
   const searchParams = await props.searchParams;
   const term = param(searchParams, "q");
-  const status = enumParam(searchParams, "status", STATUSES);
+  const status = enumParam(searchParams, "status", STATUS_FILTERS);
   const dateRange = dateRangeFilter(searchParams);
   const { page, perPage, skip, take } = pageWindow(searchParams);
 
   const where = {
-    ...(status ? { status } : {}),
+    ...(status
+      ? status === "PENDING"
+        ? { status: { in: [...PENDING_STATUSES] } }
+        : { status }
+      : {}),
     ...(dateRange ? { date: dateRange } : {}),
     ...(term
       ? {
@@ -108,6 +131,19 @@ export default async function InvoicesPage(props: {
 
   const now = today();
 
+  // Outstanding across the whole filtered set, not just this page.
+  const pendingTotal =
+    status === "PENDING"
+      ? await prisma.invoice
+          .aggregate({ where, _sum: { total: true, amountPaid: true } })
+          .then((sums) =>
+            round2(
+              toMoney(sums._sum.total ?? 0) -
+                toMoney(sums._sum.amountPaid ?? 0),
+            ),
+          )
+      : 0;
+
   const rows: InvoiceRow[] = records.map((record) => ({
     id: record.id,
     number: record.number,
@@ -119,8 +155,8 @@ export default async function InvoicesPage(props: {
     customer: record.customer.companyName ?? record.customer.name,
     overdue: Boolean(
       record.dueDate &&
-        record.dueDate < now &&
-        toMoney(record.total) - toMoney(record.amountPaid) > 0.009,
+      record.dueDate < now &&
+      toMoney(record.total) - toMoney(record.amountPaid) > 0.009,
     ),
   }));
 
@@ -129,7 +165,9 @@ export default async function InvoicesPage(props: {
       key: "number",
       header: "Number",
       role: "primary",
-      cell: (row) => <span className="font-mono text-[13px]">{row.number}</span>,
+      cell: (row) => (
+        <span className="font-mono text-[13px]">{row.number}</span>
+      ),
     },
     {
       key: "customer",
@@ -148,7 +186,12 @@ export default async function InvoicesPage(props: {
       header: "Due",
       mobileLabel: "Due",
       cell: (row) => (
-        <span className={cn("tnum", row.overdue ? "font-medium text-danger" : "text-fg-muted")}>
+        <span
+          className={cn(
+            "tnum",
+            row.overdue ? "font-medium text-danger" : "text-fg-muted",
+          )}
+        >
           {formatDate(row.dueDate)}
         </span>
       ),
@@ -188,7 +231,11 @@ export default async function InvoicesPage(props: {
     <>
       <PageHeader
         title="Invoices"
-        description={`${total} invoice(s) on record.`}
+        description={
+          status === "PENDING"
+            ? `${total} invoice(s) awaiting payment — ${formatCurrency(pendingTotal)} outstanding.`
+            : `${total} invoice(s) on record.`
+        }
         actions={
           isAdmin ? (
             <Button href="/invoices/new" variant="primary">
@@ -207,12 +254,9 @@ export default async function InvoicesPage(props: {
             {
               name: "status",
               label: "Status",
-              options: STATUSES.map((value) => ({
+              options: STATUS_FILTERS.map((value) => ({
                 value,
-                label:
-                  value === "PARTIALLY_PAID"
-                    ? "Partially paid"
-                    : value.charAt(0) + value.slice(1).toLowerCase(),
+                label: statusLabel(value),
               })),
             },
           ]}
