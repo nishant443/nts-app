@@ -5,7 +5,6 @@ import { Avatar } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
-import { formatDistance } from "@/lib/attendance-rules";
 import {
   dayKey,
   formatDate,
@@ -28,9 +27,6 @@ export interface CheckInLogRow {
   workedMinutes: number;
   source: string | null;
   notes: string | null;
-  /** Metres from the day's work location at check-in / check-out; null for admin-entered rows. */
-  checkInDistanceM: number | null;
-  checkOutDistanceM: number | null;
 }
 
 /**
@@ -121,9 +117,6 @@ export function CheckInLog({
                 Hours
               </th>
               <th scope="col" className="px-4 py-2.5 text-left">
-                Distance from site
-              </th>
-              <th scope="col" className="px-4 py-2.5 text-left">
                 Status
               </th>
               <th scope="col" className="px-4 py-2.5 text-left sm:px-5">
@@ -179,33 +172,6 @@ export function CheckInLog({
                 </td>
                 <td className="tnum whitespace-nowrap px-4 py-2.5 text-right text-[13.5px] text-fg">
                   {formatDuration(row.workedMinutes)}
-                </td>
-                <td className="tnum px-4 py-2.5 text-[12.5px] leading-relaxed text-fg-muted">
-                  {row.checkInDistanceM === null &&
-                  row.checkOutDistanceM === null ? (
-                    <span className="text-fg-subtle">—</span>
-                  ) : (
-                    <>
-                      {row.checkInDistanceM !== null && (
-                        <span
-                          title={`${row.checkInDistanceM} metres from the work location when checking in`}
-                        >
-                          {formatDistance(row.checkInDistanceM)} away at
-                          check-in
-                        </span>
-                      )}
-                      {row.checkInDistanceM !== null &&
-                        row.checkOutDistanceM !== null && <br />}
-                      {row.checkOutDistanceM !== null && (
-                        <span
-                          title={`${row.checkOutDistanceM} metres from the work location when checking out`}
-                        >
-                          {formatDistance(row.checkOutDistanceM)} away at
-                          check-out
-                        </span>
-                      )}
-                    </>
-                  )}
                 </td>
                 <td className="px-4 py-2.5">
                   {row.status ? (

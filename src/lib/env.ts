@@ -34,6 +34,22 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value === "" ? undefined : value)),
+  // GSTIN lookup — optional. A URL template for any GST verification API
+  // ({gstin} and {key} are substituted); blank disables the "Fetch details"
+  // button on the customer form. See .env.example for provider examples.
+  GSTIN_API_URL: z
+    .string()
+    .optional()
+    .transform((value) => (value === "" ? undefined : value)),
+  GSTIN_API_KEY: z
+    .string()
+    .optional()
+    .transform((value) => (value === "" ? undefined : value)),
+  /** Set when the provider wants the key in a request header instead of the URL. */
+  GSTIN_API_KEY_HEADER: z
+    .string()
+    .optional()
+    .transform((value) => (value === "" ? undefined : value)),
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),

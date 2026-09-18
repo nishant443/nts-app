@@ -10,7 +10,9 @@ import { recordAudit } from "@/lib/audit";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { flash } from "@/lib/flash";
 import type { FormState } from "@/lib/form-state";
+import { lookupGstin, type GstinDetails } from "@/lib/gstin-lookup";
 import { prisma } from "@/lib/prisma";
+import { RateLimits } from "@/lib/rate-limit";
 import { customerSchema } from "@/lib/validation";
 
 /**
@@ -204,4 +206,14 @@ export const deleteCustomer = action<{ id: string }>(
 
     revalidatePath("/customers");
   },
+);
+
+/**
+ * Fill the customer form from a GSTIN. Anyone who can add a customer can use
+ * it; rate limited like an export because every call goes out to a metered
+ * third-party API.
+ */
+export const fetchGstinDetails = action<{ gstin: string }, GstinDetails>(
+  { access: "user", rateLimit: RateLimits.export },
+  async ({ input }) => lookupGstin(String(input.gstin ?? "")),
 );

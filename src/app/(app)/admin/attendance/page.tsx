@@ -97,8 +97,6 @@ export default async function AttendanceRegisterPage(props: {
           workedMinutes: true,
           source: true,
           notes: true,
-          checkInDistanceM: true,
-          checkOutDistanceM: true,
         },
       }),
       prisma.holiday.findUnique({
@@ -120,8 +118,6 @@ export default async function AttendanceRegisterPage(props: {
       workedMinutes: record?.workedMinutes ?? 0,
       source: record?.source ?? null,
       notes: record?.notes ?? null,
-      checkInDistanceM: record?.checkInDistanceM ?? null,
-      checkOutDistanceM: record?.checkOutDistanceM ?? null,
     };
   });
 

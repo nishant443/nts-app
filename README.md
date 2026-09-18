@@ -315,6 +315,7 @@ fails immediately, not at the first request.
 | `STORAGE_DRIVER` | | `local` (default, writes to `./storage`) or `cloudinary`. |
 | `CLOUDINARY_CLOUD_NAME` `CLOUDINARY_API_KEY` `CLOUDINARY_API_SECRET` | with cloudinary | All three together. |
 | `SMTP_HOST` `SMTP_PORT` `SMTP_SECURE` `SMTP_USER` `SMTP_PASSWORD` `SMTP_FROM` | | Outbound email. Leave `SMTP_HOST` blank and email buttons explain mail is not set up instead of failing. |
+| `GSTIN_API_URL` `GSTIN_API_KEY` `GSTIN_API_KEY_HEADER` | | GST number lookup on the customer form (fills name, address, PIN from a GSTIN). URL template for any provider — GSTINCheck, Appyflow, KnowYourGST… — with `{gstin}`/`{key}` placeholders. Blank disables the button. |
 
 <details>
 <summary><b>Gmail as the SMTP server</b></summary>

@@ -15,6 +15,14 @@ import { cn } from "@/lib/utils";
  *
  * Sorting and filtering are URL-driven and handled server-side, so this stays a
  * Server Component with no client JavaScript.
+ *
+ * `rowHref` makes the whole row (or card) clickable without any JavaScript:
+ * the link in the primary cell stretches an empty `::before` across the row,
+ * which is positioned against the row because the row is `relative`. There is
+ * still exactly one real link per row, so keyboard and screen-reader users get
+ * one tab stop and one announcement rather than one per column. A column
+ * marked `interactive` is lifted above that overlay so buttons inside it keep
+ * working.
  */
 
 export interface Column<T> {
@@ -31,6 +39,11 @@ export interface Column<T> {
   role?: "primary" | "secondary";
   /** Header text for the mobile label, when `header` is an icon or empty. */
   mobileLabel?: string;
+  /**
+   * This cell holds its own controls (a button, a menu, a second link). Keeps
+   * them above the row-wide click target so they stay usable.
+   */
+  interactive?: boolean;
 }
 
 const alignments = {
@@ -45,7 +58,7 @@ interface DataTableProps<T> {
   rowKey: (row: T) => string;
   /** Rendered in place of the table when there are no rows. */
   empty?: ReactNode;
-  /** Wraps each mobile card and each desktop row in a link. */
+  /** Makes the whole desktop row and mobile card open this link. */
   rowHref?: (row: T) => string;
   className?: string;
 }
@@ -94,7 +107,10 @@ export function DataTable<T>({
             {rows.map((row) => (
               <tr
                 key={rowKey(row)}
-                className="border-b border-border/70 transition-colors last:border-0 hover:bg-surface-muted"
+                className={cn(
+                  "border-b border-border/70 transition-colors last:border-0 hover:bg-surface-muted",
+                  rowHref && "group/row relative cursor-pointer",
+                )}
               >
                 {columns.map((column) => (
                   <td
@@ -102,13 +118,14 @@ export function DataTable<T>({
                     className={cn(
                       "px-4 py-3 align-middle text-fg",
                       alignments[column.align ?? "left"],
+                      column.interactive && "relative z-10",
                       column.className,
                     )}
                   >
                     {rowHref && column.role === "primary" ? (
                       <a
                         href={rowHref(row)}
-                        className="font-medium text-fg hover:text-accent hover:underline"
+                        className="font-medium text-fg before:absolute before:inset-0 before:content-[''] hover:text-accent group-hover/row:underline"
                       >
                         {column.cell(row)}
                       </a>
@@ -126,14 +143,20 @@ export function DataTable<T>({
       {/* Mobile -------------------------------------------------------- */}
       <ul className="flex flex-col divide-y divide-border md:hidden">
         {rows.map((row) => (
-          <li key={rowKey(row)} className="min-w-0 px-4 py-3.5">
+          <li
+            key={rowKey(row)}
+            className={cn(
+              "min-w-0 px-4 py-3.5",
+              rowHref && "relative transition-colors active:bg-surface-muted",
+            )}
+          >
             <div className="flex min-w-0 flex-col gap-2.5">
               {primary && (
                 <div className="min-w-0">
                   {rowHref ? (
                     <a
                       href={rowHref(row)}
-                      className="block truncate text-[15px] font-semibold text-fg"
+                      className="block truncate text-[15px] font-semibold text-fg before:absolute before:inset-0 before:content-['']"
                     >
                       {primary.cell(row)}
                     </a>
@@ -157,7 +180,12 @@ export function DataTable<T>({
                       <dt className="text-[12px] uppercase tracking-wide text-fg-subtle">
                         {column.mobileLabel ?? column.header}
                       </dt>
-                      <dd className="min-w-0 text-right text-[13px] text-fg">
+                      <dd
+                        className={cn(
+                          "min-w-0 text-right text-[13px] text-fg",
+                          column.interactive && "relative z-10",
+                        )}
+                      >
                         {column.cell(row)}
                       </dd>
                     </div>

@@ -1,10 +1,21 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { CheckCircle2, Loader2, Search, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
 
-import { Field, FormGrid, Input, Select, Textarea } from "@/components/ui/field";
+import { fetchGstinDetails } from "@/app/actions/customers";
+import { Button } from "@/components/ui/button";
+import {
+  Field,
+  FormGrid,
+  Input,
+  Select,
+  Textarea,
+} from "@/components/ui/field";
 import { fieldError, type FormState } from "@/lib/form-state";
-import { INDIAN_STATES, stateFromGstin } from "@/lib/tax";
+import type { GstinDetails } from "@/lib/gstin-lookup";
+import { INDIAN_STATES, isValidGstin, stateFromGstin } from "@/lib/tax";
 
 /**
  * Every customer field, in the three groups the customer page shows them in.
@@ -14,6 +25,11 @@ import { INDIAN_STATES, stateFromGstin } from "@/lib/tax";
  * each host wrap a group its own way — a Card on the page, a fieldset in the
  * dialog. Input names are the schema's field names; ids are prefixed with
  * `useId()` so two copies on one page (dialog over form) cannot collide.
+ *
+ * Typing a complete GSTIN looks the business up (`lib/gstin-lookup.ts`) and
+ * fills the company, PAN and address — the same convenience Vyapar offers.
+ * Those fields are therefore controlled here; everything else stays
+ * uncontrolled with a `defaultValue`.
  */
 
 export interface CustomerFormValues {
@@ -89,12 +105,66 @@ export function CustomerFields({
   const [gstin, setGstin] = useState(values.gstin);
   const [stateName, setStateName] = useState(values.state);
 
+  // Fields the GST lookup can fill.
+  const [filled, setFilled] = useState({
+    companyName: values.companyName,
+    pan: values.pan,
+    addressLine1: values.addressLine1,
+    addressLine2: values.addressLine2,
+    city: values.city,
+    postalCode: values.postalCode,
+  });
+  const setField = (name: keyof typeof filled, value: string) =>
+    setFilled((current) => ({ ...current, [name]: value }));
+
+  const [lookup, setLookup] = useState<
+    | { phase: "idle" }
+    | { phase: "loading" }
+    | { phase: "done"; details: GstinDetails }
+    | { phase: "error"; message: string }
+  >({ phase: "idle" });
+  // The GSTIN the last automatic lookup ran for, so retyping the same number
+  // does not hit the (metered) provider again.
+  const autoLookedUp = useRef<string | null>(null);
+
+  const runLookup = async (value: string) => {
+    setLookup({ phase: "loading" });
+    const result = await fetchGstinDetails({ gstin: value });
+    if (!result.ok) {
+      setLookup({ phase: "error", message: result.error });
+      return;
+    }
+    const details = result.data;
+    setFilled({
+      companyName: details.tradeName ?? details.legalName,
+      pan: details.pan ?? "",
+      addressLine1: details.addressLine1 ?? "",
+      addressLine2: details.addressLine2 ?? "",
+      city: details.city ?? "",
+      postalCode: details.postalCode ?? "",
+    });
+    if (details.state) setStateName(details.state);
+    setLookup({ phase: "done", details });
+    toast.success(
+      "Details filled from the GST registration — check them before saving.",
+    );
+  };
+
   const onGstinChange = (value: string) => {
-    const upper = value.toUpperCase();
+    const upper = value.toUpperCase().replace(/\s+/g, "");
     setGstin(upper);
     const derived = upper.length >= 2 ? stateFromGstin(upper) : null;
     if (derived) setStateName(derived);
+    if (upper.length < 15) setLookup({ phase: "idle" });
   };
+
+  // Look up automatically once a full, valid GSTIN is in the box — typed or
+  // pasted — so the usual flow is: paste the number, watch the form fill.
+  useEffect(() => {
+    if (!isValidGstin(gstin) || autoLookedUp.current === gstin) return;
+    autoLookedUp.current = gstin;
+    void runLookup(gstin);
+  }, [gstin]);
 
   return (
     <>
@@ -127,7 +197,10 @@ export function CustomerFields({
               <Input
                 id={id("companyName")}
                 name="companyName"
-                defaultValue={values.companyName}
+                value={filled.companyName}
+                onChange={(event) =>
+                  setField("companyName", event.target.value)
+                }
                 autoComplete="off"
               />
             </Field>
@@ -228,20 +301,100 @@ export function CustomerFields({
             <Field
               label="GSTIN"
               htmlFor={id("gstin")}
-              hint="15 characters. The state is filled in from this."
+              className="sm:col-span-2"
+              hint={
+                lookup.phase === "idle"
+                  ? "15 characters. Company, PAN and address are fetched from the GST registration; the state is filled from the first two digits."
+                  : undefined
+              }
               error={fieldError(state, "gstin")}
             >
-              <Input
-                id={id("gstin")}
-                name="gstin"
-                value={gstin}
-                onChange={(event) => onGstinChange(event.target.value)}
-                maxLength={15}
-                autoCapitalize="characters"
-                spellCheck={false}
-                className="font-mono"
-                invalid={Boolean(fieldError(state, "gstin"))}
-              />
+              <div className="flex gap-2">
+                <Input
+                  id={id("gstin")}
+                  name="gstin"
+                  value={gstin}
+                  onChange={(event) => onGstinChange(event.target.value)}
+                  maxLength={15}
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  placeholder="29ABCDE1234F1Z5"
+                  className="min-w-0 flex-1 font-mono"
+                  invalid={Boolean(fieldError(state, "gstin"))}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void runLookup(gstin)}
+                  disabled={!isValidGstin(gstin) || lookup.phase === "loading"}
+                  title={
+                    isValidGstin(gstin)
+                      ? "Fetch the registered details for this GSTIN"
+                      : "Enter a valid 15-character GSTIN first"
+                  }
+                >
+                  {lookup.phase === "loading" ? (
+                    <Loader2 aria-hidden="true" className="animate-spin" />
+                  ) : (
+                    <Search aria-hidden="true" />
+                  )}
+                  Fetch details
+                </Button>
+              </div>
+
+              {lookup.phase === "loading" && (
+                <p className="mt-1.5 text-[12.5px] text-fg-muted">
+                  Looking up the GST registration…
+                </p>
+              )}
+              {lookup.phase === "done" && (
+                <p
+                  className={
+                    lookup.details.status &&
+                    !/active/i.test(lookup.details.status)
+                      ? "mt-1.5 flex items-start gap-1.5 text-[12.5px] text-warning"
+                      : "mt-1.5 flex items-start gap-1.5 text-[12.5px] text-success"
+                  }
+                  role="status"
+                >
+                  {lookup.details.status &&
+                  !/active/i.test(lookup.details.status) ? (
+                    <TriangleAlert
+                      aria-hidden="true"
+                      className="mt-0.5 size-3.5 shrink-0"
+                    />
+                  ) : (
+                    <CheckCircle2
+                      aria-hidden="true"
+                      className="mt-0.5 size-3.5 shrink-0"
+                    />
+                  )}
+                  <span>
+                    <span className="font-medium">
+                      {lookup.details.legalName}
+                    </span>
+                    {lookup.details.status && <> · {lookup.details.status}</>}
+                    {lookup.details.constitution && (
+                      <> · {lookup.details.constitution}</>
+                    )}
+                    {lookup.details.registeredOn && (
+                      <> · registered {lookup.details.registeredOn}</>
+                    )}
+                  </span>
+                </p>
+              )}
+              {lookup.phase === "error" && (
+                <p
+                  className="mt-1.5 flex items-start gap-1.5 text-[12.5px] text-danger"
+                  role="alert"
+                >
+                  <TriangleAlert
+                    aria-hidden="true"
+                    className="mt-0.5 size-3.5 shrink-0"
+                  />
+                  <span>{lookup.message}</span>
+                </p>
+              )}
             </Field>
 
             <Field
@@ -252,7 +405,10 @@ export function CustomerFields({
               <Input
                 id={id("pan")}
                 name="pan"
-                defaultValue={values.pan}
+                value={filled.pan}
+                onChange={(event) =>
+                  setField("pan", event.target.value.toUpperCase())
+                }
                 maxLength={10}
                 autoCapitalize="characters"
                 spellCheck={false}
@@ -269,7 +425,10 @@ export function CustomerFields({
               <Input
                 id={id("addressLine1")}
                 name="addressLine1"
-                defaultValue={values.addressLine1}
+                value={filled.addressLine1}
+                onChange={(event) =>
+                  setField("addressLine1", event.target.value)
+                }
               />
             </Field>
 
@@ -281,12 +440,20 @@ export function CustomerFields({
               <Input
                 id={id("addressLine2")}
                 name="addressLine2"
-                defaultValue={values.addressLine2}
+                value={filled.addressLine2}
+                onChange={(event) =>
+                  setField("addressLine2", event.target.value)
+                }
               />
             </Field>
 
             <Field label="City" htmlFor={id("city")}>
-              <Input id={id("city")} name="city" defaultValue={values.city} />
+              <Input
+                id={id("city")}
+                name="city"
+                value={filled.city}
+                onChange={(event) => setField("city", event.target.value)}
+              />
             </Field>
 
             <Field label="State" htmlFor={id("state")}>
@@ -311,7 +478,8 @@ export function CustomerFields({
                 name="postalCode"
                 inputMode="numeric"
                 maxLength={10}
-                defaultValue={values.postalCode}
+                value={filled.postalCode}
+                onChange={(event) => setField("postalCode", event.target.value)}
               />
             </Field>
 
