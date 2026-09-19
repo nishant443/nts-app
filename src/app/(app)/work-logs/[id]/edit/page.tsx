@@ -31,8 +31,6 @@ export default async function EditWorkLogPage(
 
   assertOwnerOrAdmin(user, log.userId);
 
-  // An approved report is evidence for billing and payroll — locked to its
-  // author, though an admin can still correct it.
   if (log.status === "APPROVED" && user.role !== "ADMIN") {
     redirect(`/work-logs/${log.id}`);
   }

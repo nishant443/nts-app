@@ -24,8 +24,6 @@ export default async function ProfileSettingsPage() {
 
   return (
     <>
-      {/* Employment terms are set by an administrator, so they are shown
-          read-only rather than as editable fields. */}
       <Card>
         <CardHeader
           title="Employment"

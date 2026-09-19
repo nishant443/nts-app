@@ -19,13 +19,6 @@ import { formatCurrency } from "@/lib/money";
 import type { EmployeeDashboard } from "@/lib/services/dashboard";
 import { humanizeEnum } from "@/lib/utils";
 
-/**
- * Employee view.
- *
- * Shows only this person's own records plus the invoices they are personally
- * following up. There is no company-wide revenue figure anywhere on this page,
- * and the service that builds it never queries for one.
- */
 export function EmployeeDashboardView({ data }: { data: EmployeeDashboard }) {
   return (
     <>
@@ -87,7 +80,6 @@ export function EmployeeDashboardView({ data }: { data: EmployeeDashboard }) {
         />
       </StatGrid>
 
-      {/* Tasks ------------------------------------------------------------ */}
       <Card>
         <CardHeader
           title="Your tasks"
@@ -146,7 +138,6 @@ export function EmployeeDashboardView({ data }: { data: EmployeeDashboard }) {
       </Card>
 
       <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
-        {/* Leave ---------------------------------------------------------- */}
         <Card>
           <CardHeader
             title="Leave balance"
@@ -201,7 +192,6 @@ export function EmployeeDashboardView({ data }: { data: EmployeeDashboard }) {
           )}
         </Card>
 
-        {/* Recent work ---------------------------------------------------- */}
         <Card>
           <CardHeader
             title="Recent work reports"
@@ -249,7 +239,6 @@ export function EmployeeDashboardView({ data }: { data: EmployeeDashboard }) {
         </Card>
       </div>
 
-      {/* Follow-ups -------------------------------------------------------- */}
       <Card>
         <CardHeader
           title="Payments to follow up"

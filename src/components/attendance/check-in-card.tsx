@@ -19,33 +19,12 @@ import { showSuccess } from "@/components/ui/success-popup";
 import type { CheckInGate, Position } from "@/lib/attendance-rules";
 import { formatDate, formatDuration, formatTime } from "@/lib/dates";
 
-/**
- * Today's check-in / check-out.
- *
- * The elapsed time shown after checking in is computed once on the server and
- * ticks locally — deliberately not a live-updating clock, which would keep the
- * whole tree re-rendering all day for no real benefit.
- *
- * The button first asks the browser for a fresh GPS fix and sends it with the
- * action; the server does the distance check against the employee's work
- * location for the day, so a tampered client gains nothing.
- */
-
-/** A fresh, high-accuracy fix — or a message explaining why there is none. */
-/**
- * A denied fix means one of two very different things: the *site* is blocked
- * in the browser, or the browser is allowed but the *operating system* has
- * location switched off (Windows "Location services", macOS "Location
- * Services"). Chromium reports both as PERMISSION_DENIED; the Permissions API
- * tells them apart — if the site is "granted", the block is the OS.
- */
 async function deniedMessage(): Promise<string> {
   let siteGranted = false;
   try {
     const status = await navigator.permissions.query({ name: "geolocation" });
     siteGranted = status.state === "granted";
   } catch {
-    // Permissions API unavailable — fall through to the generic advice.
   }
 
   if (siteGranted) {
@@ -102,7 +81,6 @@ export function CheckInCard({
   checkInAt: string | null;
   checkOutAt: string | null;
   workedMinutes: number;
-  /** Whether check-in is open right now; see `lib/attendance-rules.ts`. */
   gate: CheckInGate;
 }) {
   const [pending, startTransition] = useTransition();

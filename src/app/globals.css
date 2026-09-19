@@ -1,14 +1,7 @@
 @import "tailwindcss";
 
-/* Dark mode is class-driven (`<html class="dark">`) so the user's stored
-   preference wins over the OS setting. See <ThemeScript /> in the root layout. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ---------------------------------------------------------------------------
-   Brand palette — sampled from the NTS logo.
-   `brand` is the electric blue of "NUTAN"; `steel` is the graphite grey of
-   "TECH" and the monogram's N.
-   --------------------------------------------------------------------------- */
 @theme {
   --color-brand-50: #eef5ff;
   --color-brand-100: #d9e8ff;
@@ -38,8 +31,6 @@
     "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-  /* A calm, consistent elevation scale. Shadows stay soft so dense data
-     screens don't turn noisy. */
   --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.06);
   --shadow-raised: 0 4px 8px -2px rgb(16 24 40 / 0.06), 0 2px 4px -2px rgb(16 24 40 / 0.04);
   --shadow-overlay: 0 12px 32px -8px rgb(16 24 40 / 0.18), 0 4px 12px -4px rgb(16 24 40 / 0.1);
@@ -47,10 +38,6 @@
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-/* ---------------------------------------------------------------------------
-   Semantic tokens. Every colour used by components resolves through these, so
-   light/dark is a single set of overrides rather than per-component variants.
-   --------------------------------------------------------------------------- */
 :root {
   color-scheme: light;
 
@@ -82,13 +69,9 @@
 
   --ring: #1a6dff;
 
-  /* The app shell reads these so page content can size against them. */
   --sidebar-width: 16rem;
   --topbar-height: 3.75rem;
 
-  /* The whole interface renders at 90% — the density the team found right at
-     "90% browser zoom". Viewport-unit sizes are divided by this so full-height
-     panels still fill the screen (zoom scales those units too). */
   --ui-zoom: 0.9;
 }
 
@@ -154,9 +137,6 @@
   --color-ring: var(--ring);
 }
 
-/* ---------------------------------------------------------------------------
-   Base
-   --------------------------------------------------------------------------- */
 @layer base {
   * {
     border-color: var(--border);
@@ -165,8 +145,6 @@
   html {
     zoom: var(--ui-zoom);
     -webkit-text-size-adjust: 100%;
-    /* Guards against any single element forcing the page sideways. Data-dense
-       regions scroll inside their own container instead. */
     overflow-x: clip;
   }
 
@@ -187,9 +165,6 @@
     text-wrap: balance;
   }
 
-  /* Preflight zeroes every margin, which strips the browser's own centring
-     from modal dialogs and leaves them pinned to the top-left corner. Put it
-     back: a modal sits in the middle of the viewport. */
   dialog:modal {
     margin: auto;
   }
@@ -199,7 +174,6 @@
     outline-offset: 2px;
   }
 
-  /* Native controls should follow the theme rather than the OS default. */
   input,
   textarea,
   select,
@@ -212,7 +186,6 @@
     color: var(--fg-subtle);
   }
 
-  /* Firefox */
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--border-strong) transparent;
@@ -241,15 +214,12 @@
 }
 
 @layer components {
-  /* Horizontal scroll container for wide tables — the page never scrolls,
-     the table does. */
   .scroll-x {
     overflow-x: auto;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Numeric columns line up when digits are tabular. */
   .tnum {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
@@ -257,7 +227,6 @@
 }
 
 @layer utilities {
-  /* Viewport heights compensated for --ui-zoom (see :root). */
   .h-dvh {
     height: calc(100dvh / var(--ui-zoom));
   }
@@ -266,7 +235,6 @@
     min-height: calc(100dvh / var(--ui-zoom));
   }
 
-  /* Shrinking bar under the "saved" pop-up showing how long until it closes. */
   .popup-timer {
     transform-origin: left;
     animation: popup-timer linear forwards;
@@ -293,12 +261,10 @@
     animation: pop 0.16s var(--ease-out-quart) both;
   }
 
-  /* Slow push-in on the sign-in slideshow photo while it is showing. */
   .animate-kenburns {
     animation: kenburns 4.5s ease-out both;
   }
 
-  /* Skeleton shimmer used by loading.tsx files. */
   .shimmer {
     position: relative;
     overflow: hidden;
@@ -377,7 +343,6 @@
   }
 }
 
-/* Print — used by the browser-print fallback for invoices and quotations. */
 @media print {
   .no-print {
     display: none !important;

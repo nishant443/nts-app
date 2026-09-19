@@ -24,13 +24,6 @@ import {
 import { emptyFormState, fieldError, type FormState } from "@/lib/form-state";
 import { INDIAN_STATES } from "@/lib/tax";
 
-/**
- * The form behind quotations, invoices and purchase orders. They differ only in
- * their status list, their second date field, and the label on the counterparty
- * — everything else (line items, tax, terms) is identical, so one component
- * serves all three.
- */
-
 export interface CustomerOption {
   id: string;
   label: string;
@@ -49,7 +42,6 @@ export interface DocumentFormValues {
   placeOfSupply: string;
   discountAmount: string;
   items: LineItemValue[];
-  /** Customer purchase-order reference — invoices only. */
   poNumber?: string;
   poDate?: string;
 }
@@ -73,10 +65,8 @@ export function DocumentForm({
     counterparty: string;
     counterpartyField: string;
     secondaryDate: string;
-    /** `validUntil` for quotations, `dueDate` for invoices, `expectedDate` for POs. */
     secondaryDateField: string;
     secondaryDateHint?: string;
-    /** Show the customer PO number/date fields (invoices). */
     purchaseOrderRef?: boolean;
     submit: string;
     cancelHref: string;
@@ -93,8 +83,6 @@ export function DocumentForm({
       "",
   );
 
-  // Picking a customer fills in place of supply from their state, which is what
-  // decides IGST vs CGST/SGST on the totals below.
   const onCustomerChange = (id: string, next?: CustomerPickOption) => {
     setCustomerId(id);
     if (next?.state) setPlaceOfSupply(next.state);

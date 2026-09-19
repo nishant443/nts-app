@@ -5,7 +5,6 @@ import { today } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { getEffectiveLocation } from "@/lib/services/work-locations";
 
-/** Whether self check-in is open for this employee right now. */
 export async function getCheckInGate(userId: string): Promise<CheckInGate> {
   const day = today();
   const [holiday, fence] = await Promise.all([

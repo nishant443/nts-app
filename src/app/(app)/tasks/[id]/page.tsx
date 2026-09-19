@@ -33,14 +33,12 @@ export default async function TaskDetailPage(props: PageProps<"/tasks/[id]">) {
 
   if (!task) notFound();
 
-  // An employee may only open tasks assigned to them.
   assertOwnerOrAdmin(user, task.assigneeId);
 
   const isAdmin = user.role === "ADMIN";
   const isActive = task.status === "OPEN" || task.status === "IN_PROGRESS";
   const overdue = isActive && task.dueDate !== null && task.dueDate < today();
 
-  // The assignee works the task; an admin can step in on their behalf.
   const canProgress = isActive && (task.assigneeId === user.id || isAdmin);
 
   const emailStatus = task.emailedAt
@@ -144,7 +142,6 @@ export default async function TaskDetailPage(props: PageProps<"/tasks/[id]">) {
                     ? formatDateTime(task.completedAt)
                     : null,
                 },
-                // Only admins need to know whether the email went out.
                 ...(isAdmin ? [{ label: "Email", value: emailStatus }] : []),
               ]}
             />

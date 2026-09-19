@@ -1,15 +1,10 @@
 import { Card } from "@/components/ui/card";
 import { Skeleton, SkeletonTable } from "@/components/ui/feedback";
 
-/**
- * Placeholder for a list page, matching the real layout closely enough that
- * nothing shifts when the data arrives.
- */
 export function ListLoading({
   stats = 0,
   filters = true,
 }: {
-  /** Number of stat tiles above the table, if the page has them. */
   stats?: number;
   filters?: boolean;
 }) {

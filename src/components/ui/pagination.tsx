@@ -8,10 +8,6 @@ import {
 
 import { cn } from "@/lib/utils";
 
-/**
- * URL-driven pagination — no client state, so the list stays a Server
- * Component and a page of results is shareable and back-button friendly.
- */
 export function Pagination({
   page,
   perPage,
@@ -22,7 +18,6 @@ export function Pagination({
   page: number;
   perPage: number;
   total: number;
-  /** Current query string values to preserve, minus `page`. */
   baseParams?: Record<string, string | undefined>;
   className?: string;
 }) {

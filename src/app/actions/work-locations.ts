@@ -14,20 +14,6 @@ import { RateLimits } from "@/lib/rate-limit";
 import { getCompanySettings } from "@/lib/settings";
 import { workLocationSchema } from "@/lib/validation";
 
-/**
- * Work locations — where each employee is expected to check in from.
- *
- * An entry is "the location from this day onwards": later days inherit it
- * until a newer entry is recorded, so the admin only writes one when the site
- * changes. Saving the same employee + date again replaces that entry.
- *
- * Saving never emails on its own — the employee gets the in-app notification,
- * and the admin sends the email deliberately (the checkbox on the form, or the
- * Email button on the page). Back-dated entries and corrections would
- * otherwise fire confusing mail about days already gone.
- */
-
-/** The one email for a location entry; used by both the form and the button. */
 async function emailLocation(
   location: {
     id: string;
@@ -124,7 +110,6 @@ export const setWorkLocation = formAction(
       },
     });
 
-    // In-app only; email is the admin's call.
     await notify({
       userId: employee.id,
       type: "WORK_LOCATION_SET",
@@ -154,7 +139,6 @@ export const setWorkLocation = formAction(
   },
 );
 
-/** Admin presses Email on the page — the only other way a location is mailed. */
 export const emailWorkLocation = action<{ id: string }, { sentTo: string }>(
   { access: "admin", rateLimit: RateLimits.export },
   async ({ input, user }) => {

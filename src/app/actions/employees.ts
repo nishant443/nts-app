@@ -21,15 +21,6 @@ import {
   ownProfileSchema,
 } from "@/lib/validation";
 
-/**
- * Employee administration.
- *
- * Creating and editing employees is admin-only. `updateOwnProfile` is the
- * employee-facing counterpart and deliberately accepts a much narrower set of
- * fields — an employee cannot change their own role, status, or salary.
- */
-
-/** Next free NTS-00n code. */
 async function nextEmployeeCode(): Promise<string> {
   const users = await prisma.user.findMany({ select: { employeeCode: true } });
 
@@ -86,7 +77,6 @@ export const createEmployee = formAction(
       meta: { name: input.name, role: input.role },
     });
 
-    // Welcome note. The password is never emailed — the admin passes it on.
     await emailEmployee(
       { name: input.name, email: input.email },
       {
@@ -125,7 +115,6 @@ export const updateEmployee = formAction(
       }
     }
 
-    // Never let the last administrator lock everyone out of the system.
     if (employee.role === "ADMIN" && input.role !== "ADMIN") {
       const admins = await prisma.user.count({
         where: { role: "ADMIN", status: "ACTIVE", NOT: { id: employee.id } },
@@ -158,7 +147,6 @@ export const updateEmployee = formAction(
         phone: input.phone ?? null,
         role: input.role,
         status: input.status,
-        // Deactivating invalidates every session that account holds.
         ...(input.status !== "ACTIVE" && employee.status === "ACTIVE"
           ? { sessionVersion: { increment: 1 }, deactivatedAt: new Date() }
           : {}),
@@ -239,7 +227,6 @@ function profileData(input: {
   };
 }
 
-/** The employee-facing subset: contact, address and bank details only. */
 export const updateOwnProfile = formAction(
   { access: "user", schema: ownProfileSchema },
   async ({ input, user }) => {
@@ -304,11 +291,6 @@ export const updateOwnProfile = formAction(
   },
 );
 
-/**
- * Deactivate or reactivate an account. Nothing is deleted: the employee's
- * history stays intact, they simply cannot sign in until reactivated. An
- * optional reason is stored and shown to them on their next sign-in attempt.
- */
 export const setEmployeeStatus = action<
   { id: string; active: boolean; reason?: string },
   { name: string; active: boolean }
@@ -331,7 +313,6 @@ export const setEmployeeStatus = action<
       throw new ConflictError("You cannot deactivate your own account.");
     }
 
-    // Never let the last administrator lock everyone out of the system.
     if (employee.role === "ADMIN") {
       const admins = await prisma.user.count({
         where: { role: "ADMIN", status: "ACTIVE", NOT: { id: employee.id } },
@@ -352,7 +333,6 @@ export const setEmployeeStatus = action<
           status: "INACTIVE",
           deactivatedAt: new Date(),
           deactivationReason: input.reason ?? null,
-          // Signs them out of every device straight away.
           sessionVersion: { increment: 1 },
         },
   });
@@ -390,11 +370,6 @@ export const setEmployeeStatus = action<
   return { name: employee.name, active: input.active };
 });
 
-/**
- * Account emails go straight to the address on file rather than through
- * `notify()`, which only reaches active users — a deactivated person still
- * needs to hear about it. Best effort; never fails the action.
- */
 async function emailEmployee(
   recipient: { name: string; email: string },
   message: {
@@ -421,11 +396,6 @@ async function emailEmployee(
   }
 }
 
-/**
- * Issues a new temporary password and signs the employee out everywhere. The
- * password is returned once so the admin can pass it on — it is never stored in
- * readable form or emailed.
- */
 export const resetEmployeePassword = action<
   { id: string },
   { temporaryPassword: string; name: string }
@@ -457,8 +427,6 @@ export const resetEmployeePassword = action<
       meta: { employee: employee.name },
     });
 
-    // Returned once, for the admin to pass on securely. It is never stored in
-    // readable form, emailed, or shown again.
     return { temporaryPassword: temporary, name: employee.name };
   },
 );

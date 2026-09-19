@@ -1,14 +1,5 @@
 import { z } from "zod";
 
-/**
- * Zod schemas shared by Server Actions, Route Handlers, and (for field hints)
- * the client. Validation always runs on the server — the client never gets to
- * decide what is acceptable.
- */
-
-// --- Primitives --------------------------------------------------------------
-
-/** Trims, then rejects empty. HTML forms send "" rather than omitting a field. */
 const requiredText = (label: string, max = 255) =>
   z
     .string()
@@ -16,7 +7,6 @@ const requiredText = (label: string, max = 255) =>
     .min(1, `${label} is required.`)
     .max(max, `${label} must be ${max} characters or fewer.`);
 
-/** Optional text where "" from an untouched input should become undefined. */
 const optionalText = (max = 255) =>
   z
     .string()
@@ -27,7 +17,6 @@ const optionalText = (max = 255) =>
 
 const optionalLongText = (max = 5000) => optionalText(max);
 
-/** `<input type="date">` value. */
 export const dateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date.");
@@ -41,7 +30,6 @@ const optionalDateString = z
     "Enter a valid date.",
   );
 
-/** Numeric form field: arrives as a string, must end up a finite number. */
 const numeric = (label: string, options: { min?: number; max?: number } = {}) =>
   z
     .union([z.string(), z.number()])
@@ -68,7 +56,6 @@ const optionalNumeric = (label: string, fallback = 0) =>
     })
     .refine((value) => Number.isFinite(value), `${label} must be a number.`);
 
-/** HTML checkboxes submit "on" when ticked and nothing when not. */
 const checkbox = z
   .union([z.literal("on"), z.literal("true"), z.literal("false"), z.boolean()])
   .optional()
@@ -91,7 +78,6 @@ const optionalEmail = z
     "Enter a valid email address.",
   );
 
-/** Indian mobile / landline, tolerant of +91, spaces, and hyphens. */
 const optionalPhone = z
   .string()
   .trim()
@@ -133,8 +119,6 @@ const optionalCuid = z
   .optional()
   .transform((value) => (value === "" ? undefined : value));
 
-// --- Shared list/query -------------------------------------------------------
-
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   perPage: z.coerce.number().int().min(5).max(100).default(20),
@@ -142,17 +126,11 @@ export const paginationSchema = z.object({
 
 export type Pagination = z.infer<typeof paginationSchema>;
 
-// --- Auth --------------------------------------------------------------------
-
 export const loginSchema = z.object({
   email: emailField,
   password: z.string().min(1, "Password is required.").max(200),
 });
 
-/**
- * Password policy for anything a user sets themselves. Length does the heavy
- * lifting; the character classes stop the obvious "password1" choices.
- */
 export const passwordField = z
   .string()
   .min(10, "Use at least 10 characters.")
@@ -176,8 +154,6 @@ export const changePasswordSchema = z
     path: ["newPassword"],
   });
 
-// --- Employees ---------------------------------------------------------------
-
 export const employeeCreateSchema = z.object({
   name: requiredText("Name", 120),
   email: emailField,
@@ -192,7 +168,6 @@ export const employeeCreateSchema = z.object({
   dateOfJoining: optionalDateString,
 });
 
-/** Deactivate / reactivate from the employee page. */
 export const employeeStatusSchema = z.object({
   id: cuid,
   active: z.boolean(),
@@ -229,7 +204,6 @@ export const employeeUpdateSchema = z.object({
   bankHolderName: optionalText(120),
 });
 
-/** The fields an employee may change on their own profile. */
 export const ownProfileSchema = z.object({
   name: requiredText("Name", 120),
   phone: optionalPhone,
@@ -266,8 +240,6 @@ export const salaryStructureSchema = z.object({
   notes: optionalLongText(500),
 });
 
-// --- Attendance --------------------------------------------------------------
-
 export const attendanceMarkSchema = z.object({
   userId: cuid,
   date: dateString,
@@ -283,8 +255,6 @@ export const attendanceMarkSchema = z.object({
   checkOutAt: optionalText(10),
   notes: optionalText(500),
 });
-
-// --- Leave -------------------------------------------------------------------
 
 export const leaveRequestSchema = z
   .object({
@@ -323,8 +293,6 @@ export const leaveBalanceSchema = z.object({
   allocated: numeric("Allocated days", { min: 0, max: 365 }),
 });
 
-// --- Daily work & expenses ---------------------------------------------------
-
 export const workLogSchema = z.object({
   id: optionalCuid,
   date: dateString,
@@ -340,8 +308,6 @@ export const workLogReviewSchema = z.object({
   reviewNote: optionalText(500),
 });
 
-// --- Tasks -------------------------------------------------------------------
-
 export const TASK_PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
 
 export const taskSchema = z.object({
@@ -354,39 +320,68 @@ export const taskSchema = z.object({
   customerId: optionalCuid,
 });
 
-/** The assignee's two moves. Cancelling is an admin action, not a form. */
 export const taskProgressSchema = z.object({
   id: cuid,
   status: z.enum(["IN_PROGRESS", "COMPLETED"]),
   note: optionalText(1000),
 });
 
-export const expenseSchema = z.object({
-  id: optionalCuid,
-  date: dateString,
-  category: z.enum([
-    "TRAVEL",
-    "FUEL",
-    "FOOD",
-    "TOOLS",
-    "MATERIAL",
-    "LODGING",
-    "COURIER",
-    "OTHER",
-  ]),
-  amount: numeric("Amount", { min: 1, max: 1_000_000 }),
-  description: requiredText("Description", 500),
-  workLogId: optionalCuid,
-  receiptUrl: optionalText(500),
-});
+export const expenseSchema = z
+  .object({
+    id: optionalCuid,
+    date: dateString,
+    category: z.enum([
+      "TRAVEL",
+      "FUEL",
+      "FOOD",
+      "TOOLS",
+      "MATERIAL",
+      "LODGING",
+      "COURIER",
+      "OTHER",
+    ]),
+    amount: optionalNumeric("Amount"),
+    distanceKm: optionalNumeric("Distance"),
+    foodType: z
+      .enum(["LOCAL", "OUTSTATION"])
+      .optional()
+      .or(z.literal("").transform(() => undefined)),
+    description: requiredText("Description", 500),
+    customerId: optionalCuid,
+    receiptUrl: optionalText(500),
+    next: z.enum(["list", "another"]).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.category === "TRAVEL") {
+      if (value.distanceKm <= 0 || value.distanceKm > 10_000) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["distanceKm"],
+          message: "Enter the distance travelled in kilometres.",
+        });
+      }
+    } else if (value.category === "FOOD") {
+      if (!value.foodType) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["foodType"],
+          message: "Choose local or outstation.",
+        });
+      }
+    } else if (value.amount < 1 || value.amount > 1_000_000) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["amount"],
+        message: "Amount must be between 1 and 10,00,000.",
+      });
+    }
+  });
 
 export const expenseReviewSchema = z.object({
   id: cuid,
-  decision: z.enum(["APPROVED", "REJECTED", "REIMBURSED"]),
+  decision: z.enum(["APPROVED", "REJECTED"]),
   reviewNote: optionalText(500),
 });
-
-// --- Customers ---------------------------------------------------------------
 
 export const customerSchema = z.object({
   id: optionalCuid,
@@ -409,13 +404,6 @@ export const customerSchema = z.object({
   ownerId: optionalCuid,
 });
 
-// --- Line-item documents -----------------------------------------------------
-
-/**
- * Line items arrive from the form as parallel arrays (`items.description[]`,
- * `items.quantity[]`, …). `zipLineItems` in `lib/line-items.ts` turns them back
- * into objects before this schema runs.
- */
 export const lineItemSchema = z.object({
   description: requiredText("Description", 500),
   hsnCode: optionalText(20),
@@ -477,8 +465,6 @@ export const purchaseOrderSchema = z.object({
   items: z.array(lineItemSchema).min(1, "Add at least one line item."),
 });
 
-// --- Payments ----------------------------------------------------------------
-
 export const paymentSchema = z.object({
   id: optionalCuid,
   customerId: cuid,
@@ -495,8 +481,6 @@ export const paymentSchema = z.object({
   notes: optionalLongText(1000),
 });
 
-// --- Payroll -----------------------------------------------------------------
-
 export const payrollRunSchema = z.object({
   month: z.coerce.number().int().min(1).max(12),
   year: z.coerce.number().int().min(2000).max(2100),
@@ -507,8 +491,6 @@ export const payrollStatusSchema = z.object({
   id: cuid,
   status: z.enum(["DRAFT", "PROCESSING", "FINALIZED", "PAID"]),
 });
-
-// --- Settings ----------------------------------------------------------------
 
 export const companySettingsSchema = z.object({
   name: requiredText("Company name", 200),
@@ -545,11 +527,9 @@ export const workLocationSchema = z.object({
   longitude: numeric("Longitude", { min: -180, max: 180 }),
   radiusMeters: numeric("Radius", { min: 10, max: 5000 }),
   notes: optionalText(500),
-  /** Email the employee now. Off by default — the admin decides. */
   emailEmployee: checkbox,
 });
 
-/** GPS fix sent along with a self check-in / check-out. */
 export const positionSchema = z
   .object({
     latitude: z.number().min(-90).max(90),
@@ -562,8 +542,6 @@ export const holidaySchema = z.object({
   date: dateString,
   name: requiredText("Holiday name", 120),
 });
-
-// --- Inferred types ----------------------------------------------------------
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type EmployeeCreateInput = z.infer<typeof employeeCreateSchema>;

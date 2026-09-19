@@ -15,14 +15,6 @@ import { UserMenu } from "@/components/layout/user-menu";
 import { FlashPopup } from "@/components/ui/success-popup";
 import type { SessionUser } from "@/lib/dal";
 
-/**
- * Application chrome.
- *
- * Layout is a two-column grid from `lg` up and a single column below, with the
- * sidebar becoming a drawer. `min-w-0` on the content column is what actually
- * prevents a wide table from pushing the page sideways — without it a grid
- * child refuses to shrink below its content width.
- */
 export function AppShell({
   user,
   children,
@@ -32,7 +24,6 @@ export function AppShell({
 }) {
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)]">
-      {/* Desktop sidebar ------------------------------------------------ */}
       <aside className="sticky top-0 hidden h-dvh flex-col border-r border-border bg-surface lg:flex">
         <div className="flex h-[var(--topbar-height)] shrink-0 items-center border-b border-border px-4">
           <Link
@@ -56,7 +47,6 @@ export function AppShell({
         </div>
       </aside>
 
-      {/* Content column ------------------------------------------------- */}
       <div className="flex min-w-0 flex-col">
         <header className="sticky top-0 z-30 flex h-[var(--topbar-height)] shrink-0 items-center gap-2 border-b border-border bg-surface/85 px-3 backdrop-blur-md sm:px-5">
           <MobileNav role={user.role} />
@@ -86,13 +76,11 @@ export function AppShell({
           </div>
         </header>
 
-        {/* Search moves below the bar on phones, where it has no room. */}
         <div className="border-b border-border bg-surface px-3 py-2 sm:hidden">
           <GlobalSearch />
         </div>
 
         <FlashPopup />
-        {/* Other people's changes show up without a manual reload. */}
         <LiveRefresh />
 
         <main className="min-w-0 flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-7">

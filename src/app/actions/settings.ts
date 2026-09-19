@@ -10,12 +10,6 @@ import { prisma } from "@/lib/prisma";
 import { SETTINGS_ID } from "@/lib/settings";
 import { companySettingsSchema, holidaySchema } from "@/lib/validation";
 
-/**
- * Company settings.
- *
- * These values appear on every quotation, invoice and payslip, and `homeState`
- * decides IGST vs CGST/SGST — so changes are audited.
- */
 export const saveCompanySettings = formAction(
   { access: "admin", schema: companySettingsSchema },
   async ({ input, user }) => {
@@ -59,7 +53,6 @@ export const saveCompanySettings = formAction(
       entityId: SETTINGS_ID,
     });
 
-    // Settings feed the PDF header and tax logic everywhere.
     revalidatePath("/", "layout");
 
     return formSuccess("Company details saved.");

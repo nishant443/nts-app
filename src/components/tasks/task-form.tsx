@@ -36,7 +36,6 @@ export function TaskForm({
   };
   employees: { id: string; label: string }[];
   customers: { id: string; label: string }[];
-  /** Passed in rather than imported so the Zod schema stays server-side. */
   priorities: readonly string[];
   mailConfigured: boolean;
 }) {

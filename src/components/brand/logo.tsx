@@ -2,15 +2,6 @@ import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 
-/**
- * The NTS mark.
- *
- * `full` uses the supplied artwork (public/brand/nts-logo.png) and is what
- * appears on the login screen and on printed documents. `mark` is a compact
- * SVG monogram drawn to match the logo's geometry — used in the collapsed
- * sidebar and as the favicon, where the raster wordmark would be unreadable.
- */
-
 export function LogoFull({
   className,
   priority,
@@ -30,13 +21,6 @@ export function LogoFull({
   );
 }
 
-/**
- * Theme-aware logo on a transparent background, for placing directly on the
- * app surface. The light variant is the original ink; the dark variant has the
- * grey "N" and "TECH" lifted to a pale grey so they read on a dark surface,
- * with the blue kept. Both are rendered and CSS shows the right one, so a
- * theme toggle never flashes the wrong colours.
- */
 export function LogoAdaptive({
   className,
   priority,
@@ -67,7 +51,6 @@ export function LogoAdaptive({
   );
 }
 
-/** Square monogram: grey "N", blue "TS" — the logo's stacked lockup. */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg
@@ -90,7 +73,6 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-/** The logo sized for the sidebar and top bar, sitting directly on the surface. */
 export function LogoLockup({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex shrink-0 items-center", className)}>

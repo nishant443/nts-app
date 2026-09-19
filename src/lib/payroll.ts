@@ -13,14 +13,6 @@ import {
 } from "@/lib/payroll-math";
 import { prisma } from "@/lib/prisma";
 
-/**
- * Payroll data access.
- *
- * Gathers what a payslip needs — salary structure in force, attendance, leave,
- * approved expenses — and hands it to the pure calculation in
- * `lib/payroll-math.ts`.
- */
-
 export type {
   AttendanceSummary,
   PayslipComputation,
@@ -28,10 +20,8 @@ export type {
 };
 export { computePayslip, monthlyGross };
 
-/** Unpaid leave is the only type that does not count towards paid days. */
 const UNPAID_LEAVE_TYPES: LeaveType[] = ["UNPAID"];
 
-/** Working days in a month: calendar days minus Sundays and holidays. */
 export async function getWorkingDays(
   month: number,
   year: number,
@@ -53,10 +43,6 @@ export async function getWorkingDays(
   }).length;
 }
 
-/**
- * Attendance summary for one employee in one month. Paid leave is counted from
- * approved leave requests that overlap the month, clipped to working days.
- */
 export async function getAttendanceSummary(
   userId: string,
   month: number,
@@ -87,8 +73,6 @@ export async function getAttendanceSummary(
     return total;
   }, 0);
 
-  // A leave request can straddle a month boundary — count only the portion
-  // inside this month, and only for paid leave types.
   const paidLeaveDays = leaves.reduce((total, leave) => {
     if (UNPAID_LEAVE_TYPES.includes(leave.type)) return total;
 
@@ -113,7 +97,6 @@ export async function getAttendanceSummary(
   };
 }
 
-/** Calendar days between two dates excluding Sundays. */
 function countWorkingDaysBetween(from: Date, to: Date): number {
   let count = 0;
   const cursor = new Date(from);
@@ -124,10 +107,6 @@ function countWorkingDaysBetween(from: Date, to: Date): number {
   return count;
 }
 
-/**
- * The salary structure in force for a payroll period: the most recent one
- * effective on or before the last day of the month.
- */
 export async function getEffectiveSalary(
   userId: string,
   month: number,
@@ -157,7 +136,6 @@ export async function getEffectiveSalary(
   };
 }
 
-/** Approved-but-unreimbursed expenses that ride along with this month's pay. */
 export async function getReimbursableExpenses(
   userId: string,
   month: number,
@@ -173,7 +151,6 @@ export async function getReimbursableExpenses(
   return toMoney(result._sum.amount);
 }
 
-/** Everything needed to build one employee's payslip for a period. */
 export async function buildPayslipFor(
   userId: string,
   month: number,

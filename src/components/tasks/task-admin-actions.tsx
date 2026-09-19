@@ -5,7 +5,6 @@ import { Ban } from "lucide-react";
 import { cancelTask } from "@/app/actions/tasks";
 import { ConfirmAction } from "@/components/documents/confirm-action";
 
-/** Admin-only: withdraw a task that has not been completed. */
 export function CancelTaskButton({ id }: { id: string }) {
   return (
     <ConfirmAction

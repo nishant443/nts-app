@@ -3,20 +3,13 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-/**
- * The one button in the app. Renders an `<a>` when given `href` so navigation
- * and actions look identical without duplicating styles.
- */
-
 export type ButtonVariant =
   | "primary"
   | "secondary"
   | "ghost"
   | "danger"
   | "subtle"
-  /** Soft green — the "yes" in a yes/no pair: approve, accept, mark done. */
   | "success"
-  /** Soft red — the "no", or a destructive trigger whose dialog does the real warning. */
   | "dangerSoft";
 
 export type ButtonSize = "sm" | "md" | "lg" | "icon";
@@ -60,7 +53,6 @@ interface CommonProps {
   size?: ButtonSize;
   className?: string;
   children?: ReactNode;
-  /** Stretches the button to the container width — used on mobile forms. */
   block?: boolean;
 }
 

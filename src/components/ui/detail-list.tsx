@@ -5,15 +5,9 @@ import { cn } from "@/lib/utils";
 export interface DetailItem {
   label: string;
   value: ReactNode;
-  /** Span both columns — for addresses and notes. */
   wide?: boolean;
 }
 
-/**
- * Label/value pairs for detail panels. Stacks on phones and becomes two
- * columns from `sm` up; an empty value renders a dash rather than collapsing,
- * so rows stay aligned.
- */
 export function DetailList({
   items,
   className,

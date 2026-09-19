@@ -15,17 +15,8 @@ import { prisma } from "@/lib/prisma";
 import { RateLimits } from "@/lib/rate-limit";
 import { customerSchema } from "@/lib/validation";
 
-/**
- * Customer actions.
- *
- * Both roles may add a customer — engineers meet prospects on site and should
- * be able to capture them. Editing and deleting are admin-only, so a record
- * cannot be quietly altered after quotations have been raised against it.
- */
-
 type CustomerInput = z.infer<typeof customerSchema>;
 
-/** Validated form input → Prisma columns. Shared by both create paths. */
 function customerData(input: CustomerInput) {
   return {
     name: input.name,
@@ -94,7 +85,6 @@ export const saveCustomer = formAction(
   },
 );
 
-/** What a picker needs to show and select a customer just created inline. */
 export interface CreatedCustomer {
   id: string;
   label: string;
@@ -102,13 +92,6 @@ export interface CreatedCustomer {
   type: string;
 }
 
-/**
- * Creates a customer from inside another form — the "Add new customer…" entry
- * in every customer dropdown. Same validation and audit trail as the full
- * page, but returns the record instead of redirecting so the calling form can
- * select it and carry on. Validation failures come back as a `FormState` so
- * the dialog can highlight fields, exactly like the full-page form does.
- */
 export const createCustomerInline = action<
   Record<string, unknown>,
   { customer: CreatedCustomer } | { invalid: FormState }
@@ -123,8 +106,6 @@ export const createCustomerInline = action<
     };
   }
 
-  // Always a create — `customerData` never carries the id, so a replayed
-  // request with one cannot turn this into an edit.
   const created = await prisma.customer.create({
     data: { ...customerData(parsed.data), createdById: user.id },
     select: {
@@ -156,11 +137,6 @@ export const createCustomerInline = action<
   };
 });
 
-/**
- * Deleting is blocked once a customer has any financial history — removing
- * them would orphan invoices and break the audit trail. Mark them Inactive
- * instead.
- */
 export const deleteCustomer = action<{ id: string }>(
   { access: "admin" },
   async ({ input, user }) => {
@@ -208,11 +184,6 @@ export const deleteCustomer = action<{ id: string }>(
   },
 );
 
-/**
- * Fill the customer form from a GSTIN. Anyone who can add a customer can use
- * it; rate limited like an export because every call goes out to a metered
- * third-party API.
- */
 export const fetchGstinDetails = action<{ gstin: string }, GstinDetails>(
   { access: "user", rateLimit: RateLimits.export },
   async ({ input }) => lookupGstin(String(input.gstin ?? "")),

@@ -1,18 +1,3 @@
-/**
- * Line-item form encoding.
- *
- * A repeating table of line items has to survive a plain `FormData` round trip.
- * Each row submits its fields under the same names, so the browser sends
- * parallel arrays:
- *
- *   item.description = ["Spindle rebuild", "Ball screw"]
- *   item.quantity    = ["1", "2"]
- *
- * `zipLineItems` turns those back into objects. A single row arrives as a bare
- * string rather than an array, which is the usual source of bugs here — hence
- * `toArray`.
- */
-
 const LINE_ITEM_FIELDS = [
   "description",
   "hsnCode",
@@ -32,10 +17,6 @@ function toArray(value: unknown): string[] {
   return [String(value)];
 }
 
-/**
- * Extracts `item.*` parallel arrays from a parsed form object and returns an
- * array of row objects, dropping rows the user left completely blank.
- */
 export function zipLineItems(
   source: Record<string, unknown>,
 ): Record<LineItemField, string>[] {
@@ -60,8 +41,6 @@ export function zipLineItems(
       ]),
     ) as Record<LineItemField, string>;
 
-    // An untouched trailing row has no description and no rate — skip it
-    // rather than failing validation on the user's behalf.
     if (!row.description.trim() && !row.unitPrice.trim()) continue;
 
     rows.push(row);
@@ -70,10 +49,6 @@ export function zipLineItems(
   return rows;
 }
 
-/**
- * Replaces the flat `item.*` keys with a single `items` array so the Zod
- * document schemas can validate rows as objects.
- */
 export function withLineItems(
   source: Record<string, unknown>,
 ): Record<string, unknown> {

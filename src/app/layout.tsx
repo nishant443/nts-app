@@ -21,15 +21,12 @@ export const metadata: Metadata = {
   description:
     "Operations and HR platform for Nutan Tech Solutions — CNC maintenance, retrofitting, automation and robotics.",
   applicationName: "NTS",
-  // Icons come from the app/icon.png and app/apple-icon.png file conventions.
-  // Internal tool — keep it out of search engines.
   robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  // Never trap a user who needs to zoom into a dense table.
   maximumScale: 5,
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#f4f6f9" },
@@ -52,8 +49,6 @@ export default function RootLayout({
           position="top-right"
           richColors
           closeButton
-          // On a phone the toast spans the full width; let it be flicked
-          // away in any direction, not only towards the edge it sits on.
           swipeDirections={["left", "right", "top"]}
           toastOptions={{
             style: { borderRadius: "0.6rem", fontSize: "13.5px" },

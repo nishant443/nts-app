@@ -11,14 +11,6 @@ import { TaxInvoicePdf } from "@/lib/pdf/tax-invoice-pdf";
 import { prisma } from "@/lib/prisma";
 import { getCompanySettings, type CompanyProfile } from "@/lib/settings";
 
-/**
- * Builds the quotation and invoice PDFs.
- *
- * Shared by the download routes and the email action so a customer who receives
- * the attachment and a colleague who downloads it are looking at byte-identical
- * documents.
- */
-
 export interface BuiltDocument {
   buffer: Buffer;
   filename: string;
@@ -30,7 +22,6 @@ export interface BuiltDocument {
   dueValue?: string;
 }
 
-/** Slashes in document numbers would otherwise create directories. */
 function toFilename(number: string): string {
   return `${number.replace(/[/\\]/g, "-")}.pdf`;
 }
@@ -165,11 +156,6 @@ export async function buildInvoicePdf(id: string): Promise<BuiltDocument> {
   };
 }
 
-/**
- * "Scan to pay" QR for the bank-details box. Standard UPI deep link carrying
- * the balance due and the invoice number so the payer's app pre-fills both.
- * Nothing is printed when no UPI id is configured.
- */
 async function upiQr(
   settings: CompanyProfile,
   invoiceNumber: string,

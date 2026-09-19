@@ -17,12 +17,6 @@ import { getCompanySettings } from "@/lib/settings";
 import type { InvoiceStatus } from "@/generated/prisma/enums";
 import { invoiceSchema } from "@/lib/validation";
 
-/**
- * Invoice actions.
- *
- * Raising and editing invoices is admin-only: an invoice is the legal record of
- * a sale, and `amountPaid` feeds every revenue figure in the app.
- */
 export const saveInvoice = formAction(
   { access: "admin", schema: invoiceSchema, transform: withLineItems },
   async ({ input, user }) => {
@@ -81,8 +75,6 @@ export const saveInvoice = formAction(
 
         const amountPaid = toMoney(existing.amountPaid);
 
-        // Editing an invoice below what has already been received would leave
-        // a negative balance and corrupt the collection figures.
         if (prepared.total < amountPaid - 0.009) {
           throw new ConflictError(
             `This invoice already has ${amountPaid.toFixed(2)} recorded against it. The total cannot be reduced below that.`,

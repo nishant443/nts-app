@@ -5,7 +5,6 @@ import { X } from "lucide-react";
 import { cancelLeaveRequest } from "@/app/actions/leave";
 import { ConfirmAction } from "@/components/documents/confirm-action";
 
-/** Withdraw a pending leave request. */
 export function LeaveRowActions({ id }: { id: string }) {
   return (
     <ConfirmAction

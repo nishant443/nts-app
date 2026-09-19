@@ -16,17 +16,10 @@ import { prepareDocument } from "@/lib/services/documents";
 import { getCompanySettings } from "@/lib/settings";
 import { quotationSchema } from "@/lib/validation";
 
-/**
- * Quotation actions.
- *
- * The form posts line items as parallel arrays, so `withLineItems` reshapes the
- * payload before validation. Totals are always recomputed server-side.
- */
 export const saveQuotation = formAction(
   {
     access: "user",
     schema: quotationSchema,
-    // The raw FormData is reshaped before the schema runs.
     transform: withLineItems,
   },
   async ({ input, user }) => {
@@ -84,8 +77,6 @@ export const saveQuotation = formAction(
           );
         }
 
-        // Replacing the lines wholesale is simpler and safer than diffing, and
-        // line items carry no identity of their own.
         await tx.quotationItem.deleteMany({ where: { quotationId: input.id } });
         await tx.quotation.update({
           where: { id: input.id },
@@ -191,10 +182,6 @@ export const setQuotationStatus = action<{ id: string; status: string }>(
   },
 );
 
-/**
- * Turn an accepted quotation into an invoice, copying the lines across. The
- * quotation is marked CONVERTED so it cannot be double-billed.
- */
 export const convertQuotationToInvoice = action<{ id: string }>(
   { access: "admin" },
   async ({ input, user }) => {

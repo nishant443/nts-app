@@ -50,8 +50,6 @@ export default async function WorkLogsPage(props: {
   const dateRange = dateRangeFilter(searchParams);
   const { page, perPage, skip, take } = pageWindow(searchParams);
 
-  // Always scoped to the signed-in employee — admins review everyone's reports
-  // from /admin/approvals instead.
   const where = {
     userId: user.id,
     ...(status ? { status } : {}),

@@ -5,25 +5,10 @@ import { Monitor, Moon, Sun } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-/**
- * Theme handling.
- *
- * The choice lives in `localStorage` under `nts-theme` and is applied by an
- * inline script before first paint (see `ThemeScript`), so there is no flash of
- * the wrong theme on load. "system" follows the OS.
- *
- * State is read with `useSyncExternalStore` rather than an effect: localStorage
- * and `prefers-color-scheme` are external stores, and the hook gives correct
- * server snapshots and cross-tab updates without a post-mount re-render.
- */
-
 const STORAGE_KEY = "nts-theme";
 
 type Theme = "light" | "dark" | "system";
 
-// --- External store ----------------------------------------------------------
-
-/** Same-tab subscribers; `storage` events only fire in *other* tabs. */
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -51,12 +36,10 @@ function readStoredTheme(): Theme {
       return value;
     }
   } catch {
-    // Private mode or blocked storage — fall through to the default.
   }
   return "system";
 }
 
-/** Server render has no storage and no media query; "system" is the neutral default. */
 function serverTheme(): Theme {
   return "system";
 }
@@ -65,7 +48,6 @@ function useTheme(): Theme {
   return useSyncExternalStore(subscribe, readStoredTheme, serverTheme);
 }
 
-/** The theme actually in effect, with "system" resolved against the OS. */
 function useResolvedTheme(): "light" | "dark" {
   return useSyncExternalStore(
     subscribe,
@@ -76,8 +58,6 @@ function useResolvedTheme(): "light" | "dark" {
         ? "dark"
         : "light";
     },
-    // Matches what `ThemeScript` assumes before hydration, so the first client
-    // render agrees with the server HTML.
     () => "light" as const,
   );
 }
@@ -86,7 +66,6 @@ function setTheme(next: Theme) {
   try {
     localStorage.setItem(STORAGE_KEY, next);
   } catch {
-    // Nothing to persist to; the class change below still applies for this page.
   }
 
   const dark =
@@ -98,12 +77,6 @@ function setTheme(next: Theme) {
   emit();
 }
 
-// --- Components --------------------------------------------------------------
-
-/**
- * Runs before hydration. Kept deliberately tiny and dependency-free because it
- * is inlined into the document head and blocks the first paint.
- */
 export function ThemeScript() {
   const script = `
 (function(){
@@ -117,7 +90,6 @@ export function ThemeScript() {
 })();`.trim();
 
   return (
-    // The content is a fixed literal — no user input reaches it.
     <script dangerouslySetInnerHTML={{ __html: script }} />
   );
 }
@@ -128,7 +100,6 @@ const OPTIONS: { value: Theme; label: string; icon: typeof Sun }[] = [
   { value: "system", label: "System", icon: Monitor },
 ];
 
-/** Three-way segmented control, used on the Settings page. */
 export function ThemeSelector() {
   const theme = useTheme();
 
@@ -165,7 +136,6 @@ export function ThemeSelector() {
   );
 }
 
-/** Compact light/dark toggle for the topbar. */
 export function ThemeToggle() {
   const resolved = useResolvedTheme();
   const isDark = resolved === "dark";

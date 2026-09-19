@@ -31,7 +31,6 @@ const SECTIONS = [
   },
 ];
 
-/** Scrolls horizontally on phones rather than stacking into a tall list. */
 export function SettingsNav({ role }: { role: Role }) {
   const pathname = usePathname();
   const sections = SECTIONS.filter(

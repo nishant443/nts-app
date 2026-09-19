@@ -1,16 +1,5 @@
-/**
- * List-page query helpers.
- *
- * Every list screen takes its state from the URL: `?q=&status=&page=`. That
- * keeps the pages Server Components (no client state, no hydration cost),
- * makes any filtered view shareable, and makes the browser's back button work
- * the way people expect.
- */
-
-/** Next 16 hands `searchParams` to pages as a promise of this shape. */
 export type SearchParams = Record<string, string | string[] | undefined>;
 
-/** First value for a key — repeated params collapse to the first. */
 export function param(
   searchParams: SearchParams,
   key: string,
@@ -21,7 +10,6 @@ export function param(
   return trimmed ? trimmed : undefined;
 }
 
-/** Reads a param constrained to a known set, ignoring anything else. */
 export function enumParam<T extends string>(
   searchParams: SearchParams,
   key: string,
@@ -42,7 +30,6 @@ export interface PageWindow {
   take: number;
 }
 
-/** Clamped so `?page=-4` or `?page=1e9` cannot produce a silly query. */
 export function pageWindow(
   searchParams: SearchParams,
   perPage = DEFAULT_PER_PAGE,
@@ -53,10 +40,6 @@ export function pageWindow(
   return { page, perPage, skip: (page - 1) * perPage, take: perPage };
 }
 
-/**
- * Case-insensitive "contains" across several columns — the standard search
- * behaviour for list pages.
- */
 export function searchFilter<T extends string>(
   term: string | undefined,
   fields: readonly T[],
@@ -70,7 +53,6 @@ export function searchFilter<T extends string>(
   };
 }
 
-/** A date range from `?from=&to=` — either bound may be omitted. */
 export function dateRangeFilter(
   searchParams: SearchParams,
 ): { gte?: Date; lte?: Date } | undefined {
@@ -89,7 +71,6 @@ export function dateRangeFilter(
   return range.gte || range.lte ? range : undefined;
 }
 
-/** Current filter values, for handing back to `<Pagination baseParams>`. */
 export function carryParams(
   searchParams: SearchParams,
   keys: readonly string[],

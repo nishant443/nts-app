@@ -29,10 +29,7 @@ export interface CheckInLogRow {
   notes: string | null;
 }
 
-/**
- * One day's check-ins and check-outs for every active employee, exactly as
- * recorded — the times the register grid summarises into a single letter.
- */
+
 export function CheckInLog({
   day,
   today,

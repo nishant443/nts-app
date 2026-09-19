@@ -1,10 +1,3 @@
-// Nutan Tech Solutions — data model
-// Business operations (customers, quotations, invoices, payments, purchase orders)
-// + HR (employees, attendance, leave, payroll, daily work, expenses).
-//
-// Money is stored as Decimal(14,2). Never let a Prisma Decimal cross the
-// server/client boundary — map it with `toMoney()` from `src/lib/money.ts`.
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -13,10 +6,6 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
-
-// ---------------------------------------------------------------------------
-// Enums
-// ---------------------------------------------------------------------------
 
 enum Role {
   ADMIN
@@ -113,6 +102,11 @@ enum ExpenseStatus {
   REIMBURSED
 }
 
+enum FoodType {
+  LOCAL
+  OUTSTATION
+}
+
 enum CustomerType {
   LEAD
   ACTIVE
@@ -196,10 +190,6 @@ enum NotificationType {
   GENERAL
 }
 
-// ---------------------------------------------------------------------------
-// Identity & HR
-// ---------------------------------------------------------------------------
-
 model User {
   id           String     @id @default(cuid())
   employeeCode String     @unique
@@ -211,12 +201,9 @@ model User {
   status       UserStatus @default(ACTIVE)
   avatarUrl    String?
 
-  /// Bumped on password change / forced logout so existing JWTs stop validating.
   sessionVersion Int       @default(1)
   lastLoginAt    DateTime?
 
-  /// Set while the account is deactivated. Shown to the employee when they try
-  /// to sign in, so they know why and whom to ask. Cleared on reactivation.
   deactivatedAt      DateTime?
   deactivationReason String?
 
@@ -226,20 +213,20 @@ model User {
   profile         EmployeeProfile?
   salaryStructure SalaryStructure[]
   attendance      Attendance[]
-  leaveRequests   LeaveRequest[]  @relation("LeaveRequester")
-  leaveReviews    LeaveRequest[]  @relation("LeaveReviewer")
+  leaveRequests   LeaveRequest[]    @relation("LeaveRequester")
+  leaveReviews    LeaveRequest[]    @relation("LeaveReviewer")
   leaveBalances   LeaveBalance[]
   payslips        Payslip[]
-  workLogs        DailyWorkLog[]  @relation("WorkLogAuthor")
-  workLogReviews  DailyWorkLog[]  @relation("WorkLogReviewer")
-  expenses        Expense[]       @relation("ExpenseOwner")
-  expenseReviews  Expense[]       @relation("ExpenseReviewer")
-  assignedTasks   Task[]          @relation("TaskAssignee")
-  createdTasks    Task[]          @relation("TaskAssigner")
+  workLogs        DailyWorkLog[]    @relation("WorkLogAuthor")
+  workLogReviews  DailyWorkLog[]    @relation("WorkLogReviewer")
+  expenses        Expense[]         @relation("ExpenseOwner")
+  expenseReviews  Expense[]         @relation("ExpenseReviewer")
+  assignedTasks   Task[]            @relation("TaskAssignee")
+  createdTasks    Task[]            @relation("TaskAssigner")
   notifications   Notification[]
   auditLogs       AuditLog[]
-  workLocations   WorkLocation[] @relation("WorkLocationEmployee")
-  setLocations    WorkLocation[] @relation("WorkLocationSetter")
+  workLocations   WorkLocation[]    @relation("WorkLocationEmployee")
+  setLocations    WorkLocation[]    @relation("WorkLocationSetter")
 
   createdCustomers      Customer[]      @relation("CustomerCreator")
   ownedCustomers        Customer[]      @relation("CustomerOwner")
@@ -291,8 +278,6 @@ model EmployeeProfile {
   @@map("employee_profiles")
 }
 
-/// Versioned salary structure. The row with the latest `effectiveFrom` that is
-/// not after the payroll period is the one payroll uses.
 model SalaryStructure {
   id     String @id @default(cuid())
   userId String
@@ -307,11 +292,11 @@ model SalaryStructure {
   specialAllowance Decimal @default(0) @db.Decimal(14, 2)
   otherAllowance   Decimal @default(0) @db.Decimal(14, 2)
 
-  pfDeduction        Decimal @default(0) @db.Decimal(14, 2)
-  esiDeduction       Decimal @default(0) @db.Decimal(14, 2)
-  professionalTax    Decimal @default(0) @db.Decimal(14, 2)
-  tdsDeduction       Decimal @default(0) @db.Decimal(14, 2)
-  otherDeduction     Decimal @default(0) @db.Decimal(14, 2)
+  pfDeduction     Decimal @default(0) @db.Decimal(14, 2)
+  esiDeduction    Decimal @default(0) @db.Decimal(14, 2)
+  professionalTax Decimal @default(0) @db.Decimal(14, 2)
+  tdsDeduction    Decimal @default(0) @db.Decimal(14, 2)
+  otherDeduction  Decimal @default(0) @db.Decimal(14, 2)
 
   notes String?
 
@@ -323,27 +308,21 @@ model SalaryStructure {
   @@map("salary_structures")
 }
 
-/// Where an employee is expected to be on a given day — a customer site, the
-/// office, wherever the admin sends them. Self check-in and check-out must
-/// happen within `radiusMeters` of it. A day with no entry inherits the most
-/// recent earlier one, so the admin only records a location when it changes.
 model WorkLocation {
   id     String @id @default(cuid())
   userId String
   user   User   @relation("WorkLocationEmployee", fields: [userId], references: [id], onDelete: Cascade)
 
-  /// Date at UTC midnight — the first day this location applies from.
   date         DateTime
   label        String
   latitude     Float
   longitude    Float
-  radiusMeters Int    @default(50)
+  radiusMeters Int      @default(50)
   notes        String?
 
   setById String
   setBy   User   @relation("WorkLocationSetter", fields: [setById], references: [id])
 
-  /// When the admin last emailed this entry to the employee — never automatic.
   emailedAt DateTime?
 
   createdAt DateTime @default(now())
@@ -359,17 +338,14 @@ model Attendance {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /// Date at UTC midnight — the calendar day this record belongs to.
-  date         DateTime
-  status       AttendanceStatus @default(PRESENT)
-  checkInAt    DateTime?
-  checkOutAt   DateTime?
-  workedMinutes Int             @default(0)
-  source       AttendanceSource @default(SELF_CHECK_IN)
-  notes        String?
+  date          DateTime
+  status        AttendanceStatus @default(PRESENT)
+  checkInAt     DateTime?
+  checkOutAt    DateTime?
+  workedMinutes Int              @default(0)
+  source        AttendanceSource @default(SELF_CHECK_IN)
+  notes         String?
 
-  /// Where the employee was when they pressed the button, and how far that
-  /// was from the office — null for admin-entered rows.
   checkInLatitude   Float?
   checkInLongitude  Float?
   checkInDistanceM  Int?
@@ -395,7 +371,6 @@ model LeaveRequest {
   type      LeaveType
   startDate DateTime
   endDate   DateTime
-  /// Supports half days, hence Decimal.
   days      Decimal       @db.Decimal(5, 1)
   reason    String
   status    RequestStatus @default(PENDING)
@@ -467,10 +442,10 @@ model Payslip {
   month Int
   year  Int
 
-  workingDays Decimal @db.Decimal(5, 1)
-  presentDays Decimal @db.Decimal(5, 1)
+  workingDays   Decimal @db.Decimal(5, 1)
+  presentDays   Decimal @db.Decimal(5, 1)
   paidLeaveDays Decimal @default(0) @db.Decimal(5, 1)
-  lopDays     Decimal @default(0) @db.Decimal(5, 1)
+  lopDays       Decimal @default(0) @db.Decimal(5, 1)
 
   basic            Decimal @db.Decimal(14, 2)
   hra              Decimal @default(0) @db.Decimal(14, 2)
@@ -478,7 +453,6 @@ model Payslip {
   medical          Decimal @default(0) @db.Decimal(14, 2)
   specialAllowance Decimal @default(0) @db.Decimal(14, 2)
   otherAllowance   Decimal @default(0) @db.Decimal(14, 2)
-  /// Approved expense reimbursements folded into this payslip.
   reimbursements   Decimal @default(0) @db.Decimal(14, 2)
 
   pfDeduction     Decimal @default(0) @db.Decimal(14, 2)
@@ -536,8 +510,6 @@ model DailyWorkLog {
   @@map("daily_work_logs")
 }
 
-/// Work an administrator hands to an employee. The assignee moves it through
-/// OPEN → IN_PROGRESS → COMPLETED; only an admin can cancel or reassign.
 model Task {
   id String @id @default(cuid())
 
@@ -560,8 +532,6 @@ model Task {
   completedAt    DateTime?
   completionNote String?
 
-  /// When the assignment email was delivered to the assignee; null if mail is
-  /// not configured or the send failed. The in-app notification always goes out.
   emailedAt DateTime?
 
   createdAt DateTime @default(now())
@@ -585,8 +555,14 @@ model Expense {
   description String
   receiptUrl  String?
 
+  distanceKm Decimal?  @db.Decimal(8, 2)
+  foodType   FoodType?
+
   workLogId String?
   workLog   DailyWorkLog? @relation(fields: [workLogId], references: [id], onDelete: SetNull)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   status ExpenseStatus @default(PENDING)
 
@@ -601,12 +577,9 @@ model Expense {
   @@index([userId, date])
   @@index([status, date])
   @@index([date])
+  @@index([customerId])
   @@map("expenses")
 }
-
-// ---------------------------------------------------------------------------
-// Business operations
-// ---------------------------------------------------------------------------
 
 model Customer {
   id          String       @id @default(cuid())
@@ -614,10 +587,10 @@ model Customer {
   companyName String?
   type        CustomerType @default(LEAD)
 
-  email   String?
-  phone   String?
+  email    String?
+  phone    String?
   altPhone String?
-  website String?
+  website  String?
 
   gstin String?
   pan   String?
@@ -643,6 +616,7 @@ model Customer {
   purchaseOrders PurchaseOrder[]
   workLogs       DailyWorkLog[]
   tasks          Task[]
+  expenses       Expense[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -669,7 +643,6 @@ model Quotation {
   notes   String?
   terms   String?
 
-  /// Destination state — decides IGST vs CGST+SGST.
   placeOfSupply String?
 
   subtotal       Decimal @default(0) @db.Decimal(14, 2)
@@ -727,8 +700,6 @@ model Invoice {
   dueDate DateTime?
   status  InvoiceStatus @default(DRAFT)
 
-  /// The customer's purchase order this invoice is raised against — printed
-  /// on the invoice because their accounts team matches on it.
   poNumber String?
   poDate   DateTime?
 
@@ -746,7 +717,6 @@ model Invoice {
   igstAmount     Decimal @default(0) @db.Decimal(14, 2)
   total          Decimal @default(0) @db.Decimal(14, 2)
 
-  /// Denormalised sum of RECEIVED payments — kept in sync inside a transaction.
   amountPaid Decimal @default(0) @db.Decimal(14, 2)
 
   createdById String
@@ -826,7 +796,6 @@ model PurchaseOrder {
   notes String?
   terms String?
 
-  /// Vendor's state — decides IGST vs CGST+SGST on the purchase.
   placeOfSupply String?
 
   subtotal      Decimal @default(0) @db.Decimal(14, 2)
@@ -867,10 +836,6 @@ model PurchaseOrderItem {
   @@map("purchase_order_items")
 }
 
-// ---------------------------------------------------------------------------
-// Cross-cutting
-// ---------------------------------------------------------------------------
-
 model Document {
   id String @id @default(cuid())
 
@@ -878,9 +843,9 @@ model Document {
   ownerId   String
   category  String            @default("General")
 
-  name     String
-  url      String
-  mimeType String?
+  name      String
+  url       String
+  mimeType  String?
   sizeBytes Int?
 
   uploadedById String
@@ -943,7 +908,6 @@ model Holiday {
   @@map("holidays")
 }
 
-/// Single-row table (id is always "singleton").
 model CompanySettings {
   id String @id @default("singleton")
 
@@ -971,13 +935,12 @@ model CompanySettings {
   bankHolderName String?
   upiId          String?
 
-  invoicesPrefix       String @default("NTS/INV/")
-  quotationPrefix      String @default("NTS/QT/")
-  purchaseOrderPrefix  String @default("NTS/PO/")
-  currency             String @default("INR")
-  defaultTaxRate       Decimal @default(18) @db.Decimal(5, 2)
-  /// Company's own state — compared with place of supply to pick IGST vs CGST/SGST.
-  homeState            String @default("Maharashtra")
+  invoicesPrefix      String  @default("NTS/INV/")
+  quotationPrefix     String  @default("NTS/QT/")
+  purchaseOrderPrefix String  @default("NTS/PO/")
+  currency            String  @default("INR")
+  defaultTaxRate      Decimal @default(18) @db.Decimal(5, 2)
+  homeState           String  @default("Maharashtra")
 
   updatedAt DateTime @updatedAt
 

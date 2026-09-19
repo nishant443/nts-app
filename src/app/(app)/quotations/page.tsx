@@ -35,7 +35,6 @@ const STATUSES = [
   "CONVERTED",
 ] as const;
 
-/** Decimals are mapped to numbers before they reach the table. */
 interface QuotationRow {
   id: string;
   number: string;

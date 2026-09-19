@@ -8,12 +8,6 @@ import { showSuccess } from "@/components/ui/success-popup";
 
 import { cn } from "@/lib/utils";
 
-/**
- * Status buttons for a document.
- *
- * Each option calls a Server Action that re-validates the transition on the
- * server, so a disabled button here is a convenience, never the control.
- */
 export function StatusActions({
   current,
   options,
@@ -22,7 +16,6 @@ export function StatusActions({
 }: {
   current: string;
   options: { value: string; label: string }[];
-  /** Server Action taking `{ id, status }`. */
   onChange: (input: {
     id: string;
     status: string;

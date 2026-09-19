@@ -10,13 +10,6 @@ import { ConfirmAction } from "@/components/documents/confirm-action";
 import { Button } from "@/components/ui/button";
 import { showSuccess } from "@/components/ui/success-popup";
 
-/**
- * Controls for a payroll run.
- *
- * Generating rebuilds every payslip from current attendance and salary data,
- * so it is offered only while the run is still open. Finalizing freezes the
- * figures and notifies employees, so it asks first.
- */
 export function RunActions({
   runId,
   status,

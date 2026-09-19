@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { PageHeader } from "@/components/ui/page-header";
 import { requireUser } from "@/lib/dal";
-import { dayKey, formatDate, today } from "@/lib/dates";
+import { dayKey, today } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 import { param, type SearchParams } from "@/lib/query";
 
@@ -14,15 +14,13 @@ export const metadata: Metadata = {
 export default async function NewExpensePage(props: {
   searchParams: Promise<SearchParams>;
 }) {
-  const user = await requireUser();
+  await requireUser();
   const searchParams = await props.searchParams;
 
-  // Only the employee's own recent reports can be linked.
-  const workLogs = await prisma.dailyWorkLog.findMany({
-    where: { userId: user.id },
-    orderBy: { date: "desc" },
-    take: 40,
-    select: { id: true, title: true, date: true },
+  const customers = await prisma.customer.findMany({
+    where: { type: { not: "VENDOR" } },
+    orderBy: [{ companyName: "asc" }, { name: "asc" }],
+    select: { id: true, name: true, companyName: true },
   });
 
   return (
@@ -37,16 +35,18 @@ export default async function NewExpensePage(props: {
       />
 
       <ExpenseForm
-        workLogs={workLogs.map((log) => ({
-          id: log.id,
-          label: `${formatDate(log.date)} — ${log.title}`,
+        customers={customers.map((customer) => ({
+          id: customer.id,
+          label: customer.companyName ?? customer.name,
         }))}
         values={{
-          date: dayKey(today()),
+          date: param(searchParams, "date") ?? dayKey(today()),
           category: "TRAVEL",
           amount: "",
+          distanceKm: "",
+          foodType: "",
           description: "",
-          workLogId: param(searchParams, "workLogId") ?? "",
+          customerId: param(searchParams, "customerId") ?? "",
           receiptUrl: "",
         }}
       />

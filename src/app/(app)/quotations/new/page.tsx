@@ -17,7 +17,6 @@ export default async function NewQuotationPage(props: {
 
   const searchParams = await props.searchParams;
 
-  // Arriving from a customer page pre-selects that customer.
   const customerId = param(searchParams, "customerId") ?? "";
 
   const start = today();

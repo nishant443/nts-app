@@ -45,10 +45,6 @@ interface CustomerRow {
   outstanding: number;
 }
 
-/**
- * Sales register plus a customer summary — the two sheets an accountant needs
- * for GST filing and for chasing receivables.
- */
 export async function GET(request: Request) {
   try {
     const user = await requireApiAdmin();

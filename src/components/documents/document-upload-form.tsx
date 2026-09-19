@@ -23,13 +23,6 @@ const CATEGORIES = [
   "Photo",
 ];
 
-/**
- * Adds a document to the library.
- *
- * The file is uploaded first, then the metadata is saved with the returned URL
- * — this keeps the Server Action a plain `FormData` submission and avoids
- * pushing a multi-megabyte body through the action serialiser.
- */
 export function DocumentUploadForm({
   customers,
   employees,

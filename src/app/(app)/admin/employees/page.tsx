@@ -81,7 +81,6 @@ export default async function EmployeesPage(props: {
           dateOfJoining: true,
         },
       },
-      // The structure in force today is the most recent one.
       salaryStructure: {
         orderBy: { effectiveFrom: "desc" },
         take: 1,

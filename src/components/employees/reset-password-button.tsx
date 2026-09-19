@@ -8,12 +8,6 @@ import { resetEmployeePassword } from "@/app/actions/employees";
 import { Button } from "@/components/ui/button";
 import { showSuccess } from "@/components/ui/success-popup";
 
-/**
- * Issues a new temporary password.
- *
- * The password is shown once, in the page, rather than in a toast — it needs to
- * stay on screen long enough to be copied, and must never be emailed or stored.
- */
 export function ResetPasswordButton({
   employeeId,
   employeeName,

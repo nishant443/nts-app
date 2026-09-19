@@ -14,7 +14,6 @@ export const metadata: Metadata = {
   title: "Dashboard",
 };
 
-/** Read off the Indian clock, not the server's — this renders on Vercel (UTC). */
 function greeting(): string {
   const { hour } = businessClock();
   if (hour < 12) return "Good morning";
@@ -25,8 +24,6 @@ function greeting(): string {
 export default async function DashboardPage() {
   const user = await requireUser();
 
-  // The role decides which aggregate is even computed — an employee's request
-  // never runs the company-wide revenue queries.
   const isAdmin = user.role === "ADMIN";
   const firstName = user.name.split(" ")[0] ?? user.name;
 

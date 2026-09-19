@@ -2,10 +2,6 @@ import "server-only";
 
 import { z } from "zod";
 
-/**
- * Server-side environment. Parsed once at module load so a misconfigured
- * deployment fails immediately and loudly rather than at the first request.
- */
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   SESSION_SECRET: z
@@ -17,8 +13,6 @@ const envSchema = z.object({
   CLOUDINARY_API_KEY: z.string().optional(),
   CLOUDINARY_API_SECRET: z.string().optional(),
 
-  // Outbound email is optional; without SMTP_HOST the send buttons explain
-  // that mail is not configured rather than failing when pressed.
   SMTP_HOST: z
     .string()
     .optional()
@@ -34,9 +28,6 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value === "" ? undefined : value)),
-  // GSTIN lookup — optional. A URL template for any GST verification API
-  // ({gstin} and {key} are substituted); blank disables the "Fetch details"
-  // button on the customer form. See .env.example for provider examples.
   GSTIN_API_URL: z
     .string()
     .optional()
@@ -45,7 +36,6 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((value) => (value === "" ? undefined : value)),
-  /** Set when the provider wants the key in a request header instead of the URL. */
   GSTIN_API_KEY_HEADER: z
     .string()
     .optional()
@@ -78,7 +68,6 @@ function loadEnv() {
     );
   }
 
-  // Half-configured mail is worse than none: it looks available and fails on use.
   if (parsed.data.SMTP_HOST && !parsed.data.SMTP_FROM) {
     throw new Error("SMTP_HOST is set but SMTP_FROM is missing.");
   }

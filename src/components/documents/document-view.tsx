@@ -2,14 +2,6 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { formatAddress, type CompanyProfile } from "@/lib/settings";
 import { amountInWords, formatAmount, formatCurrency } from "@/lib/money";
 
-/**
- * On-screen rendering of a quotation, invoice or purchase order.
- *
- * Mirrors the PDF layout so what people review here is what the customer
- * receives. The line-item table scrolls inside its own container on narrow
- * screens rather than widening the page.
- */
-
 export interface DocumentLine {
   id: string;
   description: string;
@@ -70,7 +62,6 @@ export function DocumentView({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Parties -------------------------------------------------------- */}
       <Card>
         <CardBody className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="min-w-0">
@@ -119,7 +110,6 @@ export function DocumentView({
         </CardBody>
       </Card>
 
-      {/* Line items ----------------------------------------------------- */}
       <Card>
         <CardHeader title="Items" />
 
@@ -183,7 +173,6 @@ export function DocumentView({
           </table>
         </div>
 
-        {/* Totals ------------------------------------------------------- */}
         <div className="border-t border-border px-4 py-4 sm:px-5">
           <div className="ml-auto flex w-full max-w-sm flex-col gap-2">
             <TotalRow label="Subtotal" value={totals.subtotal} />

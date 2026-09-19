@@ -14,10 +14,6 @@ const iconTones: Record<StatTone, string> = {
   danger: "bg-danger-soft text-danger",
 };
 
-/**
- * Dashboard metric tile. `value` is pre-formatted by the caller so this stays
- * presentation-only.
- */
 export function StatCard({
   label,
   value,
@@ -33,7 +29,6 @@ export function StatCard({
   hint?: ReactNode;
   icon?: ReactNode;
   tone?: StatTone;
-  /** Percentage change against the previous period. */
   trend?: { value: number; label: string };
   href?: string;
   className?: string;
@@ -107,7 +102,6 @@ function TrendPill({ value, label }: { value: number; label: string }) {
   );
 }
 
-/** Responsive grid for a row of stat tiles. */
 export function StatGrid({
   children,
   className,

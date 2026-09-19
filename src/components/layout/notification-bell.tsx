@@ -3,10 +3,6 @@ import { Bell } from "lucide-react";
 
 import { unreadCount } from "@/lib/notifications";
 
-/**
- * Unread count in the topbar. A Server Component rendered inside `<Suspense>`
- * so its query never delays the rest of the shell from streaming.
- */
 export async function NotificationBell({ userId }: { userId: string }) {
   const count = await unreadCount(userId);
 
@@ -30,7 +26,6 @@ export async function NotificationBell({ userId }: { userId: string }) {
   );
 }
 
-/** Placeholder while the count loads — same footprint, so nothing shifts. */
 export function NotificationBellFallback() {
   return (
     <span className="inline-flex size-9 items-center justify-center rounded-lg text-fg-subtle">

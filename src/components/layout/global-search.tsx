@@ -22,14 +22,6 @@ const KIND_LABEL: Record<SearchHit["kind"], string> = {
   payment: "Payment",
 };
 
-/**
- * Global search.
- *
- * Queries `/api/search`, which scopes results by role on the server — an
- * employee's search never returns an admin-only record. Requests are debounced
- * and the in-flight one is aborted when the query moves on, so fast typing does
- * not queue up work or let a stale response overwrite a newer one.
- */
 export function GlobalSearch() {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
@@ -42,7 +34,6 @@ export function GlobalSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Ctrl/Cmd-K focuses the field from anywhere.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -65,9 +56,6 @@ export function GlobalSearch() {
   useEffect(() => {
     const trimmed = query.trim();
 
-    // Too short to search: abort anything in flight and stop. The stale hits
-    // are filtered out during render rather than cleared here, which would
-    // mean a synchronous setState inside an effect.
     if (trimmed.length < 2) {
       abortRef.current?.abort();
       return;
@@ -90,7 +78,6 @@ export function GlobalSearch() {
           setActiveIndex(0);
           setOpen(true);
         } catch {
-          // Aborted or offline — leave the previous results in place.
         }
       });
     }, 220);
@@ -107,8 +94,6 @@ export function GlobalSearch() {
 
   const isSearchable = query.trim().length >= 2;
   const showPanel = open && isSearchable;
-  // Results belong to whatever was last searched; suppress them the moment the
-  // query becomes too short so a stale list is never shown.
   const visibleHits = isSearchable ? hits : [];
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {

@@ -7,7 +7,6 @@ import { prisma } from "@/lib/prisma";
 
 export const SETTINGS_ID = "singleton";
 
-/** Plain, client-safe shape — Decimal columns are already numbers. */
 export interface CompanyProfile {
   name: string;
   tagline: string | null;
@@ -66,10 +65,6 @@ const FALLBACK: CompanyProfile = {
   homeState: "Karnataka",
 };
 
-/**
- * Company profile, memoised per render pass. Falls back to sane defaults when
- * the settings row has not been seeded yet so a fresh database still renders.
- */
 export const getCompanySettings = cache(async (): Promise<CompanyProfile> => {
   const row = await prisma.companySettings.findUnique({
     where: { id: SETTINGS_ID },
@@ -83,7 +78,6 @@ export const getCompanySettings = cache(async (): Promise<CompanyProfile> => {
   };
 });
 
-/** Single-line postal address, for PDF headers and the customer card. */
 export function formatAddress(
   parts: {
     addressLine1?: string | null;

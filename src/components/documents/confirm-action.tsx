@@ -8,12 +8,6 @@ import { toast } from "sonner";
 import { Button, type ButtonVariant } from "@/components/ui/button";
 import { showSuccess } from "@/components/ui/success-popup";
 
-/**
- * Button that asks before running a destructive or irreversible Server Action.
- *
- * Uses the native `<dialog>` so focus trapping, Escape-to-close and the top
- * layer come from the platform rather than being re-implemented.
- */
 export function ConfirmAction<TInput>({
   action,
   input,
@@ -24,7 +18,6 @@ export function ConfirmAction<TInput>({
   variant = "secondary",
   size,
   successMessage,
-  /** Where to go after success; defaults to refreshing in place. */
   redirectTo,
   className,
 }: {
@@ -36,11 +29,6 @@ export function ConfirmAction<TInput>({
   body: string;
   confirmLabel: string;
   trigger: React.ReactNode;
-  /**
-   * Styling of the trigger. "danger" renders the trigger as a soft red tint —
-   * the dialog's confirm button carries the solid red, so the page itself
-   * stays calm — and any other value is used as-is.
-   */
   variant?: ButtonVariant;
   className?: string;
   size?: "sm" | "md";
@@ -91,7 +79,6 @@ export function ConfirmAction<TInput>({
         ref={dialogRef}
         onClose={() => setOpen(false)}
         onClick={(event) => {
-          // Clicking the backdrop (the dialog element itself) closes it.
           if (event.target === dialogRef.current) setOpen(false);
         }}
         className="max-w-[min(26rem,calc(100vw/var(--ui-zoom)-2rem))] rounded-xl border border-border bg-surface p-0 text-fg shadow-overlay backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"

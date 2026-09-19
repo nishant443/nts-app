@@ -13,8 +13,6 @@ export default async function NewCustomerPage() {
   const user = await requireUser();
   const isAdmin = user.role === "ADMIN";
 
-  // Only an admin can hand an account to someone else; an engineer adding a
-  // customer becomes its owner by default.
   const owners = isAdmin
     ? await prisma.user.findMany({
         where: { status: "ACTIVE" },

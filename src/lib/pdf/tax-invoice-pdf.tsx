@@ -17,16 +17,6 @@ import { stateCode } from "@/lib/tax";
 
 import type { PdfLine, PdfParty } from "./document-pdf";
 
-/**
- * GST tax invoice in the layout NTS's customers already know from Vyapar:
- * a boxed letterhead, Bill To / Invoice Details side by side, an item table
- * with per-line GST, a tax summary by HSN, amount in words, received and
- * balance, terms, bank details with a UPI QR, and the signature block.
- *
- * Uses Noto Sans (OFL, bundled under public/fonts) rather than the built-in
- * Helvetica so the rupee sign prints.
- */
-
 Font.register({
   family: "Noto Sans",
   fonts: [
@@ -38,7 +28,6 @@ Font.register({
   ],
 });
 
-// Rupee sign cannot be hyphenated or broken from the number.
 Font.registerHyphenationCallback((word) => [word]);
 
 const INK = "#1f2937";
@@ -69,7 +58,6 @@ const s = StyleSheet.create({
   cell: { borderColor: LINE },
   band: { backgroundColor: BAND, fontWeight: 700, paddingVertical: 3, paddingHorizontal: 5 },
 
-  // Letterhead
   head: { flexDirection: "row", alignItems: "center", padding: 8, borderBottomWidth: 1, borderColor: LINE },
   logo: { width: 150, marginRight: 14 },
   company: { fontSize: 17, fontWeight: 700, letterSpacing: 0.2 },
@@ -78,14 +66,12 @@ const s = StyleSheet.create({
   k: { color: MUTED },
   v: { fontWeight: 700 },
 
-  // Party / details
   partyHead: { flexDirection: "row", borderBottomWidth: 1, borderColor: LINE },
   partyBody: { flexDirection: "row", borderBottomWidth: 1, borderColor: LINE },
   half: { flex: 1, padding: 6 },
   partyName: { fontWeight: 700, fontSize: 9.5 },
   partyLine: { marginTop: 2, lineHeight: 1.35, fontSize: 8.2 },
 
-  // Item table
   th: { fontWeight: 700, paddingVertical: 4, paddingHorizontal: 4, backgroundColor: BAND },
   td: { paddingVertical: 4, paddingHorizontal: 4 },
   right: { textAlign: "right" },
@@ -101,7 +87,6 @@ const s = StyleSheet.create({
   hline: { borderBottomWidth: 1, borderColor: LINE },
   bold: { fontWeight: 700 },
 
-  // Tax summary + totals
   lower: { flexDirection: "row", borderTopWidth: 1, borderColor: LINE },
   taxSide: { flex: 1.65, borderRightWidth: 1, borderColor: LINE },
   totalsSide: { flex: 1 },
@@ -116,7 +101,6 @@ const s = StyleSheet.create({
   totalLine: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3, paddingHorizontal: 6, borderBottomWidth: 1, borderColor: LINE },
   words: { paddingVertical: 4, paddingHorizontal: 6, borderBottomWidth: 1, borderColor: LINE },
 
-  // Terms / bank / sign
   section: { borderTopWidth: 1, borderColor: LINE },
   sectionBody: { padding: 6, lineHeight: 1.45 },
   bankRow: { flexDirection: "row", borderTopWidth: 1, borderColor: LINE },
@@ -163,8 +147,6 @@ export function TaxInvoicePdf(props: TaxInvoicePdfProps) {
   const partyCode = party.gstin ? party.gstin.slice(0, 2) : stateCode(party.state);
   const companyCode = settings.gstin ? settings.gstin.slice(0, 2) : stateCode(settings.state);
 
-  // Per-line tax and the HSN-wise summary, both from the same arithmetic the
-  // invoice totals were saved with. A document discount is apportioned by value.
   const discountShare = totals.subtotal > 0 ? totals.discountAmount / totals.subtotal : 0;
   const lineRows = props.lines.map((line) => {
     const taxable = round2(line.lineTotal * (1 - discountShare));
@@ -191,7 +173,6 @@ export function TaxInvoicePdf(props: TaxInvoicePdfProps) {
         <Text style={s.title}>Tax Invoice</Text>
 
         <View style={s.box}>
-          {/* Letterhead ---------------------------------------------------- */}
           <View style={s.head}>
             {props.assets.logo && (
               <Image style={s.logo} src={{ data: props.assets.logo, format: "png" }} />
@@ -225,7 +206,6 @@ export function TaxInvoicePdf(props: TaxInvoicePdfProps) {
             </View>
           </View>
 
-          {/* Bill To | Invoice Details --------------------------------------- */}
           <View style={s.partyHead}>
             <Text style={[s.band, { flex: 1, borderRightWidth: 1, borderColor: LINE }]}>Bill To:</Text>
             <Text style={[s.band, { flex: 1 }]}>Invoice Details:</Text>
@@ -304,7 +284,6 @@ export function TaxInvoicePdf(props: TaxInvoicePdfProps) {
             </View>
           </View>
 
-          {/* Items ------------------------------------------------------------ */}
           <View style={[s.row, s.hline]}>
             <Text style={[s.th, s.cIdx, s.vline]}>#</Text>
             <Text style={[s.th, s.cDesc, s.vline]}>Description</Text>
@@ -340,7 +319,6 @@ export function TaxInvoicePdf(props: TaxInvoicePdfProps) {
             <Text style={[s.td, s.cAmt, s.bold]}>{rupee(totals.total)}</Text>
           </View>
 
-          {/* Tax summary | totals ------------------------------------------- */}
           <View style={s.lower}>
             <View style={s.taxSide}>
               <Text style={[s.band, s.hline]}>Tax Summary:</Text>
@@ -433,7 +411,6 @@ export function TaxInvoicePdf(props: TaxInvoicePdfProps) {
             </View>
           </View>
 
-          {/* Terms ------------------------------------------------------------ */}
           {(props.terms || props.subject || props.notes) && (
             <View style={s.section}>
               <Text style={[s.band, s.hline]}>Terms &amp; Conditions:</Text>
@@ -443,7 +420,6 @@ export function TaxInvoicePdf(props: TaxInvoicePdfProps) {
             </View>
           )}
 
-          {/* Bank | signature -------------------------------------------------- */}
           <View style={s.bankRow}>
             <View style={s.bankSide}>
               <Text style={[s.band, s.hline]}>Bank Details:</Text>

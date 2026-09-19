@@ -8,10 +8,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/field";
 import { emptyFormState, fieldError } from "@/lib/form-state";
 
-/**
- * Admin override for the register — correcting a missed check-in or recording
- * an absence.
- */
+
 export function MarkAttendanceForm({
   employees,
   defaultDate,

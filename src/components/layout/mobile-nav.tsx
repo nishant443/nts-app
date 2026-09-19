@@ -10,20 +10,7 @@ import { SidebarNav } from "@/components/layout/sidebar-nav";
 import type { Role } from "@/generated/prisma/enums";
 import { cn } from "@/lib/utils";
 
-/**
- * Slide-in navigation for screens below `lg`.
- *
- * Closes on route change and on Escape, and locks body scroll while open so
- * the page behind cannot be scrolled away under the overlay.
- *
- * The overlay and drawer are portalled to <body>. The button lives in the
- * top bar, whose `backdrop-blur` makes it the containing block for any
- * fixed-position descendant — rendered inline, the drawer would be clamped
- * to the bar's 56 px height and show nothing but its own header.
- */
-
 const subscribeNoop = () => () => {};
-/** True after hydration; portals cannot render on the server. */
 const useMounted = () =>
   useSyncExternalStore(
     subscribeNoop,
@@ -35,10 +22,6 @@ export function MobileNav({ role }: { role: Role }) {
   const pathname = usePathname();
   const mounted = useMounted();
 
-  // A completed navigation should always leave the drawer closed — including
-  // one the user triggered with the back button. Adjusting during render (React's
-  // documented pattern for resetting state when a prop changes) avoids the extra
-  // commit an effect would cause.
   const [lastPathname, setLastPathname] = useState(pathname);
   if (pathname !== lastPathname) {
     setLastPathname(pathname);
@@ -77,7 +60,6 @@ export function MobileNav({ role }: { role: Role }) {
       {mounted &&
         createPortal(
           <>
-            {/* Overlay */}
             <div
               onClick={() => setOpen(false)}
               aria-hidden="true"
@@ -87,14 +69,11 @@ export function MobileNav({ role }: { role: Role }) {
               )}
             />
 
-            {/* Drawer */}
             <div
               role="dialog"
               aria-modal="true"
               aria-label="Navigation"
               aria-hidden={!open}
-              // Keeps the closed drawer out of the tab order and off-limits to
-              // screen readers while it is translated off-screen.
               inert={!open}
               className={cn(
                 "fixed inset-y-0 left-0 z-50 flex w-[min(17rem,calc(85vw/var(--ui-zoom)))] flex-col",

@@ -4,11 +4,6 @@ import type { CalendarDay } from "@/components/attendance/attendance-calendar";
 import { dayKey, daysInMonth, isWeekOff, monthRange, today } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 
-/**
- * Builds a month of calendar cells for one employee, merging the attendance
- * register with the holiday list and filling in weekly offs for days that were
- * never explicitly marked.
- */
 export async function getAttendanceMonth(
   userId: string,
   month: number,
@@ -65,8 +60,6 @@ export async function getAttendanceMonth(
     const holidayName = holidayByDate.get(key);
     const isFuture = date > now;
 
-    // Weekly offs and holidays are implied by the calendar; they do not need a
-    // row in the register to show up correctly.
     const status =
       record?.status ??
       (holidayName ? "HOLIDAY" : isWeekOff(date) ? "WEEK_OFF" : null);
@@ -95,7 +88,6 @@ export async function getAttendanceMonth(
   return { days, summary };
 }
 
-/** Month and year from `?month=&year=`, defaulting to the current month. */
 export function resolveMonth(
   monthParam?: string,
   yearParam?: string,

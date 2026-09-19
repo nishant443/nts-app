@@ -6,14 +6,6 @@ import type {
 
 import { cn } from "@/lib/utils";
 
-/**
- * Form primitives.
- *
- * Every control is wired for accessibility by `<Field>`: it generates the id,
- * links the label, and points `aria-describedby` at the hint and error text so
- * screen readers announce them.
- */
-
 const controlBase =
   "w-full rounded-lg border border-border bg-surface text-fg " +
   "px-3 text-sm shadow-card transition-[border-color,box-shadow] duration-150 " +
@@ -167,7 +159,6 @@ export function Checkbox({ label, className, id, ...props }: CheckboxProps) {
   );
 }
 
-/** Banner for a whole-form failure, above the submit row. */
 export function FormError({ children }: { children?: ReactNode }) {
   if (!children) return null;
   return (
@@ -192,10 +183,6 @@ export function FormSuccess({ children }: { children?: ReactNode }) {
   );
 }
 
-/**
- * Responsive form grid: one column on phones, two from `sm` up. Wrap a field in
- * `<div className="sm:col-span-2">` to make it full width.
- */
 export function FormGrid({
   children,
   className,
@@ -210,7 +197,6 @@ export function FormGrid({
   );
 }
 
-/** Sticky action row at the foot of a form. */
 export function FormActions({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">

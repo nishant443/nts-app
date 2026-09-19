@@ -25,7 +25,6 @@ export default async function EditQuotationPage(
 
   if (!quotation) notFound();
 
-  // A converted quotation is locked — its figures now back an invoice.
   if (quotation.status === "CONVERTED") {
     redirect(`/quotations/${quotation.id}`);
   }

@@ -45,7 +45,6 @@ export default async function WorkLogDetailPage(
 
   if (!log) notFound();
 
-  // An employee may only open their own reports.
   assertOwnerOrAdmin(user, log.userId);
 
   const canEdit =

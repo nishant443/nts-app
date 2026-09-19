@@ -12,13 +12,6 @@ import {
 
 import { formatCurrency } from "@/lib/money";
 
-/**
- * Invoiced vs received, last six months.
- *
- * Loaded through `next/dynamic` with `ssr: false` by the caller — Recharts
- * measures the DOM to size itself, so rendering it on the server buys nothing
- * and costs a large chunk of JavaScript in the initial payload.
- */
 export function RevenueChart({
   data,
 }: {

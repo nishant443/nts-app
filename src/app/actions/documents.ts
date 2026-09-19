@@ -8,14 +8,6 @@ import { recordAudit } from "@/lib/audit";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 
-/**
- * Document library.
- *
- * Documents hang off a customer or an employee. Employee documents are
- * sensitive (offer letters, ID proofs), so an employee may only ever see their
- * own — enforced in `assertCanSee` below and in the list query.
- */
-
 const documentSchema = z.object({
   ownerType: z.enum([
     "CUSTOMER",
@@ -37,7 +29,6 @@ const documentSchema = z.object({
 export const saveDocument = formAction(
   { access: "user", schema: documentSchema },
   async ({ input, user }) => {
-    // Only an admin may file a document against someone else's record.
     if (
       input.ownerType === "EMPLOYEE" &&
       input.ownerId !== user.id &&
@@ -86,7 +77,6 @@ export const deleteDocument = action<{ id: string }>(
 
     if (!document) throw new NotFoundError("That document no longer exists.");
 
-    // Uploaders can remove their own; admins can remove anything.
     if (user.role !== "ADMIN" && document.uploadedById !== user.id) {
       throw new ForbiddenError("You can only remove documents you uploaded.");
     }

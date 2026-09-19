@@ -64,7 +64,6 @@ export default async function CustomersPage(props: {
     ]) ?? {}),
   };
 
-  // One round trip for the page of rows and the count behind it.
   const [rows, total] = await Promise.all([
     prisma.customer.findMany({
       where,

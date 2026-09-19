@@ -7,7 +7,9 @@ import { action, formAction, formError, formSuccess } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
 import { parseDateInput } from "@/lib/dates";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { expenseAmount } from "@/lib/expense-rates";
 import { flash } from "@/lib/flash";
+import { formatCurrency } from "@/lib/money";
 import { notify, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import {
@@ -16,14 +18,7 @@ import {
   workLogReviewSchema,
   workLogSchema,
 } from "@/lib/validation";
-
-/**
- * Daily work reports and the expenses attached to them.
- *
- * An employee owns their own entries and may edit them until an admin has
- * reviewed one — after that the record is evidence for payroll and billing and
- * is locked.
- */
+import { humanizeEnum } from "@/lib/utils";
 
 export const saveWorkLog = formAction(
   { access: "user", schema: workLogSchema },
@@ -36,7 +31,8 @@ export const saveWorkLog = formAction(
         select: { id: true, userId: true, status: true },
       });
 
-      if (!existing) throw new NotFoundError("That work report no longer exists.");
+      if (!existing)
+        throw new NotFoundError("That work report no longer exists.");
 
       if (existing.userId !== user.id && user.role !== "ADMIN") {
         return formError("You can only edit your own work reports.");
@@ -56,8 +52,8 @@ export const saveWorkLog = formAction(
           description: input.description,
           hoursSpent: input.hoursSpent,
           customerId: input.customerId ?? null,
-          // Editing a rejected report puts it back in the queue.
-          status: existing.status === "REJECTED" ? "SUBMITTED" : existing.status,
+          status:
+            existing.status === "REJECTED" ? "SUBMITTED" : existing.status,
         },
       });
 
@@ -200,17 +196,50 @@ export const deleteWorkLog = action<{ id: string }>(
   },
 );
 
-// --- Expenses ----------------------------------------------------------------
-
 export const saveExpense = formAction(
   { access: "user", schema: expenseSchema },
   async ({ input, user }) => {
     const date = parseDateInput(input.date);
+    const isTravel = input.category === "TRAVEL";
+    const isFood = input.category === "FOOD";
+
+    const amount = expenseAmount({
+      category: input.category,
+      amount: input.amount,
+      distanceKm: input.distanceKm,
+      foodType: input.foodType,
+    });
+    if (amount === null) return formError("Could not work out the amount.");
+
+    const claim = {
+      date,
+      category: input.category,
+      amount,
+      distanceKm: isTravel ? input.distanceKm : null,
+      foodType: isFood ? input.foodType : null,
+      description: input.description,
+      customerId: input.customerId ?? null,
+      receiptUrl: input.receiptUrl ?? null,
+    };
+
+    const after = () => {
+      if (input.next !== "another") return "/expenses";
+      const query = new URLSearchParams({ date: input.date });
+      if (input.customerId) query.set("customerId", input.customerId);
+      return `/expenses/new?${query}`;
+    };
+
+    const detail = isTravel
+      ? ` (${input.distanceKm} km)`
+      : isFood
+        ? ` (${input.foodType?.toLowerCase()})`
+        : "";
+    const summary = `${humanizeEnum(input.category)} — ${formatCurrency(amount)}${detail}`;
 
     if (input.id) {
       const existing = await prisma.expense.findUnique({
         where: { id: input.id },
-        select: { id: true, userId: true, status: true },
+        select: { id: true, userId: true, status: true, date: true },
       });
 
       if (!existing) throw new NotFoundError("That expense no longer exists.");
@@ -219,48 +248,65 @@ export const saveExpense = formAction(
         return formError("You can only edit your own expenses.");
       }
 
-      if (existing.status !== "PENDING" && user.role !== "ADMIN") {
+      if (existing.status === "REIMBURSED") {
+        return formError("This claim has already been paid out.");
+      }
+
+      if (
+        (await isPayrollClosed(existing.date)) ||
+        (await isPayrollClosed(date))
+      ) {
         return formError(
-          "This claim has already been reviewed and can no longer be edited.",
+          "Payroll for this month has been finalized, so the claim can no longer be changed.",
         );
       }
 
       await prisma.expense.update({
         where: { id: input.id },
         data: {
-          date,
+          ...claim,
+          status: "PENDING",
+          reviewedById: null,
+          reviewedAt: null,
+          reviewNote: null,
+        },
+      });
+
+      await notifyAdmins({
+        type: "EXPENSE_SUBMITTED",
+        title: `${user.name} edited an expense claim — needs re-approval`,
+        body: summary,
+        link: "/admin/approvals?tab=expenses",
+      });
+
+      await recordAudit({
+        userId: user.id,
+        action: "expense.updated",
+        entity: "Expense",
+        entityId: existing.id,
+        meta: {
+          amount,
           category: input.category,
-          amount: input.amount,
-          description: input.description,
-          workLogId: input.workLogId ?? null,
-          receiptUrl: input.receiptUrl ?? null,
+          previousStatus: existing.status,
         },
       });
 
       revalidatePath("/expenses");
-      await flash("Expense claim updated.");
-      await flash("Expense claim submitted.");
-    redirect("/expenses");
+      revalidatePath("/admin/approvals");
+      revalidatePath("/dashboard");
+      await flash("Expense claim updated and sent for approval again.");
+      redirect(after());
     }
 
     const created = await prisma.expense.create({
-      data: {
-        userId: user.id,
-        date,
-        category: input.category,
-        amount: input.amount,
-        description: input.description,
-        workLogId: input.workLogId ?? null,
-        receiptUrl: input.receiptUrl ?? null,
-        status: "PENDING",
-      },
+      data: { ...claim, userId: user.id, status: "PENDING" },
       select: { id: true },
     });
 
     await notifyAdmins({
       type: "EXPENSE_SUBMITTED",
       title: `${user.name} submitted an expense claim`,
-      body: `${input.category.toLowerCase()} — ${input.amount.toFixed(2)}`,
+      body: summary,
       link: "/admin/approvals?tab=expenses",
     });
 
@@ -269,15 +315,29 @@ export const saveExpense = formAction(
       action: "expense.created",
       entity: "Expense",
       entityId: created.id,
-      meta: { amount: input.amount, category: input.category },
+      meta: { amount, category: input.category },
     });
 
     revalidatePath("/expenses");
+    revalidatePath("/admin/approvals");
     revalidatePath("/dashboard");
 
-    redirect("/expenses");
+    await flash("Expense claim submitted.");
+    redirect(after());
   },
 );
+
+async function isPayrollClosed(date: Date): Promise<boolean> {
+  const run = await prisma.payrollRun.findFirst({
+    where: {
+      month: date.getUTCMonth() + 1,
+      year: date.getUTCFullYear(),
+      status: { in: ["FINALIZED", "PAID"] },
+    },
+    select: { id: true },
+  });
+  return run !== null;
+}
 
 export const reviewExpense = formAction(
   { access: "admin", schema: expenseReviewSchema },
@@ -308,15 +368,11 @@ export const reviewExpense = formAction(
     await notify({
       userId: expense.userId,
       type:
-        input.decision === "REJECTED"
-          ? "EXPENSE_REJECTED"
-          : "EXPENSE_APPROVED",
+        input.decision === "REJECTED" ? "EXPENSE_REJECTED" : "EXPENSE_APPROVED",
       title:
         input.decision === "REJECTED"
           ? "Expense claim declined"
-          : input.decision === "REIMBURSED"
-            ? "Expense reimbursed"
-            : "Expense claim approved",
+          : "Expense claim approved — it will be paid with your salary",
       body: input.reviewNote ?? `${expense.category.toLowerCase()} claim.`,
       link: "/expenses",
     });

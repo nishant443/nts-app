@@ -7,20 +7,6 @@ import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FLASH_COOKIE } from "@/lib/flash-cookie";
 
-/**
- * The one "saved" pop-up for the whole app.
- *
- * Every successful update — a form save, a status change, an approval — ends in
- * the same centred confirmation, so the person always gets an unmistakable
- * "that worked". Call `showSuccess()` from anywhere on the client; the host
- * mounted in the root layout renders it. It closes itself after a few seconds,
- * or on OK / Escape / a click outside.
- *
- * Actions that `redirect()` after saving cannot return a message to the form,
- * so they leave one in a short-lived cookie (`lib/flash.ts`); `FlashPopup`
- * picks it up on arrival and clears it.
- */
-
 interface Popup {
   id: number;
   title: string;
@@ -65,11 +51,9 @@ export function SuccessPopupHost() {
 
     if (popup && !dialog.open) dialog.showModal();
     if (!popup && dialog.open) dialog.close();
-    // Focus the OK button rather than leaving focus on the (now hidden) form.
     if (popup) dialog.querySelector("button")?.focus();
   }, [popup]);
 
-  // Auto-close, restarted whenever a new message replaces the current one.
   useEffect(() => {
     if (!popup) return;
     const timer = window.setTimeout(dismiss, AUTO_CLOSE_MS);
@@ -119,10 +103,6 @@ export function SuccessPopupHost() {
   );
 }
 
-/**
- * Reads a message left by a redirecting Server Action and shows it once.
- * Runs on every route change, so it catches the arrival after the redirect.
- */
 export function FlashPopup() {
   const pathname = usePathname();
 
@@ -138,7 +118,6 @@ export function FlashPopup() {
       const message = decodeURIComponent(match.slice(FLASH_COOKIE.length + 1));
       if (message) showSuccess(message);
     } catch {
-      // A malformed cookie is not worth surfacing.
     }
   }, []);
 
@@ -149,7 +128,6 @@ export function FlashPopup() {
   return null;
 }
 
-/** Fires the pop-up whenever a `useActionState` form reports success. */
 export function useSuccessPopup(state: {
   success?: string | null;
   ts?: number;

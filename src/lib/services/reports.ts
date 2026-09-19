@@ -9,14 +9,6 @@ import {
 import { round2, toMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 
-/**
- * Reporting aggregates.
- *
- * Everything here is company-wide, so every caller must be behind
- * `requireAdmin()`. Queries are range-based rather than per-row so a year of
- * data is a handful of round trips, not hundreds.
- */
-
 const REVENUE_STATUSES = ["SENT", "PARTIALLY_PAID", "PAID", "OVERDUE"] as const;
 
 export interface SalesReport {
@@ -118,7 +110,6 @@ export async function getSalesReport(
     if (entry) entry.received = round2(entry.received + amount);
   }
 
-  // Month series, reusing the rows already fetched.
   const months = recentMonths(12, to);
   const key = (date: Date) =>
     `${date.getUTCFullYear()}-${date.getUTCMonth() + 1}`;
@@ -265,7 +256,6 @@ export async function getExpenseReport(
   return [...byCategory.values()].sort((a, b) => b.total - a.total);
 }
 
-/** Default reporting window: the current Indian financial year. */
 export function defaultReportRange() {
   return financialYearRange(today());
 }

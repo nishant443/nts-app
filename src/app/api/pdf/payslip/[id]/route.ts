@@ -44,12 +44,10 @@ export async function GET(
 
     if (!payslip) throw new NotFoundError("That payslip no longer exists.");
 
-    // An employee may only ever download their own payslip.
     if (user.role !== "ADMIN" && payslip.userId !== user.id) {
       throw new ForbiddenError("You can only download your own payslips.");
     }
 
-    // Draft figures are not final and must not leave the building.
     if (
       user.role !== "ADMIN" &&
       payslip.payrollRun.status !== "FINALIZED" &&
@@ -65,7 +63,6 @@ export async function GET(
 
     const profile = payslip.user.profile;
 
-    // Zero-value components are omitted rather than printed as 0.00.
     const earnings = [
       { label: "Basic", value: toMoney(payslip.basic) },
       { label: "House rent allowance", value: toMoney(payslip.hra) },

@@ -3,7 +3,6 @@ import { requireApiUser } from "@/lib/dal";
 import { enforceRateLimit, RateLimits } from "@/lib/rate-limit";
 import { buildQuotationPdf } from "@/lib/services/document-pdf-builder";
 
-/** PDF rendering needs the Node runtime — it writes to a Buffer. */
 export const runtime = "nodejs";
 
 export async function GET(
@@ -21,7 +20,6 @@ export async function GET(
     const { id } = await context.params;
     const document = await buildQuotationPdf(id);
 
-    // `inline` so the browser previews it; the filename is used if saved.
     return new Response(new Uint8Array(document.buffer), {
       headers: {
         "Content-Type": "application/pdf",

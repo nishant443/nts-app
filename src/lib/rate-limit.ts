@@ -2,15 +2,6 @@ import "server-only";
 
 import { RateLimitError } from "@/lib/errors";
 
-/**
- * Fixed-window rate limiter backed by an in-process Map.
- *
- * This is correct for a single Node instance and is enough for NTS's traffic.
- * It is deliberately not shared state: if the app is ever scaled to more than
- * one instance, swap `hit()` for a Redis `INCR`/`EXPIRE` (Upstash's REST client
- * works from any runtime) — the call sites do not need to change.
- */
-
 interface Window {
   count: number;
   resetAt: number;
@@ -18,7 +9,6 @@ interface Window {
 
 const buckets = new Map<string, Window>();
 
-/** Stops the Map growing without bound on a long-lived server. */
 let lastSweep = Date.now();
 const SWEEP_INTERVAL_MS = 60_000;
 
@@ -71,7 +61,6 @@ export function hit(
   };
 }
 
-/** Throws `RateLimitError` when the caller is over budget. */
 export function enforceRateLimit(
   key: string,
   limit: number,
@@ -81,25 +70,14 @@ export function enforceRateLimit(
   if (!result.ok) throw new RateLimitError(result.retryAfterSeconds);
 }
 
-/** Sensible budgets per class of endpoint. */
 export const RateLimits = {
-  /** Brute-force protection on the login form. */
   login: { limit: 8, windowSeconds: 300 },
-  /** Ordinary reads. */
   read: { limit: 240, windowSeconds: 60 },
-  /** Anything that writes. */
   write: { limit: 60, windowSeconds: 60 },
-  /** PDF and spreadsheet generation — comparatively expensive. */
   export: { limit: 20, windowSeconds: 60 },
-  /** File uploads. */
   upload: { limit: 30, windowSeconds: 300 },
 } as const;
 
-/**
- * Best-effort client identity for rate limiting. Behind Vercel or any sane
- * proxy `x-forwarded-for` is trustworthy; falls back to a constant so the
- * limiter degrades to global rather than off.
- */
 export function clientKey(request: Request, suffix: string): string {
   const forwarded = request.headers.get("x-forwarded-for");
   const ip =

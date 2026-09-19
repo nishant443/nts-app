@@ -1,10 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/feedback";
 
-/**
- * Reserves the same footprint as the real dashboard so the page does not jump
- * when the data arrives.
- */
 export default function DashboardLoading() {
   return (
     <>

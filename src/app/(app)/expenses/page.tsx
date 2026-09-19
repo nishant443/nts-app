@@ -13,6 +13,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { requireUser } from "@/lib/dal";
 import { formatDate, monthRange, today } from "@/lib/dates";
+import { FOOD_TYPE_LABELS } from "@/lib/expense-rates";
 import { formatCurrency, toMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import {
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   title: "My expenses",
 };
 
-const STATUSES = ["PENDING", "APPROVED", "REJECTED", "REIMBURSED"] as const;
+const STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
 const CATEGORIES = [
   "TRAVEL",
   "FUEL",
@@ -45,10 +46,11 @@ interface ExpenseRow {
   id: string;
   date: Date;
   category: string;
+  basis: string | null;
   amount: number;
   description: string;
   status: string;
-  workLogTitle: string | null;
+  customerName: string | null;
   reviewNote: string | null;
 }
 
@@ -87,11 +89,13 @@ export default async function ExpensesPage(props: {
         id: true,
         date: true,
         category: true,
+        distanceKm: true,
+        foodType: true,
         amount: true,
         description: true,
         status: true,
         reviewNote: true,
-        workLog: { select: { title: true } },
+        customer: { select: { name: true, companyName: true } },
       },
     }),
     prisma.expense.count({ where }),
@@ -114,10 +118,18 @@ export default async function ExpensesPage(props: {
     id: record.id,
     date: record.date,
     category: record.category,
+    basis:
+      record.distanceKm !== null
+        ? `${toMoney(record.distanceKm)} km`
+        : record.foodType
+          ? FOOD_TYPE_LABELS[record.foodType]
+          : null,
     amount: toMoney(record.amount),
     description: record.description,
     status: record.status,
-    workLogTitle: record.workLog?.title ?? null,
+    customerName: record.customer
+      ? (record.customer.companyName ?? record.customer.name)
+      : null,
     reviewNote: record.reviewNote,
   }));
 
@@ -126,7 +138,14 @@ export default async function ExpensesPage(props: {
       key: "category",
       header: "Category",
       role: "primary",
-      cell: (row) => humanizeEnum(row.category),
+      cell: (row) => (
+        <span>
+          {humanizeEnum(row.category)}
+          {row.basis && (
+            <span className="ml-1.5 text-fg-subtle">· {row.basis}</span>
+          )}
+        </span>
+      ),
     },
     {
       key: "description",
@@ -141,13 +160,13 @@ export default async function ExpensesPage(props: {
       cell: (row) => <span className="tnum">{formatDate(row.date)}</span>,
     },
     {
-      key: "workLog",
-      header: "Linked visit",
-      mobileLabel: "Visit",
+      key: "customer",
+      header: "Customer",
+      mobileLabel: "Customer",
       hideOnMobile: true,
       cell: (row) =>
-        row.workLogTitle ? (
-          <span className="line-clamp-1 text-fg-muted">{row.workLogTitle}</span>
+        row.customerName ? (
+          <span className="line-clamp-1 text-fg-muted">{row.customerName}</span>
         ) : (
           <span className="text-fg-subtle">—</span>
         ),
@@ -182,7 +201,9 @@ export default async function ExpensesPage(props: {
       align: "right",
       mobileLabel: "Actions",
       cell: (row) =>
-        row.status === "PENDING" ? <ExpenseRowActions id={row.id} /> : null,
+        row.status === "REIMBURSED" ? null : (
+          <ExpenseRowActions id={row.id} pending={row.status === "PENDING"} />
+        ),
     },
   ];
 

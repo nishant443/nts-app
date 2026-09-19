@@ -16,18 +16,9 @@ import {
 } from "@/lib/services/document-pdf-builder";
 import { getCompanySettings } from "@/lib/settings";
 
-/**
- * Sends a quotation or invoice to the customer with the PDF attached.
- *
- * Rate limited like an export rather than an ordinary write — each call renders
- * a PDF and opens an SMTP connection, and sending in bulk is not a thing anyone
- * should be doing by accident.
- */
-
 const inputSchema = z.object({
   kind: z.enum(["quotation", "invoice"]),
   id: z.string().min(1),
-  /** Overrides the address on the customer record for this send only. */
   to: z.string().email().optional(),
 });
 
@@ -76,7 +67,6 @@ export const emailDocument = action<
     subject,
     text,
     html,
-    // Replies go to the person who pressed send, not a shared mailbox.
     replyTo: user.email,
     attachments: [
       {
@@ -87,7 +77,6 @@ export const emailDocument = action<
     ],
   });
 
-  // Sending is what turns a draft into a live document, so reflect that.
   if (parsed.data.kind === "quotation") {
     await prisma.quotation.updateMany({
       where: { id: parsed.data.id, status: "DRAFT" },

@@ -8,10 +8,6 @@ export const metadata: Metadata = {
   title: "Sign in",
 };
 
-/**
- * Why the visitor landed here without asking to — set by `/api/auth/expire`
- * when a cookie stopped mapping to a usable account.
- */
 const NOTICES: Record<string, { title: string; body: string }> = {
   inactive: {
     title: "Account Deactivated",
@@ -23,11 +19,6 @@ const NOTICES: Record<string, { title: string; body: string }> = {
   },
 };
 
-/**
- * Sign-in screen: one large rounded card floating on a muted ground. The form
- * sits on a soft gradient on the left; the right half is a visual panel with
- * floating glimpses of the product. On phones only the form remains.
- */
 export default async function LoginPage(props: {
   searchParams: Promise<{ notice?: string | string[] }>;
 }) {
@@ -36,11 +27,7 @@ export default async function LoginPage(props: {
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[#dfe5ee] p-3 sm:p-5 dark:bg-[#0a0f18]">
-      {/* On desktop the card is sized to the viewport so the whole screen is
-          visible without scrolling; only a very short window falls back to
-          scrolling. */}
       <div className="animate-in-up grid w-full max-w-[80rem] overflow-hidden rounded-[1.75rem] bg-surface shadow-[0_40px_90px_-30px_rgb(16_24_40/0.45)] sm:rounded-[2.25rem] lg:h-[max(36rem,calc(100dvh/var(--ui-zoom)-2.5rem))] lg:grid-cols-2">
-        {/* Form side --------------------------------------------------- */}
         <section className="relative flex min-h-0 flex-col bg-[linear-gradient(165deg,#f8fafc_0%,#eef4ff_55%,#dfeaff_100%)] px-6 pb-6 pt-6 sm:px-10 sm:pb-7 sm:pt-7 dark:bg-[linear-gradient(165deg,#151b23_0%,#131c2c_55%,#10203a_100%)]">
           <div className="flex items-center justify-between">
             <LogoAdaptive className="h-11 sm:h-12" priority />
@@ -61,8 +48,6 @@ export default async function LoginPage(props: {
           </footer>
         </section>
 
-        {/* Visual side — hidden on phones, where it would push the form
-            below the fold. */}
         <VisualPanel />
       </div>
     </main>

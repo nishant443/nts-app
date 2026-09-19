@@ -1,14 +1,6 @@
 import { formatDuration } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
-/**
- * Month calendar of one person's attendance.
- *
- * Status is conveyed by a colour *and* a letter, so the grid is still readable
- * without colour vision. Days are laid out Monday-first, which is how a
- * six-day working week reads.
- */
-
 export interface CalendarDay {
   date: string;
   dayOfMonth: number;
@@ -31,7 +23,6 @@ const STATUS_STYLE: Record<string, { cell: string; letter: string }> = {
 const WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 export function AttendanceCalendar({ days }: { days: CalendarDay[] }) {
-  // Grid is Monday-first: shift Sunday (0) to the end of the week.
   const columnFor = (weekday: number) => (weekday === 0 ? 7 : weekday);
   const leadingBlanks = days.length > 0 ? columnFor(days[0]!.weekday) - 1 : 0;
 

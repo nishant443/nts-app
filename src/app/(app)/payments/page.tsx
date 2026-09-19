@@ -49,7 +49,6 @@ export default async function PaymentsPage(props: {
   const user = await requireUser();
   const isAdmin = user.role === "ADMIN";
 
-  // Keep the overdue flag honest without needing a scheduled job.
   await refreshOverdueInvoices();
 
   const searchParams = await props.searchParams;
@@ -61,8 +60,6 @@ export default async function PaymentsPage(props: {
   const where = {
     ...(status ? { status } : {}),
     ...(dateRange ? { date: dateRange } : {}),
-    // An employee only sees payments for customers they own or invoices they
-    // raised. Company-wide payment history is admin-only.
     ...(isAdmin
       ? {}
       : {
@@ -126,7 +123,6 @@ export default async function PaymentsPage(props: {
         },
       }),
       prisma.payment.count({ where }),
-      // Company-wide totals are computed only for admins.
       isAdmin
         ? prisma.payment.aggregate({
             where: {
@@ -233,8 +229,6 @@ export default async function PaymentsPage(props: {
         }
       />
 
-      {/* Company-wide money is rendered only for admins — and only computed
-          for them, so the figures never reach an employee's payload. */}
       {isAdmin && (
         <StatGrid className="lg:grid-cols-3">
           <StatCard

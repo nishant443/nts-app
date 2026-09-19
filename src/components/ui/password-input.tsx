@@ -11,7 +11,6 @@ type PasswordInputProps = Omit<
   "type"
 >;
 
-/** A password field with a show/hide toggle. Each field remembers its own state. */
 export function PasswordInput({ className, ...props }: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
 

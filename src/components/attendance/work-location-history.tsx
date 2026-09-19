@@ -17,7 +17,7 @@ export interface WorkLocationHistoryRow {
   setByName: string;
 }
 
-/** Recent entries, newest first, each removable. */
+
 export function WorkLocationHistory({
   rows,
 }: {

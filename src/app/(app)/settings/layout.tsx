@@ -4,10 +4,6 @@ import { SettingsNav } from "@/components/settings/settings-nav";
 import { PageHeader } from "@/components/ui/page-header";
 import { requireUser } from "@/lib/dal";
 
-/**
- * Settings shell. The section list is filtered by role here *and* each page
- * re-checks — company settings and holidays are admin-only.
- */
 export default async function SettingsLayout({
   children,
 }: {

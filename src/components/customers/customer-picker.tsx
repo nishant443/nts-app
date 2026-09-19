@@ -25,18 +25,6 @@ import { Button } from "@/components/ui/button";
 import { FormError, Select } from "@/components/ui/field";
 import { emptyFormState, type FormState } from "@/lib/form-state";
 
-/**
- * Customer dropdown with an "Add new customer…" entry at the top.
- *
- * Picking that entry opens a dialog holding the complete customer form. On
- * save the customer is created, appended to the list and selected — the host
- * form never loses what the user had typed. The dialog is portalled to
- * <body>, so its <form> is not nested inside the host's <form> (which HTML
- * forbids) and its inputs are never submitted along with the host's.
- *
- * Works controlled (`value` + `onChange`) or uncontrolled (`defaultValue`).
- */
-
 export interface CustomerPickOption {
   id: string;
   label: string;
@@ -55,7 +43,6 @@ export function CustomerPicker({
   required,
   invalid,
   emptyLabel = "Select…",
-  /** Pre-selects the relationship in the dialog — "VENDOR" on purchase orders. */
   newType = "LEAD",
 }: {
   id: string;
@@ -72,8 +59,6 @@ export function CustomerPicker({
   const [inner, setInner] = useState(defaultValue);
   const current = value ?? inner;
 
-  // Customers created here live alongside the ones the page loaded, so the
-  // list stays correct even if the parent re-renders with fresh props.
   const [added, setAdded] = useState<CustomerPickOption[]>([]);
   const options = useMemo(() => {
     const known = new Set(customers.map((c) => c.id));
@@ -88,8 +73,6 @@ export function CustomerPicker({
   };
 
   const onCreated = (customer: CreatedCustomer) => {
-    // Both updates land in the same render, so the option exists by the time
-    // the select's value points at it.
     setAdded((list) => [...list, customer]);
     if (value === undefined) setInner(customer.id);
     onChange?.(customer.id, customer);
@@ -105,7 +88,6 @@ export function CustomerPicker({
         value={current}
         onChange={(event) => {
           if (event.target.value === NEW_VALUE) {
-            // Keep the previous selection; the dialog decides what happens.
             event.target.value = current;
             setOpen(true);
             return;
@@ -149,8 +131,6 @@ function NewCustomerDialog({
   const [pending, startTransition] = useTransition();
   const titleId = useId();
 
-  // Only ever rendered after the user picks "Add new customer…", so this runs
-  // client-side by construction — no hydration guard needed for the portal.
   useEffect(() => {
     const dialog = dialogRef.current;
     if (dialog && !dialog.open) dialog.showModal();
@@ -159,7 +139,6 @@ function NewCustomerDialog({
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // Plain object of every string field — what the schema expects.
     const input: Record<string, string> = {};
     for (const [key, entry] of new FormData(event.currentTarget).entries()) {
       if (typeof entry === "string") input[key] = entry;

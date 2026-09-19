@@ -9,13 +9,6 @@ const querySchema = z.object({
   q: z.string().trim().min(2).max(80),
 });
 
-/**
- * Global search.
- *
- * Results are scoped by role on the server: an employee never gets employee
- * records or payment rows back, regardless of what they type. Each kind is
- * capped so one prolific match cannot crowd out the others.
- */
 export const GET = withRoute({ access: "user" }, async ({ request, user }) => {
   const { q } = parseQuery(request, querySchema);
   const isAdmin = user!.role === "ADMIN";
@@ -51,9 +44,6 @@ export const GET = withRoute({ access: "user" }, async ({ request, user }) => {
           { subject: contains },
           { customer: { OR: [{ name: contains }, { companyName: contains }] } },
         ],
-        // An employee only finds invoices they are connected to. Prisma ANDs
-        // top-level keys, so this narrows the text match above rather than
-        // widening it.
         ...(isAdmin
           ? {}
           : {
@@ -97,7 +87,6 @@ export const GET = withRoute({ access: "user" }, async ({ request, user }) => {
       },
     }),
 
-    // Employee records are administrative data — admins only.
     isAdmin
       ? prisma.user.findMany({
           where: {

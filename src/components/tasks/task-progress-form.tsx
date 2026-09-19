@@ -9,13 +9,6 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Textarea } from "@/components/ui/field";
 import { emptyFormState, fieldError } from "@/lib/form-state";
 
-/**
- * The assignee's controls. "Mark complete" is always offered — a quick job
- * should not need a separate "start" click first — with "Start task" alongside
- * it while the task is still open, for work that will take a while.
- *
- * Both buttons submit the same form; the one pressed sets `status`.
- */
 export function TaskProgressForm({
   taskId,
   status,

@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Shown when a list has no rows — never a bare "No data". */
 export function EmptyState({
   title,
   description,
@@ -46,10 +45,6 @@ export function EmptyState({
   );
 }
 
-/**
- * Skeleton block. Sized by the caller so the placeholder occupies exactly the
- * space the real content will, keeping cumulative layout shift at zero.
- */
 export function Skeleton({ className }: { className?: string }) {
   return <div className={cn("shimmer rounded-md", className)} />;
 }
@@ -73,7 +68,6 @@ export function SkeletonText({
   );
 }
 
-/** Table placeholder matching the real row height, for `loading.tsx`. */
 export function SkeletonTable({ rows = 6 }: { rows?: number }) {
   return (
     <div className="flex flex-col divide-y divide-border">
@@ -93,7 +87,6 @@ export function SkeletonTable({ rows = 6 }: { rows?: number }) {
   );
 }
 
-/** Inline "something went wrong" panel used by `error.tsx` boundaries. */
 export function ErrorPanel({
   title = "Something went wrong",
   description,
@@ -135,7 +128,6 @@ const calloutTones = {
   },
 } as const;
 
-/** Inline notice for a state the reader should know about before acting. */
 export function Callout({
   tone = "warning",
   title,

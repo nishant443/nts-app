@@ -10,14 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { showSuccess } from "@/components/ui/success-popup";
 
-/**
- * Sends the document to the customer with the PDF attached.
- *
- * Shows the address it is about to use and lets it be overridden for this send,
- * because the contact on file is often not the person who handles purchase
- * orders. When SMTP is not configured the button explains that rather than
- * failing on press.
- */
 export function EmailDocumentButton({
   kind,
   id,

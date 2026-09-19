@@ -1,17 +1,3 @@
-/**
- * Development seed.
- *
- * Populates the database with a realistic slice of NTS's business: the real
- * company registration details, a handful of employees, customers drawn from
- * the machine-tool sector NTS actually serves, and three months of attendance,
- * work logs, expenses, quotations, invoices and payments.
- *
- * Safe to re-run: every write is an upsert keyed on a natural identifier, and
- * transactional data is cleared first so counts do not double up.
- *
- * Run with `npm run db:seed`.
- */
-
 import "dotenv/config";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -31,9 +17,6 @@ if (!connectionString) {
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
 
-// --- Helpers -----------------------------------------------------------------
-
-/** UTC midnight for a calendar day, matching how the app stores dates. */
 function day(year: number, month: number, date: number): Date {
   return new Date(Date.UTC(year, month - 1, date));
 }
@@ -50,7 +33,6 @@ function atTime(date: Date, hours: number, minutes: number): Date {
   return result;
 }
 
-/** Deterministic pseudo-random so re-seeding produces the same story. */
 function makeRandom(seed: number) {
   let state = seed;
   return () => {
@@ -72,8 +54,6 @@ function between(min: number, max: number): number {
 const TODAY = new Date();
 const THIS_YEAR = TODAY.getUTCFullYear();
 const THIS_MONTH = TODAY.getUTCMonth() + 1;
-
-// --- Reference data ----------------------------------------------------------
 
 const EMPLOYEES = [
   {
@@ -234,7 +214,6 @@ const CUSTOMERS = [
     email: "nandini@pmiexports.example",
     phone: "+91 422 267 3300",
   },
-  // Vendors — purchase orders are raised against these.
   {
     name: "Rakesh Kumar",
     company: "R K Machinery Spares",
@@ -296,13 +275,9 @@ const HOLIDAYS_2026 = [
   { date: day(2026, 12, 25), name: "Christmas Day" },
 ];
 
-// --- Seed --------------------------------------------------------------------
-
 async function main() {
   console.log("→ Seeding Nutan Tech Solutions");
 
-  // Clear transactional data so re-running does not accumulate duplicates.
-  // Order matters: children before parents.
   await prisma.$transaction([
     prisma.auditLog.deleteMany(),
     prisma.notification.deleteMany(),
@@ -323,11 +298,9 @@ async function main() {
     prisma.leaveBalance.deleteMany(),
     prisma.attendance.deleteMany(),
     prisma.salaryStructure.deleteMany(),
-    // Customers last: every document above points at them.
     prisma.customer.deleteMany(),
   ]);
 
-  // --- Company -------------------------------------------------------------
   await prisma.companySettings.upsert({
     where: { id: "singleton" },
     update: {},
@@ -361,7 +334,6 @@ async function main() {
   });
   console.log("  ✓ company settings");
 
-  // --- Holidays ------------------------------------------------------------
   for (const holiday of HOLIDAYS_2026) {
     await prisma.holiday.upsert({
       where: { date: holiday.date },
@@ -371,7 +343,6 @@ async function main() {
   }
   console.log(`  ✓ ${HOLIDAYS_2026.length} holidays`);
 
-  // --- Employees -----------------------------------------------------------
   const adminPassword = await bcrypt.hash("NtsAdmin@2026", 12);
   const staffPassword = await bcrypt.hash("NtsStaff@2026", 12);
 
@@ -416,7 +387,6 @@ async function main() {
       },
     });
 
-    // Salary structure, effective from the joining date.
     await prisma.salaryStructure.create({
       data: {
         userId: user.id,
@@ -431,7 +401,6 @@ async function main() {
       },
     });
 
-    // Leave entitlement for the current year.
     const entitlements: [LeaveType, number][] = [
       ["CASUAL", 12],
       ["SICK", 8],
@@ -451,7 +420,6 @@ async function main() {
   const staff = users.filter((user) => user.role === "EMPLOYEE");
   console.log(`  ✓ ${users.length} employees with salary structures`);
 
-  // --- Customers -----------------------------------------------------------
   const customers = [];
 
   for (const customer of CUSTOMERS) {
@@ -479,7 +447,6 @@ async function main() {
   const vendors = customers.filter((c) => c.type === "VENDOR");
   console.log(`  ✓ ${customers.length} customers (${vendors.length} vendors)`);
 
-  // --- Attendance, work logs, expenses (last 3 months) ---------------------
   const holidayKeys = new Set(
     HOLIDAYS_2026.map((h) => h.date.toISOString().slice(0, 10)),
   );
@@ -504,7 +471,6 @@ async function main() {
       else if (isHoliday) status = "HOLIDAY";
       else {
         const roll = random();
-        // Mostly present, with an occasional half day or absence.
         status = roll > 0.94 ? "ABSENT" : roll > 0.9 ? "HALF_DAY" : "PRESENT";
       }
 
@@ -526,7 +492,6 @@ async function main() {
       });
       attendanceCount++;
 
-      // Work log on most working days.
       if ((status === "PRESENT" || status === "HALF_DAY") && random() > 0.25) {
         const workLog = await prisma.dailyWorkLog.create({
           data: {
@@ -544,7 +509,6 @@ async function main() {
         });
         workLogCount++;
 
-        // Travel expense against roughly a third of work logs.
         if (random() > 0.68) {
           const category = pick([
             "TRAVEL",
@@ -584,7 +548,6 @@ async function main() {
     `  ✓ ${attendanceCount} attendance records, ${workLogCount} work logs, ${expenseCount} expenses`,
   );
 
-  // --- Leave requests ------------------------------------------------------
   const leaveTypes: LeaveType[] = ["CASUAL", "SICK", "EARNED"];
   let leaveCount = 0;
 
@@ -622,7 +585,6 @@ async function main() {
   }
   console.log(`  ✓ ${leaveCount} leave requests`);
 
-  // --- Quotations and invoices --------------------------------------------
   const financialYear = (() => {
     const month = TODAY.getUTCMonth();
     const startYear = month >= 3 ? THIS_YEAR : THIS_YEAR - 1;
@@ -731,7 +693,6 @@ async function main() {
     invoices.push(invoice);
   }
 
-  // A few invoices raised directly, without a quotation.
   for (const customer of clients.filter((c) => c.type === "ACTIVE").slice(0, 4)) {
     invoiceSeq++;
     const date = addDays(rangeStart, between(10, 75));
@@ -757,12 +718,10 @@ async function main() {
   }
   console.log(`  ✓ ${invoices.length} invoices`);
 
-  // --- Payments ------------------------------------------------------------
   let paymentCount = 0;
 
   for (const invoice of invoices) {
     const roll = random();
-    // Roughly: 45% paid in full, 25% part paid, 30% still outstanding.
     if (roll > 0.7) continue;
 
     const total = Number(invoice.total);
@@ -793,14 +752,12 @@ async function main() {
     });
   }
 
-  // Mark anything past its due date and not settled as overdue.
   await prisma.invoice.updateMany({
     where: { dueDate: { lt: TODAY }, status: { in: ["SENT", "PARTIALLY_PAID"] } },
     data: { status: "OVERDUE" },
   });
   console.log(`  ✓ ${paymentCount} payments`);
 
-  // --- Purchase orders -----------------------------------------------------
   let poSeq = 0;
 
   for (const vendor of vendors) {
@@ -832,7 +789,6 @@ async function main() {
   }
   console.log(`  ✓ ${poSeq} purchase orders`);
 
-  // --- Payroll for last month ---------------------------------------------
   const payrollMonth = THIS_MONTH === 1 ? 12 : THIS_MONTH - 1;
   const payrollYear = THIS_MONTH === 1 ? THIS_YEAR - 1 : THIS_YEAR;
 
@@ -899,7 +855,6 @@ async function main() {
   }
   console.log(`  ✓ payroll run for ${payrollMonth}/${payrollYear}`);
 
-  // --- Tasks ---------------------------------------------------------------
   const TASKS = [
     {
       title: "Spindle vibration check — VMC 850",
@@ -977,7 +932,6 @@ async function main() {
   }
   console.log(`  ✓ ${TASKS.length} tasks`);
 
-  // --- Notifications -------------------------------------------------------
   const pendingLeave = await prisma.leaveRequest.findMany({
     where: { status: "PENDING" },
     include: { user: { select: { name: true } } },

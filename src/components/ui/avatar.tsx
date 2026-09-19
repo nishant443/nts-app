@@ -9,10 +9,6 @@ const sizes = {
   xl: "size-16 text-xl",
 } as const;
 
-/**
- * Avatar with a deterministic colour fallback, so the same person is always the
- * same tint even before they upload a photo.
- */
 export function Avatar({
   name,
   src,
@@ -42,8 +38,6 @@ export function Avatar({
     );
   }
 
-  // Hue drives both themes through a custom property, so the tint stays legible
-  // on a dark surface instead of glowing.
   const hue = hashHue(name);
 
   return (

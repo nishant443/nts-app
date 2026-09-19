@@ -53,7 +53,6 @@ export default async function PayrollPage() {
     finalizedAt: run.finalizedAt,
   }));
 
-  // Default the new-run form to last month, which is what is usually being run.
   const now = today();
   const previous = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),

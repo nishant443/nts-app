@@ -14,15 +14,6 @@ import { prisma } from "@/lib/prisma";
 import type { PayrollStatus } from "@/generated/prisma/enums";
 import { payrollRunSchema, salaryStructureSchema } from "@/lib/validation";
 
-/**
- * Payroll actions.
- *
- * A run moves DRAFT → PROCESSING → FINALIZED → PAID. Payslips are recalculated
- * on every generate while the run is still a draft; once finalized the figures
- * are frozen, because that is what employees have been shown and what the bank
- * transfer was based on.
- */
-
 export const createPayrollRun = formAction(
   { access: "admin", schema: payrollRunSchema },
   async ({ input, user }) => {
@@ -62,10 +53,6 @@ export const createPayrollRun = formAction(
   },
 );
 
-/**
- * Builds (or rebuilds) a payslip for every active employee with a salary
- * structure in force for the period.
- */
 export const generatePayslips = action<{ id: string }>(
   { access: "admin" },
   async ({ input, user }) => {
@@ -102,7 +89,6 @@ export const generatePayslips = action<{ id: string }>(
         workingDays,
       );
 
-      // No salary structure on record — nothing to pay against.
       if (!computed) {
         skipped += 1;
         continue;
@@ -203,7 +189,6 @@ export const setPayrollStatus = action<{ id: string; status: string }>(
       },
     });
 
-    // Employees are told only once the figures are locked.
     if (input.status === "FINALIZED" && run.status !== "FINALIZED") {
       const payslips = await prisma.payslip.findMany({
         where: { payrollRunId: run.id },
@@ -251,7 +236,6 @@ export const deletePayrollRun = action<{ id: string }>(
       );
     }
 
-    // Payslips cascade with the run.
     await prisma.payrollRun.delete({ where: { id: run.id } });
 
     await recordAudit({
@@ -266,8 +250,6 @@ export const deletePayrollRun = action<{ id: string }>(
   },
 );
 
-// --- Salary structure --------------------------------------------------------
-
 export const saveSalaryStructure = formAction(
   { access: "admin", schema: salaryStructureSchema },
   async ({ input, user }) => {
@@ -280,7 +262,6 @@ export const saveSalaryStructure = formAction(
 
     const effectiveFrom = parseDateInput(input.effectiveFrom);
 
-    // One structure per effective date; re-saving the same date replaces it.
     await prisma.salaryStructure.upsert({
       where: {
         userId_effectiveFrom: { userId: input.userId, effectiveFrom },

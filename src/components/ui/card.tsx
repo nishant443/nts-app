@@ -59,7 +59,6 @@ export function CardBody({
 }: {
   children: ReactNode;
   className?: string;
-  /** Turn off for tables, which supply their own edge-to-edge padding. */
   padded?: boolean;
 }) {
   return (

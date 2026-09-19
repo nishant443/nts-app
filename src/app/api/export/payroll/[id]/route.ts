@@ -37,10 +37,6 @@ interface Row {
   ifsc: string;
 }
 
-/**
- * Payroll register as a spreadsheet — the sheet an accountant hands to the bank
- * for the salary transfer, so it carries account numbers and IFSC codes.
- */
 export async function GET(
   _request: Request,
   context: RouteContext<"/api/export/payroll/[id]">,

@@ -4,25 +4,11 @@ import { env } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { isValidGstin, panFromGstin, stateFromGstin } from "@/lib/tax";
 
-/**
- * Look a GSTIN up and return the registered business details, so "Add
- * customer" can fill itself in from the number — the way Vyapar and Tally do.
- *
- * There is no free public endpoint on the GST portal itself, so this goes
- * through whichever verification provider the admin has a key for:
- * GSTINCheck, Appyflow, KnowYourGST, Masters India, ClearTax… They all relay
- * the portal's own "taxpayer" JSON (lgnm, tradeNam, pradr.addr…), some under
- * a `data` or `taxpayerInfo` wrapper, so one normaliser covers the lot. The
- * provider is just a URL template in `.env` (see `.env.example`).
- */
-
 export interface GstinDetails {
   gstin: string;
   legalName: string;
   tradeName: string | null;
-  /** "Active", "Cancelled", "Suspended"… as the portal reports it. */
   status: string | null;
-  /** "Private Limited Company", "Proprietorship"… */
   constitution: string | null;
   registeredOn: string | null;
   pan: string | null;
@@ -95,8 +81,6 @@ export async function lookupGstin(raw: string): Promise<GstinDetails> {
   return details;
 }
 
-// --- Response normalisation ----------------------------------------------------
-
 type Json = Record<string, unknown>;
 
 const isObject = (value: unknown): value is Json =>
@@ -108,7 +92,6 @@ const text = (value: unknown): string | null => {
   return trimmed && trimmed !== "-" ? trimmed : null;
 };
 
-/** First non-empty string among several possible keys. */
 const pick = (source: Json | undefined, ...keys: string[]): string | null => {
   if (!source) return null;
   for (const key of keys) {
@@ -118,10 +101,6 @@ const pick = (source: Json | undefined, ...keys: string[]): string | null => {
   return null;
 };
 
-/**
- * Find the taxpayer record inside whatever wrapper the provider used. The
- * portal record always carries a legal name, so that is the marker.
- */
 function findTaxpayer(payload: unknown, depth = 0): Json | null {
   if (!isObject(payload) || depth > 3) return null;
   if (pick(payload, "lgnm", "legal-name", "legalName", "legal_name")) {
@@ -135,8 +114,6 @@ function findTaxpayer(payload: unknown, depth = 0): Json | null {
 }
 
 function normalise(gstin: string, payload: unknown): GstinDetails | null {
-  // Providers signal "not found" in different ways; an explicit false/error
-  // flag with no record is the common case.
   if (isObject(payload)) {
     if (payload.flag === false || payload.error === true) {
       const record = findTaxpayer(payload);
@@ -156,10 +133,8 @@ function normalise(gstin: string, payload: unknown): GstinDetails | null {
   );
   if (!legalName) return null;
 
-  // Principal place of business. Portal shape: pradr.addr.{bno,flno,bnm,st,loc,dst,stcd,pncd}
   const pradr = isObject(record.pradr) ? record.pradr : undefined;
   const addr = pradr && isObject(pradr.addr) ? pradr.addr : pradr;
-  // KnowYourGST flattens it under "adress" (sic).
   const flat = isObject(record.adress)
     ? record.adress
     : isObject(record.address)

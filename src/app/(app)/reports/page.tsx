@@ -40,7 +40,6 @@ interface CustomerRow {
 export default async function ReportsPage(props: {
   searchParams: Promise<SearchParams>;
 }) {
-  // Reports are company-wide figures — administrators only.
   await requireAdmin();
 
   const searchParams = await props.searchParams;

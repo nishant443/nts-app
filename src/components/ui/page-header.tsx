@@ -9,10 +9,6 @@ export interface Crumb {
   href?: string;
 }
 
-/**
- * Standard page heading. Actions wrap below the title on narrow screens rather
- * than squeezing the heading.
- */
 export function PageHeader({
   title,
   description,
@@ -74,7 +70,6 @@ export function PageHeader({
   );
 }
 
-/** Groups a page into labelled sections without the weight of a card. */
 export function Section({
   title,
   description,

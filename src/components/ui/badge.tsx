@@ -28,7 +28,6 @@ export function Badge({
   children: ReactNode;
   tone?: BadgeTone;
   className?: string;
-  /** Adds a leading status dot — useful when colour alone is too subtle. */
   dot?: boolean;
 }) {
   return (
@@ -51,13 +50,7 @@ export function Badge({
   );
 }
 
-/**
- * One place that decides what colour every status in the system is, so
- * "APPROVED" looks the same on the leave list, the expense list, and the
- * dashboard.
- */
 const STATUS_TONES: Record<string, BadgeTone> = {
-  // Requests and reviews
   PENDING: "warning",
   APPROVED: "success",
   REJECTED: "danger",
@@ -66,7 +59,6 @@ const STATUS_TONES: Record<string, BadgeTone> = {
   DRAFT: "neutral",
   REIMBURSED: "success",
 
-  // Tasks
   OPEN: "info",
   IN_PROGRESS: "warning",
   COMPLETED: "success",
@@ -75,12 +67,10 @@ const STATUS_TONES: Record<string, BadgeTone> = {
   HIGH: "warning",
   URGENT: "danger",
 
-  // Users
   ACTIVE: "success",
   INACTIVE: "neutral",
   SUSPENDED: "danger",
 
-  // Attendance
   PRESENT: "success",
   ABSENT: "danger",
   HALF_DAY: "warning",
@@ -88,12 +78,10 @@ const STATUS_TONES: Record<string, BadgeTone> = {
   HOLIDAY: "accent",
   WEEK_OFF: "neutral",
 
-  // Payroll
   PROCESSING: "info",
   FINALIZED: "accent",
   PAID: "success",
 
-  // Sales documents
   SENT: "info",
   ACCEPTED: "success",
   EXPIRED: "neutral",
@@ -104,11 +92,9 @@ const STATUS_TONES: Record<string, BadgeTone> = {
   RECEIVED: "success",
   FAILED: "danger",
 
-  // Customers
   LEAD: "info",
   VENDOR: "accent",
 
-  // Roles
   ADMIN: "accent",
   EMPLOYEE: "neutral",
 };

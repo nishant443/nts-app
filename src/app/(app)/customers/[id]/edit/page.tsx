@@ -13,7 +13,6 @@ export const metadata: Metadata = {
 export default async function EditCustomerPage(
   props: PageProps<"/customers/[id]/edit">,
 ) {
-  // Editing an existing customer record is admin-only.
   await requireAdmin();
 
   const { id } = await props.params;

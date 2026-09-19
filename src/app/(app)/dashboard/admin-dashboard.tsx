@@ -19,11 +19,6 @@ import { formatDate } from "@/lib/dates";
 import { formatCurrency, formatCurrencyCompact } from "@/lib/money";
 import type { AdminDashboard } from "@/lib/services/dashboard";
 
-/**
- * Admin view. Every figure here is company-wide and must never be rendered for
- * an employee — the page that renders this component calls `requireAdmin()`
- * before the data is even fetched.
- */
 export function AdminDashboardView({ data }: { data: AdminDashboard }) {
   const collectionRate =
     data.totalSales > 0 ? (data.totalReceived / data.totalSales) * 100 : 0;
@@ -72,7 +67,6 @@ export function AdminDashboardView({ data }: { data: AdminDashboard }) {
       </StatGrid>
 
       <div className="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-3">
-        {/* Revenue chart -------------------------------------------------- */}
         <Card className="xl:col-span-2">
           <CardHeader
             title="Invoiced vs received"
@@ -105,7 +99,6 @@ export function AdminDashboardView({ data }: { data: AdminDashboard }) {
           </CardBody>
         </Card>
 
-        {/* Today's attendance --------------------------------------------- */}
         <Card>
           <CardHeader
             title="Attendance today"
@@ -152,7 +145,6 @@ export function AdminDashboardView({ data }: { data: AdminDashboard }) {
         </Card>
       </div>
 
-      {/* Things waiting on the admin -------------------------------------- */}
       <StatGrid>
         <StatCard
           label="Leave requests"
@@ -189,7 +181,6 @@ export function AdminDashboardView({ data }: { data: AdminDashboard }) {
       </StatGrid>
 
       <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
-        {/* Recent invoices ------------------------------------------------ */}
         <Card>
           <CardHeader
             title="Recent invoices"
@@ -235,7 +226,6 @@ export function AdminDashboardView({ data }: { data: AdminDashboard }) {
           )}
         </Card>
 
-        {/* Top outstanding ------------------------------------------------ */}
         <Card>
           <CardHeader
             title="Largest balances"

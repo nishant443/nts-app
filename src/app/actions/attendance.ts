@@ -16,25 +16,6 @@ import { getCheckInGate } from "@/lib/services/check-in";
 import { getEffectiveLocation } from "@/lib/services/work-locations";
 import { attendanceMarkSchema, positionSchema } from "@/lib/validation";
 
-/**
- * Attendance actions.
- *
- * Self check-in writes exactly one row per employee per day (enforced by a
- * unique constraint on `userId + date`), so a double submit cannot create a
- * second record or reset the morning's check-in time. It is refused on
- * Sundays and holidays (`lib/attendance-rules.ts`), and the button in the UI
- * reflects the same rule.
- *
- * Both buttons need a GPS fix from the browser and refuse anything outside
- * the allowed radius of the employee's work location for the day — the one
- * the admin set, or the last one set before it. The position and distance
- * are stored so the admin can see where each check-in came from.
- */
-
-/**
- * Validate the browser-supplied position against the employee's fence.
- * Returns the distance to record. Fails closed when no location was ever set.
- */
 async function verifyPosition(
   raw: unknown,
   fence: Geofence | null,
@@ -132,7 +113,6 @@ export const checkOut = action<Position | null>({ access: "user" }, async ({ inp
     data: {
       checkOutAt: now,
       workedMinutes,
-      // Less than four hours on site is recorded as a half day.
       status: workedMinutes < 240 ? "HALF_DAY" : "PRESENT",
       checkOutLatitude: position.latitude,
       checkOutLongitude: position.longitude,
@@ -152,7 +132,6 @@ export const checkOut = action<Position | null>({ access: "user" }, async ({ inp
   revalidatePath("/attendance");
 });
 
-/** Admin override — correcting the register for any employee and date. */
 export const markAttendance = formAction(
   { access: "admin", schema: attendanceMarkSchema },
   async ({ input, user }) => {
@@ -165,9 +144,6 @@ export const markAttendance = formAction(
 
     if (!employee) return formError("That employee could not be found.");
 
-    // Times arrive as "HH:mm" from a <input type="time">, meant as Indian
-    // wall-clock time — stored as the real instant so they line up with
-    // employees' own check-ins.
     const toDateTime = (value: string | undefined) => {
       if (!value || !/^\d{2}:\d{2}$/.test(value)) return null;
       return new Date(`${input.date}T${value}:00${BUSINESS_UTC_OFFSET}`);

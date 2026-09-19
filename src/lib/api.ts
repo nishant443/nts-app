@@ -14,16 +14,6 @@ import {
 } from "@/lib/errors";
 import { clientKey, enforceRateLimit, RateLimits } from "@/lib/rate-limit";
 
-/**
- * Route Handler plumbing.
- *
- * `withRoute` is the single entry point for every API route: it applies rate
- * limiting, enforces the required role *on the server*, validates input with
- * Zod, and converts thrown `AppError`s into correct status codes. A route that
- * forgets to check permissions is not possible — the check is a required
- * argument.
- */
-
 export type RouteAccess = "public" | "user" | "admin";
 
 interface RouteOptions {
@@ -37,7 +27,6 @@ type RouteHandler<TContext> = (args: {
   context: TContext;
 }) => Promise<Response> | Response;
 
-/** Handler variant for `access: "public"`, where there may be no user. */
 type PublicRouteHandler<TContext> = (args: {
   request: Request;
   user: SessionUser | null;
@@ -66,7 +55,6 @@ export function withRoute<TContext = unknown>(
 
       const user = await getSessionUser();
 
-      // Prefer the account id so a shared office IP doesn't throttle everyone.
       const identity = user
         ? `${new URL(request.url).pathname}:${user.id}`
         : clientKey(request, new URL(request.url).pathname);
@@ -112,7 +100,6 @@ export function errorResponse(error: unknown): NextResponse {
     );
   }
 
-  // Genuinely unexpected — log it server-side, tell the client nothing.
   console.error("[api] unhandled error", error);
 
   return NextResponse.json(
@@ -127,7 +114,6 @@ export function errorResponse(error: unknown): NextResponse {
   );
 }
 
-/** Parse a JSON body against a schema, raising a 422 with field errors. */
 export async function parseJson<TSchema extends z.ZodType>(
   request: Request,
   schema: TSchema,
@@ -149,7 +135,6 @@ export async function parseJson<TSchema extends z.ZodType>(
   return parsed.data;
 }
 
-/** Parse `?a=1&b=2` against a schema. */
 export function parseQuery<TSchema extends z.ZodType>(
   request: Request,
   schema: TSchema,
@@ -169,7 +154,6 @@ export function json<T>(data: T, init?: ResponseInit): NextResponse {
   return NextResponse.json(data, init);
 }
 
-/** 204, for deletes and other write-only endpoints. */
 export function noContent(): NextResponse {
   return new NextResponse(null, { status: 204 }) as NextResponse;
 }

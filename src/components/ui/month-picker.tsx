@@ -3,10 +3,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { formatMonthYear } from "@/lib/dates";
 
-/**
- * Previous / next month navigation driven by the URL, so the view stays a
- * Server Component and a particular month is linkable.
- */
 export function MonthPicker({
   month,
   year,

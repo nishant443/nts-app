@@ -60,8 +60,6 @@ export default async function DocumentsPage(props: {
   const where = {
     ...(ownerType ? { ownerType } : {}),
     ...(term ? { name: { contains: term, mode: "insensitive" as const } } : {}),
-    // Employee documents are personal records. An employee sees only their own;
-    // customer documents are shared business records everyone can see.
     ...(isAdmin
       ? {}
       : {
@@ -94,8 +92,6 @@ export default async function DocumentsPage(props: {
       : Promise.resolve([{ id: user.id, name: user.name }]),
   ]);
 
-  // Owner ids are polymorphic, so resolve their labels from the lists we
-  // already loaded rather than issuing a query per row.
   const customerNames = new Map(
     customers.map((customer) => [
       customer.id,

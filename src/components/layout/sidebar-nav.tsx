@@ -7,21 +7,11 @@ import { isActive, navForRole } from "@/components/layout/nav-config";
 import type { Role } from "@/generated/prisma/enums";
 import { cn } from "@/lib/utils";
 
-/**
- * The navigation list itself. Shared by the desktop sidebar and the mobile
- * drawer so there is one source of truth for how a nav row looks.
- *
- * Takes the `role` rather than a prepared list of groups: nav entries carry
- * Lucide icon components, and functions cannot be serialised across the
- * server/client boundary. Filtering here is presentation only — the pages
- * themselves enforce access.
- */
 export function SidebarNav({
   role,
   onNavigate,
 }: {
   role: Role;
-  /** Lets the mobile drawer close itself when a link is followed. */
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -54,7 +44,6 @@ export function SidebarNav({
                         : "text-fg-muted hover:bg-surface-muted hover:text-fg",
                     )}
                   >
-                    {/* Active marker doubles as a non-colour cue. */}
                     <span
                       aria-hidden="true"
                       className={cn(

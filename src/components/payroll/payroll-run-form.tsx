@@ -33,7 +33,6 @@ export function PayrollRunForm({
 }) {
   const [state, formAction] = useActionState(createPayrollRun, emptyFormState);
 
-  // A few years either side covers corrections and the odd early run.
   const years = Array.from({ length: 5 }, (_, i) => defaultYear - 2 + i);
 
   return (

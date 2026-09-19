@@ -6,14 +6,6 @@ import type { CompanyProfile } from "@/lib/settings";
 import { computeTotals, lineTotal } from "@/lib/tax";
 import type { LineItemInput } from "@/lib/validation";
 
-/**
- * Shared preparation for the three line-item documents (quotation, invoice,
- * purchase order).
- *
- * Totals are always recomputed here from the submitted line items — the
- * amounts the browser displayed are never trusted or persisted.
- */
-
 export interface PreparedDocument {
   date: Date;
   placeOfSupply: string | null;
@@ -42,7 +34,6 @@ export function prepareDocument(input: {
   discountAmount?: number;
   items: LineItemInput[];
   settings: CompanyProfile;
-  /** Falls back to the customer's state when the form left it blank. */
   customerState?: string | null;
 }): PreparedDocument {
   const placeOfSupply =
@@ -82,10 +73,6 @@ export function prepareDocument(input: {
   };
 }
 
-/**
- * Invoice status derived from what has been paid. Draft and cancelled are
- * deliberate states set by a person and are never overwritten.
- */
 export function deriveInvoiceStatus(options: {
   current: string;
   total: number;

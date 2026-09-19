@@ -7,7 +7,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { prisma } from "@/lib/prisma";
 import { getCompanySettings } from "@/lib/settings";
 
-/** Shared by the "new" and "edit" purchase-order routes. */
 export async function PurchaseOrderFormPage({
   values,
   heading,
@@ -52,7 +51,6 @@ export async function PurchaseOrderFormPage({
             label: vendor.companyName ?? vendor.name,
             state: vendor.state,
           }))}
-          // Purchases are not discounted at document level in NTS's workflow.
           showDiscount={false}
           statuses={[
             { value: "DRAFT", label: "Draft" },

@@ -1,43 +1,24 @@
 import { businessClock, formatDate } from "@/lib/dates";
 
-/**
- * When and where self check-in is allowed.
- *
- *   - not on Sundays, the weekly off
- *   - not on a declared holiday
- *   - only within a short radius of the employee's work location for the day
- *
- * The work location is set by an admin per employee; a day without its own
- * entry inherits the most recent earlier one (`lib/services/work-locations.ts`).
- * Admins can still correct the register by hand for any day.
- */
-
 export const DEFAULT_CHECK_IN_RADIUS_M = 50;
 
-/** Where an employee must be to check in, and how close counts. */
 export interface Geofence {
   latitude: number;
   longitude: number;
   radiusMeters: number;
-  /** What the admin called the place — "BFW plant, Bengaluru". */
   label: string;
-  /** The day the entry was recorded for; earlier than today when inherited. */
   date: Date;
 }
 
-/** A position as reported by the browser's Geolocation API. */
 export interface Position {
   latitude: number;
   longitude: number;
-  /** Reported accuracy in metres, when the device gives one. */
   accuracy?: number;
 }
 
-/** What the check-in button needs to know — coordinates stay on the server. */
 export interface GateLocation {
   label: string;
   radiusMeters: number;
-  /** ISO date the location was set for; null when it applies to today itself. */
   inheritedFrom: string | null;
 }
 
@@ -98,12 +79,6 @@ export function checkInGate(
   return { open: true, location };
 }
 
-// --- Distance -----------------------------------------------------------------
-
-/**
- * Great-circle distance between two points in metres (haversine). Accurate to
- * well under a metre at the distances that matter here.
- */
 export function distanceMeters(a: Position, b: Position): number {
   const R = 6_371_000;
   const toRad = (deg: number) => (deg * Math.PI) / 180;
@@ -121,11 +96,6 @@ export type GeofenceCheck =
   | { ok: true; distance: number }
   | { ok: false; distance: number | null; message: string };
 
-/**
- * Is this position close enough to the work location? A missing position
- * fails closed — no location, no check-in — because the point of the fence is
- * that the button only works on site.
- */
 export function checkGeofence(
   fence: Geofence,
   position: Position | null | undefined,

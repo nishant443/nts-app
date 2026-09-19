@@ -12,14 +12,6 @@ import {
 import { amountInWords, formatAmount } from "@/lib/money";
 import { formatAddress, type CompanyProfile } from "@/lib/settings";
 
-/**
- * Payslip.
- *
- * Earnings on the left, deductions on the right, attendance across the top —
- * the layout Indian payroll statements conventionally use, so it reads without
- * explanation.
- */
-
 const BRAND = "#1a6dff";
 const INK = "#131a24";
 const MUTED = "#566274";
@@ -206,7 +198,6 @@ export function PayslipPdf(props: PayslipPdfProps) {
         <Text style={styles.title}>PAYSLIP</Text>
         <Text style={styles.period}>{props.period}</Text>
 
-        {/* Employee */}
         <View style={styles.card}>
           <View style={styles.cardHead}>
             <Text style={styles.cardHeadText}>EMPLOYEE DETAILS</Text>
@@ -235,7 +226,6 @@ export function PayslipPdf(props: PayslipPdfProps) {
           </View>
         </View>
 
-        {/* Attendance */}
         <View style={styles.card}>
           <View style={styles.cardHead}>
             <Text style={styles.cardHeadText}>ATTENDANCE</Text>
@@ -254,7 +244,6 @@ export function PayslipPdf(props: PayslipPdfProps) {
           </View>
         </View>
 
-        {/* Earnings and deductions */}
         <View style={styles.twoCol}>
           <View style={styles.col}>
             <View style={styles.card}>
@@ -308,7 +297,6 @@ export function PayslipPdf(props: PayslipPdfProps) {
           </View>
         </View>
 
-        {/* Net pay */}
         <View style={styles.netBox}>
           <View style={styles.netRow}>
             <Text style={styles.netLabel}>Net pay</Text>

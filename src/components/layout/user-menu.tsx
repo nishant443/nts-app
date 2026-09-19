@@ -10,10 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import type { Role } from "@/generated/prisma/enums";
 import { cn } from "@/lib/utils";
 
-/**
- * Account dropdown. Closes on outside click, Escape, and route change; focus
- * returns to the trigger so keyboard users are not stranded.
- */
 export function UserMenu({
   name,
   email,

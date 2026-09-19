@@ -10,7 +10,6 @@ import { businessClock } from "@/lib/dates";
 import { emptyFormState } from "@/lib/form-state";
 import { cn } from "@/lib/utils";
 
-/** "Good morning" and friends, on the company clock (IST) wherever you are. */
 function greeting(): string {
   const { hour } = businessClock();
   if (hour < 12) return "Good morning";
@@ -29,15 +28,12 @@ const inputClass =
 export function LoginForm({
   notice,
 }: {
-  /** Explains an involuntary sign-out; shown until the first submit. */
   notice?: { title: string; body: string };
 }) {
   const [state, formAction] = useActionState(signIn, emptyFormState);
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
 
-  // Server renders nothing here; the greeting fills in after hydration, so the
-  // server's clock never disagrees with the visitor's.
   const hello = useSyncExternalStore(noop, greeting, () => null);
 
   const invalid = Boolean(state.error);
@@ -141,10 +137,6 @@ export function LoginForm({
   );
 }
 
-/**
- * Split out so `useFormStatus` reads the status of the enclosing form — the
- * hook only reports pending state for a form above it in the tree.
- */
 function SubmitButton() {
   const { pending } = useFormStatus();
 

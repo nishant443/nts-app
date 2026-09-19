@@ -15,15 +15,6 @@ import { deriveInvoiceStatus } from "@/lib/services/documents";
 import type { InvoiceStatus } from "@/generated/prisma/enums";
 import { paymentSchema } from "@/lib/validation";
 
-/**
- * Payment actions.
- *
- * Recording a payment and updating the invoice it settles must happen together
- * — every write runs inside a transaction so `amountPaid` can never drift from
- * the sum of the payments behind it.
- */
-
-/** Recomputes an invoice's paid total from its payments and restates status. */
 async function syncInvoice(
   tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
   invoiceId: string,
@@ -70,7 +61,6 @@ export const savePayment = formAction(
       });
     }
 
-    // Guard against over-payment before writing anything.
     if (input.invoiceId) {
       const invoice = await prisma.invoice.findUnique({
         where: { id: input.invoiceId },
@@ -144,7 +134,6 @@ export const savePayment = formAction(
         id = created.id;
       }
 
-      // Re-sync both sides when a payment is moved between invoices.
       if (previousInvoiceId && previousInvoiceId !== data.invoiceId) {
         await syncInvoice(tx, previousInvoiceId);
       }
@@ -214,10 +203,6 @@ export const deletePayment = action<{ id: string }>(
   },
 );
 
-/**
- * Flags invoices whose due date has passed. Called when the payments page is
- * viewed so the list is accurate without needing a scheduled job.
- */
 export async function refreshOverdueInvoices(): Promise<void> {
   await prisma.invoice.updateMany({
     where: {

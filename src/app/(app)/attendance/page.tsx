@@ -58,7 +58,6 @@ export default async function AttendancePage(props: {
         }
       />
 
-      {/* Check-in only makes sense while looking at the current month. */}
       {isCurrentMonth && (
         <CheckInCard
           status={todayRecord?.status ?? null}

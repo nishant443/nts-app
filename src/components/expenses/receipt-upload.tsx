@@ -6,13 +6,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 
-/**
- * Attaches a receipt.
- *
- * The file is uploaded on selection and the resulting URL is carried by a
- * hidden input, so the expense form itself stays a plain `FormData` submission
- * and never has to handle multipart encoding.
- */
 export function ReceiptUpload({
   value,
   onChange,
@@ -44,7 +37,6 @@ export function ReceiptUpload({
       toast.error("The receipt could not be uploaded. Check your connection.");
     } finally {
       setUploading(false);
-      // Allow re-selecting the same file after a failure.
       if (inputRef.current) inputRef.current.value = "";
     }
   };

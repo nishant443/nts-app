@@ -2,10 +2,6 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
-/**
- * Link-based tabs. The active tab lives in the URL, so the panel underneath
- * stays a Server Component and each tab is independently linkable.
- */
 export function LinkTabs({
   tabs,
   active,

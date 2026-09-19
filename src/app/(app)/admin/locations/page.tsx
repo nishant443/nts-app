@@ -20,11 +20,6 @@ export const metadata: Metadata = {
   title: "Work locations",
 };
 
-/**
- * Where every employee is expected to check in from today, and the form to
- * change it. A row marked "since <date>" is inheriting an earlier entry —
- * nothing was set for today itself.
- */
 export default async function WorkLocationsPage({
   searchParams,
 }: {

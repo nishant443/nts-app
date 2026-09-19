@@ -7,7 +7,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { prisma } from "@/lib/prisma";
 import { getCompanySettings } from "@/lib/settings";
 
-/** Shared by the "new" and "edit" invoice routes. */
 export async function InvoiceFormPage({
   values,
   heading,
@@ -48,8 +47,6 @@ export async function InvoiceFormPage({
           label: customer.companyName ?? customer.name,
           state: customer.state,
         }))}
-        // Paid, partially paid and overdue follow from recorded payments, so
-        // they are not offered as manual choices.
         statuses={[
           { value: "DRAFT", label: "Draft" },
           { value: "SENT", label: "Sent to customer" },

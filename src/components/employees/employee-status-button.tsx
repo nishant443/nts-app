@@ -10,13 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Field, Textarea } from "@/components/ui/field";
 import { showSuccess } from "@/components/ui/success-popup";
 
-/**
- * Deactivate / reactivate an employee's account.
- *
- * Deactivating asks for confirmation and an optional reason in a modal, since
- * it signs the person out everywhere on the spot. The reason is what they will
- * read the next time they try to sign in, so the prompt says as much.
- */
 export function EmployeeStatusButton({
   employeeId,
   employeeName,
@@ -26,7 +19,6 @@ export function EmployeeStatusButton({
   employeeId: string;
   employeeName: string;
   active: boolean;
-  /** An admin cannot deactivate their own account. */
   isSelf: boolean;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -105,7 +97,6 @@ export function EmployeeStatusButton({
         aria-labelledby={titleId}
         onClose={() => setOpen(false)}
         onClick={(event) => {
-          // Clicking the backdrop (the dialog element itself) closes it.
           if (event.target === dialogRef.current) setOpen(false);
         }}
         className="w-[min(28rem,calc(100vw/var(--ui-zoom)-2rem))] rounded-xl border border-border bg-surface p-0 text-fg shadow-overlay backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"

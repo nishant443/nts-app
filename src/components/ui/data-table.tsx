@@ -2,47 +2,15 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-/**
- * The app's one table.
- *
- * Data-dense screens have to work on a phone, so this renders two ways from a
- * single column definition:
- *
- *   ≥ md   a real `<table>` inside a horizontally scrollable container. The
- *          container scrolls, never the page.
- *   < md   a stacked card per row: the `primary` column becomes the heading,
- *          `secondary` the subtitle, and the rest become label/value pairs.
- *
- * Sorting and filtering are URL-driven and handled server-side, so this stays a
- * Server Component with no client JavaScript.
- *
- * `rowHref` makes the whole row (or card) clickable without any JavaScript:
- * the link in the primary cell stretches an empty `::before` across the row,
- * which is positioned against the row because the row is `relative`. There is
- * still exactly one real link per row, so keyboard and screen-reader users get
- * one tab stop and one announcement rather than one per column. A column
- * marked `interactive` is lifted above that overlay so buttons inside it keep
- * working.
- */
-
 export interface Column<T> {
-  /** Stable key, also used as the React key. */
   key: string;
   header: ReactNode;
   cell: (row: T) => ReactNode;
   align?: "left" | "right" | "center";
-  /** Extra classes for both the header cell and the body cell. */
   className?: string;
-  /** Hide below `md`, e.g. for a secondary timestamp. */
   hideOnMobile?: boolean;
-  /** Promote to the card heading / subheading in the mobile layout. */
   role?: "primary" | "secondary";
-  /** Header text for the mobile label, when `header` is an icon or empty. */
   mobileLabel?: string;
-  /**
-   * This cell holds its own controls (a button, a menu, a second link). Keeps
-   * them above the row-wide click target so they stay usable.
-   */
   interactive?: boolean;
 }
 
@@ -56,9 +24,7 @@ interface DataTableProps<T> {
   columns: Column<T>[];
   rows: T[];
   rowKey: (row: T) => string;
-  /** Rendered in place of the table when there are no rows. */
   empty?: ReactNode;
-  /** Makes the whole desktop row and mobile card open this link. */
   rowHref?: (row: T) => string;
   className?: string;
 }
@@ -83,7 +49,6 @@ export function DataTable<T>({
 
   return (
     <div className={cn("min-w-0", className)}>
-      {/* Desktop ------------------------------------------------------- */}
       <div className="scroll-x hidden md:block">
         <table className="w-full border-collapse text-sm">
           <thead>
@@ -140,7 +105,6 @@ export function DataTable<T>({
         </table>
       </div>
 
-      {/* Mobile -------------------------------------------------------- */}
       <ul className="flex flex-col divide-y divide-border md:hidden">
         {rows.map((row) => (
           <li
@@ -200,10 +164,6 @@ export function DataTable<T>({
   );
 }
 
-/**
- * Column helper that keeps `T` inferred without repeating it at every call
- * site: `const col = columnHelper<Invoice>()`.
- */
 export function columnHelper<T>() {
   return (column: Column<T>): Column<T> => column;
 }

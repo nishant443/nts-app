@@ -7,10 +7,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { prisma } from "@/lib/prisma";
 import { getCompanySettings } from "@/lib/settings";
 
-/**
- * Shared by the "new" and "edit" quotation routes — both render the same form
- * with different starting values.
- */
 export async function QuotationFormPage({
   values,
   heading,

@@ -43,7 +43,6 @@ export function LeaveRequestForm({
 
   const remaining = balances.find((balance) => balance.type === type)?.remaining;
 
-  // Keep the end date from drifting behind the start date as people edit.
   const onStartChange = (value: string) => {
     setStartDate(value);
     if (endDate < value) setEndDate(value);

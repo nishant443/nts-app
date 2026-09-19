@@ -28,12 +28,6 @@ const DEDUCTIONS = [
 
 export type SalaryValues = Record<string, string>;
 
-/**
- * Salary structure, versioned by effective date.
- *
- * Live gross and net totals update as values are typed so the effect of a
- * change is obvious before it is saved.
- */
 export function SalaryStructureForm({
   userId,
   values,

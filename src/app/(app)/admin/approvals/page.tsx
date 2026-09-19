@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { LinkTabs } from "@/components/ui/tabs";
 import { requireAdmin } from "@/lib/dal";
+import { FOOD_TYPE_LABELS } from "@/lib/expense-rates";
 import { formatDate, formatRelative } from "@/lib/dates";
 import { formatCurrency, toMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
@@ -31,7 +32,6 @@ export default async function ApprovalsPage(props: {
   const searchParams = await props.searchParams;
   const tab = enumParam(searchParams, "tab", TABS) ?? "leave";
 
-  // Counts drive the tab badges, so all three are always needed.
   const [leaveCount, workCount, expenseCount] = await Promise.all([
     prisma.leaveRequest.count({ where: { status: "PENDING" } }),
     prisma.dailyWorkLog.count({ where: { status: "SUBMITTED" } }),
@@ -204,7 +204,7 @@ async function ExpenseQueue() {
     take: 50,
     include: {
       user: { select: { name: true, avatarUrl: true, employeeCode: true } },
-      workLog: { select: { id: true, title: true } },
+      customer: { select: { id: true, name: true, companyName: true } },
     },
   });
 
@@ -239,6 +239,13 @@ async function ExpenseQueue() {
 
               <p className="mt-0.5 text-[13px] text-fg-muted">
                 {expense.user.name} · {formatDate(expense.date)}
+                {expense.distanceKm !== null &&
+                  ` · ${toMoney(expense.distanceKm)} km`}
+                {expense.foodType && ` · ${FOOD_TYPE_LABELS[expense.foodType]}`}
+                {expense.reviewedAt === null &&
+                expense.updatedAt > expense.createdAt
+                  ? " · Edited — re-approval"
+                  : ""}
               </p>
 
               <p className="mt-1.5 text-[13px] leading-relaxed text-fg">
@@ -246,12 +253,12 @@ async function ExpenseQueue() {
               </p>
 
               <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[12px]">
-                {expense.workLog && (
+                {expense.customer && (
                   <a
-                    href={`/work-logs/${expense.workLog.id}`}
+                    href={`/customers/${expense.customer.id}`}
                     className="text-accent hover:underline"
                   >
-                    {expense.workLog.title}
+                    {expense.customer.companyName ?? expense.customer.name}
                   </a>
                 )}
                 {expense.receiptUrl && (
@@ -269,11 +276,7 @@ async function ExpenseQueue() {
           </div>
 
           <div className="shrink-0 lg:pl-4">
-            <ReviewPanel
-              action={reviewExpense}
-              id={expense.id}
-              extraChoice={{ value: "REIMBURSED", label: "Mark reimbursed" }}
-            />
+            <ReviewPanel action={reviewExpense} id={expense.id} />
           </div>
         </li>
       ))}

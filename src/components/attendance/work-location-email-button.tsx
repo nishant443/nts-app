@@ -9,10 +9,7 @@ import { emailWorkLocation } from "@/app/actions/work-locations";
 import { Button } from "@/components/ui/button";
 import { showSuccess } from "@/components/ui/success-popup";
 
-/**
- * Emails the location entry to its employee. Nothing is ever mailed without
- * this press (or the checkbox on the form) — an admin's deliberate act.
- */
+
 export function WorkLocationEmailButton({
   id,
   employeeName,

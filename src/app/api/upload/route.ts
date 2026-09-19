@@ -5,15 +5,8 @@ import { uploadFile } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
-/** Folders a client is allowed to write into. */
 const FOLDERS = new Set(["receipts", "documents", "avatars"]);
 
-/**
- * Single-file upload.
- *
- * The file's real type is sniffed from its bytes inside `uploadFile` — the
- * browser-supplied MIME type is not trusted.
- */
 export const POST = withRoute(
   { access: "user", rateLimit: RateLimits.upload },
   async ({ request }) => {

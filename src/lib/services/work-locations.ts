@@ -4,13 +4,6 @@ import type { Geofence } from "@/lib/attendance-rules";
 import { today } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
 
-/**
- * Work locations resolve by "latest entry on or before the day": an admin
- * records a location when it changes, and every following day inherits it
- * until a newer one is recorded. Entries dated in the future are ignored
- * until their day arrives, so tomorrow's site can be set up in advance.
- */
-
 const geofenceSelect = {
   id: true,
   date: true,
@@ -26,7 +19,6 @@ export interface EffectiveLocation extends Geofence {
   emailedAt: Date | null;
 }
 
-/** The location that applies to one employee on `day` (default today). */
 export async function getEffectiveLocation(
   userId: string,
   day: Date = today(),
@@ -38,10 +30,6 @@ export async function getEffectiveLocation(
   });
 }
 
-/**
- * The location in force for every active employee on `day`, keyed by user id.
- * One query: the newest entry per employee on or before the day.
- */
 export async function getEffectiveLocations(
   day: Date = today(),
 ): Promise<Map<string, EffectiveLocation>> {

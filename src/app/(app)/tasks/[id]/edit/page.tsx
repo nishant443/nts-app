@@ -27,7 +27,6 @@ export default async function EditTaskPage(
 
   if (!task) notFound();
 
-  // Finished work is a record of what happened, not something to rewrite.
   if (task.status === "COMPLETED" || task.status === "CANCELLED") {
     redirect(`/tasks/${task.id}`);
   }

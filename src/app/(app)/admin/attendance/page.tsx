@@ -52,7 +52,6 @@ export default async function AttendanceRegisterPage(props: {
   const { from, to } = monthRange(month, year);
   const now = today();
 
-  // The check-in log shows one day in full; defaults to today, never later.
   const requestedDay = param(searchParams, "day");
   let logDay = now;
   if (requestedDay && /^\d{4}-\d{2}-\d{2}$/.test(requestedDay)) {
@@ -126,7 +125,6 @@ export default async function AttendanceRegisterPage(props: {
     holidays.map((holiday) => [dayKey(holiday.date), holiday.name]),
   );
 
-  // Keyed lookup so the grid below is a plain O(1) read per cell.
   const byUserDay = new Map<
     string,
     {
@@ -241,8 +239,6 @@ export default async function AttendanceRegisterPage(props: {
             action={{ label: "Add employee", href: "/admin/employees/new" }}
           />
         ) : (
-          // The grid is wider than a phone; it scrolls inside this container
-          // rather than making the page scroll sideways.
           <div className="scroll-x">
             <table className="w-full min-w-max border-collapse text-sm">
               <thead>

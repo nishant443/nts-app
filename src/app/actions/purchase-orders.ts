@@ -16,10 +16,6 @@ import { getCompanySettings } from "@/lib/settings";
 import type { PurchaseOrderStatus } from "@/generated/prisma/enums";
 import { purchaseOrderSchema } from "@/lib/validation";
 
-/**
- * Purchase orders — what NTS buys in, raised against a customer record marked
- * as a vendor.
- */
 export const savePurchaseOrder = formAction(
   { access: "admin", schema: purchaseOrderSchema, transform: withLineItems },
   async ({ input, user }) => {

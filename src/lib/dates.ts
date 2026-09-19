@@ -7,11 +7,6 @@ import {
   startOfMonth,
 } from "date-fns";
 
-/**
- * Calendar days are stored at UTC midnight so an attendance record for the 3rd
- * is the 3rd regardless of the server's timezone. Always build day keys with
- * `toDayStart` / `dayKey` rather than `new Date(...)` directly.
- */
 export function toDayStart(value: Date | string): Date {
   const date = typeof value === "string" ? parseDateInput(value) : value;
   return new Date(
@@ -19,13 +14,7 @@ export function toDayStart(value: Date | string): Date {
   );
 }
 
-/**
- * The company runs on Indian Standard Time. Anything that depends on "what
- * time is it" — today's date, check-in windows — is read in this zone, so a
- * server hosted elsewhere still agrees with the wall clock in Bengaluru.
- */
 export const BUSINESS_TIMEZONE = "Asia/Kolkata";
-/** IST has no daylight saving, so a fixed offset is safe for building instants. */
 export const BUSINESS_UTC_OFFSET = "+05:30";
 
 const clockFormat = new Intl.DateTimeFormat("en-GB", {
@@ -38,16 +27,13 @@ const clockFormat = new Intl.DateTimeFormat("en-GB", {
   hourCycle: "h23",
 });
 
-/** The wall clock in `BUSINESS_TIMEZONE` for an instant (default: now). */
 export function businessClock(at: Date = new Date()): {
   year: number;
   month: number;
   day: number;
   hour: number;
   minute: number;
-  /** Sunday = 0 … Saturday = 6 */
   weekday: number;
-  /** Today at UTC midnight — the calendar-day key used throughout. */
   date: Date;
 } {
   const parts = Object.fromEntries(
@@ -61,16 +47,10 @@ export function businessClock(at: Date = new Date()): {
   return { ...parts, weekday: date.getUTCDay(), date };
 }
 
-/** Today at UTC midnight, for the company's calendar day. */
 export function today(): Date {
   return businessClock().date;
 }
 
-/**
- * Parse a `yyyy-MM-dd` form value into a UTC-midnight Date. Plain
- * `new Date("2026-09-11")` already parses as UTC, but form inputs and query
- * strings also arrive as full ISO strings, so normalise both.
- */
 export function parseDateInput(value: string): Date {
   const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
   const parsed = dateOnly
@@ -82,27 +62,11 @@ export function parseDateInput(value: string): Date {
   return dateOnly ? parsed : toDayStart(parsed);
 }
 
-/** `yyyy-MM-dd` in UTC — the value shape for `<input type="date">`. */
 export function dayKey(value: Date | string): string {
   const date = typeof value === "string" ? parseDateInput(value) : value;
   return date.toISOString().slice(0, 10);
 }
 
-// --- Display -----------------------------------------------------------------
-
-/**
- * Everything on screen is shown in Indian Standard Time, whoever is looking
- * and wherever the server runs.
- *
- * This matters more than it sounds: date-fns `format` uses the *runtime's*
- * timezone, so the same check-in rendered on a UTC host (Vercel) read 6:22 am
- * while the employee's phone rendered it 11:52 am. Formatting through
- * `Intl` with an explicit zone makes server and browser agree — which also
- * removes a hydration mismatch — and keeps times honest for anyone travelling.
- *
- * The parts are assembled by hand because no locale produces exactly the
- * house style: en-GB says "Sept", en-US says "Sep 18, 2026" and "AM".
- */
 const displayFormat = new Intl.DateTimeFormat("en-GB", {
   timeZone: BUSINESS_TIMEZONE,
   day: "2-digit",
@@ -127,24 +91,20 @@ function displayParts(date: Date): {
 
   return {
     day: parts.day,
-    // "Sept" -> "Sep"; some locales add a trailing dot.
     month: parts.month.replace(/\./g, "").slice(0, 3),
     year: parts.year,
     hour: parts.hour,
     minute: parts.minute,
-    // Strip the narrow no-break space Intl puts before "am"/"pm".
     period: parts.dayPeriod.toLowerCase().replace(/[\s.]/g, ""),
   };
 }
 
-/** Accepts the Date, ISO string or null every caller might hold. */
 function toDate(value: Date | string | null | undefined): Date | null {
   if (!value) return null;
   const date = typeof value === "string" ? new Date(value) : value;
   return isValid(date) ? date : null;
 }
 
-/** "11 Sep 2026" (IST) */
 export function formatDate(value: Date | string | null | undefined): string {
   const date = toDate(value);
   if (!date) return "—";
@@ -152,7 +112,6 @@ export function formatDate(value: Date | string | null | undefined): string {
   return `${day} ${month} ${year}`;
 }
 
-/** "11 Sep 2026, 4:05 pm" (IST) */
 export function formatDateTime(
   value: Date | string | null | undefined,
 ): string {
@@ -162,7 +121,6 @@ export function formatDateTime(
   return `${day} ${month} ${year}, ${hour}:${minute} ${period}`;
 }
 
-/** "4:05 pm" (IST) */
 export function formatTime(value: Date | string | null | undefined): string {
   const date = toDate(value);
   if (!date) return "—";
@@ -170,12 +128,10 @@ export function formatTime(value: Date | string | null | undefined): string {
   return `${hour}:${minute} ${period}`;
 }
 
-/** "September 2026" — month and year are already plain numbers, no zone involved. */
 export function formatMonthYear(month: number, year: number): string {
   return format(new Date(Date.UTC(year, month - 1, 1)), "MMMM yyyy");
 }
 
-/** "just now" / "3h ago" / "11 Sep 2026" — for activity feeds. */
 export function formatRelative(value: Date | string): string {
   const date = typeof value === "string" ? new Date(value) : value;
   if (!isValid(date)) return "—";
@@ -195,7 +151,6 @@ export function formatRelative(value: Date | string): string {
   return formatDate(date);
 }
 
-/** Minutes -> "7h 30m", for attendance and work-log durations. */
 export function formatDuration(minutes: number): string {
   if (!minutes || minutes <= 0) return "—";
   const hours = Math.floor(minutes / 60);
@@ -205,21 +160,15 @@ export function formatDuration(minutes: number): string {
   return `${hours}h ${mins}m`;
 }
 
-// --- Ranges ------------------------------------------------------------------
-
 export type DateRange = { from: Date; to: Date };
 
-/** Full UTC month range for a 1-indexed month. */
 export function monthRange(month: number, year: number): DateRange {
   const from = new Date(Date.UTC(year, month - 1, 1));
   const to = new Date(Date.UTC(year, month, 0));
   return { from, to };
 }
 
-/** Every calendar day in a month, at UTC midnight. */
 export function daysInMonth(month: number, year: number): Date[] {
-  // Built in UTC directly: `eachDayOfInterval` steps in server-local time,
-  // which on an IST server shifts every day back by one.
   const count = new Date(Date.UTC(year, month, 0)).getUTCDate();
   return Array.from(
     { length: count },
@@ -227,12 +176,10 @@ export function daysInMonth(month: number, year: number): Date[] {
   );
 }
 
-/** Sunday = 0, Saturday = 6 (UTC). */
 export function weekdayOf(date: Date): number {
   return date.getUTCDay();
 }
 
-/** NTS works a six-day week; Sunday is the weekly off. */
 export function isWeekOff(date: Date): boolean {
   return weekdayOf(date) === 0;
 }
@@ -241,19 +188,14 @@ export function countDaysInclusive(from: Date, to: Date): number {
   return differenceInCalendarDays(to, from) + 1;
 }
 
-/**
- * Indian financial year label for a date: April–March.
- * 11 Sep 2026 -> "26-27". Used in invoice and quotation numbers.
- */
 export function financialYearLabel(date: Date): string {
   const year = date.getUTCFullYear();
-  const month = date.getUTCMonth(); // 0-indexed; April = 3
+  const month = date.getUTCMonth();
   const startYear = month >= 3 ? year : year - 1;
   const endYear = startYear + 1;
   return `${String(startYear).slice(-2)}-${String(endYear).slice(-2)}`;
 }
 
-/** Start and end of the financial year containing `date`. */
 export function financialYearRange(date: Date): DateRange {
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
@@ -264,7 +206,6 @@ export function financialYearRange(date: Date): DateRange {
   };
 }
 
-/** The last `count` months as {month, year}, oldest first — for trend charts. */
 export function recentMonths(
   count: number,
   reference = new Date(),

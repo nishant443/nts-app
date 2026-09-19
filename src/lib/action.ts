@@ -12,41 +12,15 @@ import {
 import { formError, formSuccess, type FormState } from "@/lib/form-state";
 import { enforceRateLimit, RateLimits } from "@/lib/rate-limit";
 
-/**
- * Server Action plumbing.
- *
- * Server Actions are public endpoints — anybody can invoke one by replaying the
- * request — so they get the same treatment as Route Handlers: role check, rate
- * limit, Zod validation. `formAction` returns a `FormState` designed to be fed
- * straight into `useActionState`.
- *
- * `FormState` and its constructors live in `lib/form-state.ts` so Client
- * Components can import them without dragging the server chain into the
- * browser bundle. They are re-exported here for server-side convenience.
- */
-
 export { formError, formSuccess, type FormState };
 
 type Access = "user" | "admin";
 
-/**
- * Wraps a `useActionState` handler: validates `FormData` against `schema`,
- * enforces the role, and converts thrown errors into a displayable state.
- *
- * The wrapped function never throws for expected failures, so the form stays
- * mounted and shows the message inline. `redirect()` inside `handler` still
- * works — Next signals redirects with a special error which is re-thrown.
- */
 export function formAction<TSchema extends z.ZodType>(
   options: {
     access: Access;
     schema: TSchema;
     rateLimit?: { limit: number; windowSeconds: number };
-    /**
-     * Reshapes the raw form object before validation. Forms that submit
-     * repeating rows use this to zip parallel arrays back into objects — see
-     * `withLineItems` in `lib/line-items.ts`.
-     */
     transform?: (raw: Record<string, unknown>) => Record<string, unknown>;
   },
   handler: (args: {
@@ -84,8 +58,6 @@ export function formAction<TSchema extends z.ZodType>(
       const result = await handler({ input: parsed.data, user });
       return result ?? formSuccess();
     } catch (error) {
-      // `redirect()` and `notFound()` communicate via thrown control-flow
-      // errors — let those through untouched.
       if (isNextControlFlow(error)) throw error;
 
       if (!isAppError(error)) {
@@ -100,10 +72,6 @@ export function formAction<TSchema extends z.ZodType>(
   };
 }
 
-/**
- * Same guards, but for actions invoked imperatively (`onClick`) rather than by
- * a form — approve, reject, mark-as-read and friends.
- */
 export function action<TInput, TResult = void>(
   options: { access: Access; rateLimit?: { limit: number; windowSeconds: number } },
   handler: (args: { input: TInput; user: SessionUser }) => Promise<TResult>,
@@ -134,15 +102,10 @@ export function action<TInput, TResult = void>(
   };
 }
 
-/**
- * `FormData` -> plain object. Repeated keys collapse into arrays so multi-select
- * inputs and repeating line-item rows survive.
- */
 export function formDataToObject(formData: FormData): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   for (const [key, value] of formData.entries()) {
-    // File inputs are handled separately by the upload endpoint.
     if (typeof value !== "string") continue;
 
     if (key in result) {

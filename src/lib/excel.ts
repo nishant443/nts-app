@@ -2,21 +2,12 @@ import "server-only";
 
 import ExcelJS from "exceljs";
 
-/**
- * Spreadsheet export.
- *
- * One helper builds every export so they all look the same: a branded title
- * row, bold headers, frozen header pane, sensible column widths, and currency
- * columns formatted with Indian digit grouping.
- */
-
 const BRAND = "FF1A6DFF";
 
 export interface SheetColumn<T> {
   header: string;
   key: string;
   width?: number;
-  /** Renders as ₹ with two decimals and thousands separators. */
   money?: boolean;
   value: (row: T) => string | number | Date | null;
 }
@@ -25,19 +16,11 @@ export interface SheetSpec<T> {
   name: string;
   columns: SheetColumn<T>[];
   rows: T[];
-  /** Appended as a bold summary line under the data. */
   totals?: Record<string, number>;
 }
 
-/** Row type erased so a workbook can hold sheets of differing shapes. */
 export type AnySheetSpec = SheetSpec<never>;
 
-/**
- * Type-checks a sheet against its own row type, then erases it so sheets of
- * different shapes can sit in the same workbook:
- *
- *     buildWorkbook({ title, sheets: [sheet<Invoice>({ ... })] })
- */
 export function sheet<T>(spec: SheetSpec<T>): AnySheetSpec {
   return spec as unknown as AnySheetSpec;
 }
@@ -56,7 +39,6 @@ export async function buildWorkbook(options: {
       views: [{ state: "frozen", ySplit: 3 }],
     });
 
-    // Title band.
     sheet.mergeCells(1, 1, 1, Math.max(1, spec.columns.length));
     const titleCell = sheet.getCell(1, 1);
     titleCell.value = options.title;
@@ -76,7 +58,6 @@ export async function buildWorkbook(options: {
       subtitleCell.font = { size: 10, color: { argb: "FF566274" } };
     }
 
-    // Header row.
     const headerRow = sheet.getRow(3);
     spec.columns.forEach((column, index) => {
       const cell = headerRow.getCell(index + 1);
@@ -94,7 +75,6 @@ export async function buildWorkbook(options: {
     });
     headerRow.commit();
 
-    // Data.
     spec.rows.forEach((row, rowIndex) => {
       const sheetRow = sheet.getRow(4 + rowIndex);
 
@@ -112,7 +92,6 @@ export async function buildWorkbook(options: {
       sheetRow.commit();
     });
 
-    // Totals.
     if (spec.totals) {
       const totalRow = sheet.getRow(4 + spec.rows.length + 1);
 
@@ -136,7 +115,6 @@ export async function buildWorkbook(options: {
       totalRow.commit();
     }
 
-    // Enables filtering and sorting in Excel.
     if (spec.rows.length > 0) {
       sheet.autoFilter = {
         from: { row: 3, column: 1 },
@@ -149,7 +127,6 @@ export async function buildWorkbook(options: {
   return Buffer.from(arrayBuffer);
 }
 
-/** Response headers that make a browser save the file. */
 export function spreadsheetHeaders(filename: string): HeadersInit {
   return {
     "Content-Type":

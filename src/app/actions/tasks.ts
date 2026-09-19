@@ -16,15 +16,6 @@ import { getCompanySettings } from "@/lib/settings";
 import { humanizeEnum } from "@/lib/utils";
 import { taskProgressSchema, taskSchema } from "@/lib/validation";
 
-/**
- * Tasks an administrator assigns to employees.
- *
- * Assignment reaches the employee two ways: an in-app notification, which
- * always goes out, and an email carrying the full description, which is
- * best-effort — the task is saved whether or not SMTP is configured, and
- * `emailedAt` records whether the mail actually left so the task page can say.
- */
-
 const ACTIVE_STATUSES = ["OPEN", "IN_PROGRESS"] as const;
 
 async function assertAssignable(userId: string): Promise<{ name: string; email: string }> {
@@ -41,10 +32,6 @@ async function assertAssignable(userId: string): Promise<{ name: string; email: 
   return user;
 }
 
-/**
- * Delivers the assignment email. Returns the send time, or null when mail is
- * not set up or the send failed — either way the caller carries on.
- */
 async function emailAssignment(options: {
   task: {
     id: string;
@@ -80,7 +67,6 @@ async function emailAssignment(options: {
     await sendMail({ to: options.assignee.email, subject, text, html });
     return new Date();
   } catch (error) {
-    // Already logged by sendMail; the notification has gone out regardless.
     console.error("[tasks] assignment email failed", options.task.id, error);
     return null;
   }
@@ -117,7 +103,6 @@ export const saveTask = formAction(
           dueDate,
           assigneeId: input.assigneeId,
           customerId: input.customerId ?? null,
-          // A reassigned task starts over for its new owner.
           ...(reassigned
             ? { status: "OPEN", startedAt: null, emailedAt: null }
             : {}),
@@ -139,7 +124,7 @@ export const saveTask = formAction(
           title: `${user.name} assigned you a task`,
           body: input.title,
           link: `/tasks/${updated.id}`,
-          email: false, // the detailed assignment email follows
+          email: false,
         });
 
         const emailedAt = await emailAssignment({
@@ -206,7 +191,7 @@ export const saveTask = formAction(
       title: `${user.name} assigned you a task`,
       body: input.title,
       link: `/tasks/${created.id}`,
-      email: false, // the detailed assignment email follows
+      email: false,
     });
 
     const emailedAt = await emailAssignment({
@@ -270,12 +255,10 @@ async function emailCompletion(options: {
     });
     await sendMail({ to: options.recipient.email, subject, text, html });
   } catch (error) {
-    // The in-app notification has already gone out; email is best effort.
     console.error("[tasks] completion email failed", options.task.id, error);
   }
 }
 
-/** The assignee starts or finishes their task. Admins may do it on their behalf. */
 export const progressTask = formAction(
   { access: "user", schema: taskProgressSchema },
   async ({ input, user }) => {
@@ -318,7 +301,6 @@ export const progressTask = formAction(
           : {
               status: "COMPLETED",
               completedAt: now,
-              // Completing straight from OPEN still counts as having started.
               startedAt: task.status === "OPEN" ? now : undefined,
               completionNote: input.note ?? null,
             },
@@ -332,13 +314,11 @@ export const progressTask = formAction(
         link: `/tasks/${task.id}`,
       };
 
-      // Tell whoever assigned it — in the app and by email — and fall back to
-      // every admin if they are gone.
       if (task.assignedById && task.assignedById !== user.id) {
         await notify({
           userId: task.assignedById,
           ...notification,
-          email: false, // the detailed completion email follows
+          email: false,
         });
         if (task.assignedBy) {
           await emailCompletion({

@@ -22,7 +22,6 @@ const querySchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100).optional(),
 });
 
-/** Monthly attendance summary per employee. */
 export async function GET(request: Request) {
   try {
     const user = await requireApiAdmin();

@@ -8,11 +8,6 @@ export const metadata: Metadata = {
   title: "No access",
 };
 
-/**
- * Shown when an employee follows a link to an admin-only page. An explanation
- * is friendlier than a silent bounce to the dashboard, and makes it obvious
- * that the link itself was fine — the permissions were not.
- */
 export default async function NoAccessPage() {
   const user = await requireUser();
 

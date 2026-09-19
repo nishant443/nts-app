@@ -18,12 +18,6 @@ import {
 import { DEFAULT_CHECK_IN_RADIUS_M } from "@/lib/attendance-rules";
 import { emptyFormState, fieldError } from "@/lib/form-state";
 
-/**
- * Set where an employee works from a given day. Coordinates usually come from
- * Google Maps (right-click a spot → the first line is "lat, lng"); pasting
- * that pair into either box fills both. "Use my current location" is for the
- * admin standing on the site.
- */
 export function WorkLocationForm({
   employees,
   defaultDate,
@@ -33,7 +27,6 @@ export function WorkLocationForm({
   employees: { id: string; name: string }[];
   defaultDate: string;
   defaultUserId?: string;
-  /** SMTP is set up; otherwise the email checkbox explains itself. */
   mailConfigured: boolean;
 }) {
   const [state, formAction] = useActionState(setWorkLocation, emptyFormState);
@@ -41,7 +34,6 @@ export function WorkLocationForm({
   const [longitude, setLongitude] = useState("");
   const [locating, setLocating] = useState(false);
 
-  /** Accepts "12.9716, 77.5946" (or a Google Maps "@lat,lng" URL) in one paste. */
   const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
     const text = event.clipboardData.getData("text");
     const pair = text.match(/(-?\d{1,3}\.\d+)\s*,\s*(-?\d{1,3}\.\d+)/);

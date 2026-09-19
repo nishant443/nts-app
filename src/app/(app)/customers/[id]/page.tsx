@@ -89,9 +89,6 @@ export default async function CustomerDetailPage(
 
   const title = customer.companyName ?? customer.name;
 
-  // Per-invoice balances are shown to everyone — an engineer chasing payment
-  // needs them. The lifetime-business and total-received aggregates below are
-  // company financials and stay admin-only.
   const openInvoices = customer.invoices.filter((invoice) => {
     const balance = toMoney(invoice.total) - toMoney(invoice.amountPaid);
     return balance > 0.009 && invoice.status !== "CANCELLED";

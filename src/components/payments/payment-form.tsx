@@ -28,13 +28,6 @@ export interface OpenInvoice {
 
 const MODES = ["NEFT", "RTGS", "IMPS", "UPI", "CHEQUE", "CASH", "CARD", "OTHER"];
 
-/**
- * Records a receipt.
- *
- * Choosing an invoice narrows the customer and pre-fills the outstanding
- * balance, which is what people almost always want to enter. The server
- * re-checks that the amount does not exceed the balance.
- */
 export function PaymentForm({
   customers,
   invoices,
@@ -80,7 +73,6 @@ export function PaymentForm({
 
   const onCustomerChange = (id: string) => {
     setCustomerId(id);
-    // Clear an invoice that belongs to a different customer.
     if (selectedInvoice && selectedInvoice.customerId !== id) {
       setInvoiceId("");
     }

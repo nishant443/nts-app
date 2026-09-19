@@ -13,15 +13,6 @@ import { notify, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { leaveBalanceSchema, leaveRequestSchema, leaveReviewSchema } from "@/lib/validation";
 
-/**
- * Leave actions.
- *
- * Balances are only debited when a request is approved, and credited back if an
- * approval is later reversed — so the "used" figure always matches the leave
- * actually granted.
- */
-
-/** Working days in a range, excluding Sundays and declared holidays. */
 async function countLeaveDays(start: Date, end: Date, halfDay: boolean) {
   if (halfDay) return 0.5;
 
@@ -62,7 +53,6 @@ export const submitLeaveRequest = formAction(
       );
     }
 
-    // Overlapping requests would double-count against the balance.
     const clash = await prisma.leaveRequest.findFirst({
       where: {
         userId: user.id,
@@ -153,8 +143,6 @@ export const reviewLeaveRequest = formAction(
       });
 
       if (input.decision === "APPROVED") {
-        // Debit the balance, creating the row if this leave type has no
-        // allocation on record yet.
         await tx.leaveBalance.upsert({
           where: {
             userId_year_type: {
@@ -173,7 +161,6 @@ export const reviewLeaveRequest = formAction(
           update: { used: { increment: days } },
         });
 
-        // Block out the calendar so payroll counts these as paid leave.
         const cursor = new Date(request.startDate);
         const end = await tx.leaveRequest
           .findUnique({ where: { id: request.id }, select: { endDate: true } })
@@ -229,7 +216,6 @@ export const reviewLeaveRequest = formAction(
   },
 );
 
-/** An employee may withdraw their own request while it is still pending. */
 export const cancelLeaveRequest = action<{ id: string }>(
   { access: "user" },
   async ({ input, user }) => {

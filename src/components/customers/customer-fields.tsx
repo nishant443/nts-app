@@ -17,21 +17,6 @@ import { fieldError, type FormState } from "@/lib/form-state";
 import type { GstinDetails } from "@/lib/gstin-lookup";
 import { INDIAN_STATES, isValidGstin, stateFromGstin } from "@/lib/tax";
 
-/**
- * Every customer field, in the three groups the customer page shows them in.
- *
- * Shared by the full-page form and the "Add new customer…" dialog inside other
- * forms, so the two can never ask for different information. `section` lets
- * each host wrap a group its own way — a Card on the page, a fieldset in the
- * dialog. Input names are the schema's field names; ids are prefixed with
- * `useId()` so two copies on one page (dialog over form) cannot collide.
- *
- * Typing a complete GSTIN looks the business up (`lib/gstin-lookup.ts`) and
- * fills the company, PAN and address — the same convenience Vyapar offers.
- * Those fields are therefore controlled here; everything else stays
- * uncontrolled with a `defaultValue`.
- */
-
 export interface CustomerFormValues {
   id?: string;
   name: string;
@@ -100,12 +85,9 @@ export function CustomerFields({
   const prefix = useId();
   const id = (name: string) => `${prefix}-${name}`;
 
-  // GSTIN encodes the state in its first two digits. Filling the state from it
-  // saves a step and keeps place-of-supply correct for GST.
   const [gstin, setGstin] = useState(values.gstin);
   const [stateName, setStateName] = useState(values.state);
 
-  // Fields the GST lookup can fill.
   const [filled, setFilled] = useState({
     companyName: values.companyName,
     pan: values.pan,
@@ -123,8 +105,6 @@ export function CustomerFields({
     | { phase: "done"; details: GstinDetails }
     | { phase: "error"; message: string }
   >({ phase: "idle" });
-  // The GSTIN the last automatic lookup ran for, so retyping the same number
-  // does not hit the (metered) provider again.
   const autoLookedUp = useRef<string | null>(null);
 
   const runLookup = async (value: string) => {
@@ -158,8 +138,6 @@ export function CustomerFields({
     if (upper.length < 15) setLookup({ phase: "idle" });
   };
 
-  // Look up automatically once a full, valid GSTIN is in the box — typed or
-  // pasted — so the usual flow is: paste the number, watch the form fill.
   useEffect(() => {
     if (!isValidGstin(gstin) || autoLookedUp.current === gstin) return;
     autoLookedUp.current = gstin;

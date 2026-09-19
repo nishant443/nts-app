@@ -6,11 +6,6 @@ import { useRouter } from "next/navigation";
 import { markNotificationRead } from "@/app/actions/notifications";
 import { cn } from "@/lib/utils";
 
-/**
- * One notification in the list. Opening it marks it read *before* following
- * its link, so the page you land on — and the bell in the top bar — already
- * show the new count. Rows without a link just mark themselves read.
- */
 export function NotificationRow({
   id,
   href,
@@ -44,7 +39,6 @@ export function NotificationRow({
       <a
         href={href}
         onClick={(event) => {
-          // Plain modifier clicks (new tab) keep default behaviour.
           if (event.metaKey || event.ctrlKey || event.shiftKey) return;
           event.preventDefault();
           open();

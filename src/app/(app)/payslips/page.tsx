@@ -33,8 +33,6 @@ export default async function PayslipsPage(props: {
   const searchParams = await props.searchParams;
   const { page, perPage, skip, take } = pageWindow(searchParams);
 
-  // Only this employee's payslips, and only from published runs — draft
-  // figures are not final.
   const where = {
     userId: user.id,
     payrollRun: { status: { in: ["FINALIZED" as const, "PAID" as const] } },

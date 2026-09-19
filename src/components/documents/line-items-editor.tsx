@@ -9,18 +9,6 @@ import { formatCurrency } from "@/lib/money";
 import { computeTotals } from "@/lib/tax";
 import { cn } from "@/lib/utils";
 
-/**
- * Repeating line-item table with live totals.
- *
- * Rows submit as parallel arrays (`item.description`, `item.quantity`, …) which
- * `withLineItems()` zips back into objects on the server — see
- * `lib/line-items.ts`.
- *
- * The totals shown here are a preview for the person filling the form. The
- * server recomputes them from the submitted rows with the same `computeTotals`
- * function, so a tampered payload cannot change what gets stored.
- */
-
 export interface LineItemValue {
   description: string;
   hsnCode: string;
@@ -51,7 +39,6 @@ export function LineItemsEditor({
   showDiscount = true,
 }: {
   initialItems: LineItemValue[];
-  /** Current place of supply — decides whether the preview shows IGST. */
   placeOfSupply: string;
   homeState: string;
   discountName?: string;
@@ -98,9 +85,7 @@ export function LineItemsEditor({
 
   return (
     <div className="flex flex-col">
-      {/* Rows ----------------------------------------------------------- */}
       <div className="flex flex-col divide-y divide-border">
-        {/* Column headings, desktop only — on mobile each field is labelled. */}
         <div className="hidden items-center gap-3 px-4 py-2 text-[11.5px] font-semibold uppercase tracking-wide text-fg-subtle lg:flex sm:px-5">
           <span className="flex-1">Description</span>
           <span className="w-20 shrink-0">HSN/SAC</span>
@@ -243,7 +228,6 @@ export function LineItemsEditor({
         </Button>
       </div>
 
-      {/* Totals ---------------------------------------------------------- */}
       <div className="border-t border-border bg-surface-muted px-4 py-4 sm:px-5">
         <div className="ml-auto flex w-full max-w-sm flex-col gap-2">
           <TotalRow label="Subtotal" value={totals.subtotal} />

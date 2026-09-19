@@ -27,20 +27,8 @@ export const metadata: Metadata = {
   title: "Invoices",
 };
 
-/**
- * Everything still awaiting money. Not a stored status — an invoice sits in
- * one of three of them while unpaid, and "who still owes us?" is the question
- * actually being asked. Draft (not issued yet), Paid and Cancelled are out.
- */
 const PENDING_STATUSES = ["SENT", "PARTIALLY_PAID", "OVERDUE"] as const;
 
-/**
- * What the dropdown offers, and the only values `?status=` accepts.
- *
- * Draft, Sent, Partially paid and Overdue are deliberately not listed on
- * their own: the first three unpaid states are what "Pending payment" means,
- * and each row's badge already says which one it is.
- */
 const STATUS_FILTERS = ["PENDING", "PAID", "CANCELLED"] as const;
 
 const STATUS_LABEL: Record<string, string> = {
@@ -127,7 +115,6 @@ export default async function InvoicesPage(props: {
 
   const now = today();
 
-  // Outstanding across the whole filtered set, not just this page.
   const pendingTotal =
     status === "PENDING"
       ? await prisma.invoice

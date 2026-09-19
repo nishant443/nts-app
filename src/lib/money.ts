@@ -1,16 +1,3 @@
-/**
- * Money helpers.
- *
- * Amounts live in Postgres as `Decimal(14,2)`. Prisma hands those back as
- * `Decimal` objects which cannot be serialised across the server/client
- * boundary — every value read from the database must pass through `toMoney()`
- * before it reaches a Client Component or a JSON response.
- *
- * This module is intentionally free of server-only imports so Client
- * Components can use the formatters too.
- */
-
-/** Anything Prisma might hand back for a Decimal column. */
 export type DecimalLike =
   | number
   | string
@@ -18,7 +5,6 @@ export type DecimalLike =
   | null
   | undefined;
 
-/** Convert a Prisma Decimal (or anything numeric) to a plain number. */
 export function toMoney(value: DecimalLike): number {
   if (value === null || value === undefined) return 0;
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
@@ -26,12 +12,10 @@ export function toMoney(value: DecimalLike): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-/** Round to paise. Floating point sums drift; every total goes through this. */
 export function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-/** Sum a list of decimal-ish values, rounded to paise. */
 export function sumMoney(values: DecimalLike[]): number {
   return round2(values.reduce<number>((total, v) => total + toMoney(v), 0));
 }
@@ -55,17 +39,14 @@ const plainFormatter = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 2,
 });
 
-/** "₹1,23,456.00" — Indian digit grouping. */
 export function formatCurrency(value: DecimalLike): string {
   return inrFormatter.format(toMoney(value));
 }
 
-/** "₹1.2L" — for stat tiles where the exact paise would be noise. */
 export function formatCurrencyCompact(value: DecimalLike): string {
   return inrCompactFormatter.format(toMoney(value));
 }
 
-/** "1,23,456.00" — no symbol, for table cells that carry their own header. */
 export function formatAmount(value: DecimalLike): string {
   return plainFormatter.format(toMoney(value));
 }
@@ -78,10 +59,6 @@ export function formatPercent(value: number, fractionDigits = 1): string {
   return `${value.toFixed(fractionDigits)}%`;
 }
 
-/**
- * Amount in words, Indian numbering system — required on GST tax invoices.
- * e.g. 1234.50 -> "One Thousand Two Hundred Thirty Four Rupees and Fifty Paise Only"
- */
 export function amountInWords(value: DecimalLike): string {
   const amount = round2(toMoney(value));
   const isNegative = amount < 0;
@@ -152,7 +129,6 @@ function threeDigits(n: number): string {
   return parts.join(" ");
 }
 
-/** Indian grouping: crore, lakh, thousand, hundred. */
 function numberToWords(n: number): string {
   if (n === 0) return "Zero";
 

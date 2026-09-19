@@ -6,20 +6,10 @@ import { Loader2, Search, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-/**
- * URL-driven filters for list pages.
- *
- * Writes straight to the query string so the list itself stays a Server
- * Component. Text input is debounced; selects and dates apply immediately.
- * Any change resets `page`, otherwise filtering while on page 4 would land on
- * an empty result set.
- */
-
 export interface SelectFilter {
   name: string;
   label: string;
   options: { value: string; label: string }[];
-  /** Text for the "no filter" option. */
   allLabel?: string;
 }
 
@@ -34,13 +24,10 @@ export function FilterBar({
 }: {
   searchPlaceholder?: string;
   searchName?: string;
-  /** Turn off for views filtered only by date, e.g. Reports. */
   showSearch?: boolean;
   selects?: SelectFilter[];
-  /** Adds paired from/to date inputs. */
   dateRange?: boolean;
   className?: string;
-  /** Extra controls, e.g. a "New" button. */
   children?: React.ReactNode;
 }) {
   const router = useRouter();
@@ -62,8 +49,6 @@ export function FilterBar({
     });
   };
 
-  // Debounce typing; skip the first pass so mounting does not push a history
-  // entry identical to the current URL.
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
@@ -78,7 +63,6 @@ export function FilterBar({
     }, 300);
 
     return () => clearTimeout(timer);
-    // `push` is recreated each render; depending on it would re-fire the timer.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [term]);
 

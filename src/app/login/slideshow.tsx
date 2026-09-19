@@ -6,16 +6,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-/**
- * Right half of the sign-in card: real NTS work, one photo at a time, with a
- * slow drift on each and a crossfade between them. Today's date and a live
- * clock sit over the top; a caption names the job.
- *
- * Photos come from ntss.co.in (`public/brand/login/`). Everything is computed
- * in the browser so the clock is the visitor's own; the first frame renders
- * on the server so the panel is never blank.
- */
-
 const SLIDES = [
   {
     src: "/brand/login/kellenberger-k10-1.jpg",
@@ -89,7 +79,6 @@ export function Slideshow() {
               priority={index === 0}
               className={cn(
                 "object-cover",
-                // Slow push-in while the slide is showing; resets on the next.
                 visible && "animate-kenburns",
               )}
             />
@@ -97,12 +86,10 @@ export function Slideshow() {
         );
       })}
 
-      {/* Legibility: darken the top and bottom edges where the text sits. */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0c1a36]/75 via-transparent to-[#0c1a36]/85" />
 
       <LiveDate />
 
-      {/* Caption ---------------------------------------------------------- */}
       <div className="absolute inset-x-9 bottom-9 flex items-end justify-between gap-6">
         <div key={slide.src} className="animate-in-up min-w-0">
           <p className="text-[22px] font-semibold leading-tight tracking-tight">
@@ -130,7 +117,6 @@ export function Slideshow() {
         </div>
       </div>
 
-      {/* Previous / next: mid-height at each edge, revealed on hover. */}
       <ArrowButton label="Previous photo" side="left" onClick={() => step(-1)}>
         <ChevronLeft className="size-5" />
       </ArrowButton>
@@ -169,7 +155,6 @@ function ArrowButton({
   );
 }
 
-/** Weekday, date and a ticking clock in the visitor's local time. */
 function LiveDate() {
   const [now, setNow] = useState<Date | null>(null);
 

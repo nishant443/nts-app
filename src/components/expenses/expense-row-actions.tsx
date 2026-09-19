@@ -6,8 +6,13 @@ import { Pencil, Trash2 } from "lucide-react";
 import { deleteExpense } from "@/app/actions/work";
 import { ConfirmAction } from "@/components/documents/confirm-action";
 
-/** Edit or withdraw a pending expense claim. */
-export function ExpenseRowActions({ id }: { id: string }) {
+export function ExpenseRowActions({
+  id,
+  pending,
+}: {
+  id: string;
+  pending: boolean;
+}) {
   return (
     <div className="flex items-center justify-end gap-1">
       <Link
@@ -18,23 +23,25 @@ export function ExpenseRowActions({ id }: { id: string }) {
         <Pencil aria-hidden="true" className="size-4" />
       </Link>
 
-      <ConfirmAction
-        action={deleteExpense}
-        input={{ id }}
-        title="Delete this claim?"
-        body="The expense will be removed. This cannot be undone."
-        confirmLabel="Delete"
-        variant="ghost"
-        size="sm"
-        className="text-fg-subtle hover:bg-danger-soft hover:text-danger"
-        successMessage="Expense deleted."
-        trigger={
-          <>
-            <Trash2 aria-hidden="true" />
-            <span className="sr-only">Delete expense</span>
-          </>
-        }
-      />
+      {pending && (
+        <ConfirmAction
+          action={deleteExpense}
+          input={{ id }}
+          title="Delete this claim?"
+          body="The expense will be removed. This cannot be undone."
+          confirmLabel="Delete"
+          variant="ghost"
+          size="sm"
+          className="text-fg-subtle hover:bg-danger-soft hover:text-danger"
+          successMessage="Expense deleted."
+          trigger={
+            <>
+              <Trash2 aria-hidden="true" />
+              <span className="sr-only">Delete expense</span>
+            </>
+          }
+        />
+      )}
     </div>
   );
 }

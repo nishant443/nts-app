@@ -14,17 +14,6 @@ import {
 import { amountInWords, formatAmount } from "@/lib/money";
 import { formatAddress, type CompanyProfile } from "@/lib/settings";
 
-/**
- * Printable quotation / invoice / purchase order.
- *
- * Laid out to match the documents NTS already sends: letterhead with the logo,
- * seller and buyer blocks with GSTINs, an item table with HSN codes, a GST
- * summary, the amount in words, bank details and a signature block.
- *
- * Colours are literals rather than CSS variables — the PDF renderer has no
- * cascade and no theme.
- */
-
 const BRAND = "#1a6dff";
 const INK = "#131a24";
 const MUTED = "#566274";
@@ -231,7 +220,6 @@ export interface PdfDocumentProps {
     igstAmount: number;
     total: number;
   };
-  /** Extra lines under the totals, e.g. amount paid and balance due. */
   extraTotals?: { label: string; value: number }[];
   assets: { logo?: Buffer; signature?: Buffer };
 }
@@ -247,7 +235,6 @@ export function DocumentPdf(props: PdfDocumentProps) {
       creator={settings.name}
     >
       <Page size="A4" style={styles.page}>
-        {/* Letterhead */}
         <View style={styles.header} fixed>
           {props.assets.logo ? (
             <Image
@@ -273,7 +260,6 @@ export function DocumentPdf(props: PdfDocumentProps) {
           </View>
         </View>
 
-        {/* Title and numbering */}
         <View style={styles.titleRow}>
           <Text style={styles.title}>{props.title.toUpperCase()}</Text>
           <View style={styles.metaBox}>
@@ -292,7 +278,6 @@ export function DocumentPdf(props: PdfDocumentProps) {
           </View>
         </View>
 
-        {/* Parties */}
         <View style={styles.partyRow}>
           <View style={styles.party}>
             <Text style={styles.partyLabel}>FROM</Text>
@@ -335,7 +320,6 @@ export function DocumentPdf(props: PdfDocumentProps) {
           </Text>
         )}
 
-        {/* Items */}
         <View style={styles.table}>
           <View style={styles.tableHead} fixed>
             <Text style={[styles.th, styles.colIndex]}>#</Text>
@@ -370,7 +354,6 @@ export function DocumentPdf(props: PdfDocumentProps) {
           ))}
         </View>
 
-        {/* Totals */}
         <View style={styles.summaryRow}>
           <View style={styles.summaryLeft}>
             <View style={styles.block}>
@@ -448,7 +431,6 @@ export function DocumentPdf(props: PdfDocumentProps) {
           </View>
         </View>
 
-        {/* Bank, notes, terms */}
         {settings.bankAccountNo && (
           <View style={styles.block}>
             <Text style={styles.blockLabel}>BANK DETAILS</Text>
@@ -474,7 +456,6 @@ export function DocumentPdf(props: PdfDocumentProps) {
           </View>
         )}
 
-        {/* Signature */}
         <View style={styles.signRow} wrap={false}>
           <View style={styles.signBox}>
             {props.assets.signature && (
@@ -507,12 +488,6 @@ export function DocumentPdf(props: PdfDocumentProps) {
   );
 }
 
-/**
- * Reads the letterhead assets from disk.
- *
- * Cached for the life of the process — these files never change at runtime and
- * re-reading them on every PDF request would be wasteful.
- */
 let assetCache: { logo?: Buffer; signature?: Buffer } | null = null;
 
 export async function loadPdfAssets(): Promise<{
@@ -525,7 +500,6 @@ export async function loadPdfAssets(): Promise<{
     try {
       return await readFile(path.join(process.cwd(), "public", relative));
     } catch {
-      // A missing brand asset degrades to a text letterhead rather than a 500.
       return undefined;
     }
   };

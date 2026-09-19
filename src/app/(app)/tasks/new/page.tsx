@@ -18,8 +18,6 @@ export default async function NewTaskPage(props: {
   const searchParams = await props.searchParams;
   const { employees, customers } = await loadTaskFormOptions();
 
-  // Deep links from an employee or customer page can pre-select; anything
-  // that is not a real option is ignored rather than trusted.
   const assigneeId =
     employees.find((e) => e.id === searchParams.assignee)?.id ?? "";
   const customerId =

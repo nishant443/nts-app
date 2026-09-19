@@ -5,13 +5,6 @@ import { headers } from "next/headers";
 
 import { prisma } from "@/lib/prisma";
 
-/**
- * Append-only audit trail for anything that changes money, pay, or access.
- *
- * Writes are best-effort: an audit failure must never roll back or block the
- * business operation it describes, so every call is caught and logged.
- */
-
 export type AuditEntity =
   | "User"
   | "SalaryStructure"
@@ -40,7 +33,6 @@ interface AuditInput {
   meta?: Record<string, unknown>;
 }
 
-/** IPs are hashed — useful for spotting patterns, not for identifying people. */
 async function requestIpHash(): Promise<string | null> {
   try {
     const headerList = await headers();

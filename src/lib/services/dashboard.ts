@@ -12,33 +12,14 @@ import type { CheckInGate } from "@/lib/attendance-rules";
 import { prisma } from "@/lib/prisma";
 import { getCheckInGate } from "@/lib/services/check-in";
 
-/**
- * Dashboard aggregates.
- *
- * The split between `getAdminDashboard` and `getEmployeeDashboard` is a
- * security boundary, not a UI convenience: company-wide money — total sales,
- * total payments, outstanding receivables — is only ever computed inside the
- * admin function, which is called from a page guarded by `requireAdmin()`.
- * An employee's dashboard never issues those queries at all, so the figures
- * cannot leak through an over-fetched prop or a serialised RSC payload.
- */
-
-/** Statuses that represent real, billable revenue. */
 const REVENUE_STATUSES = ["SENT", "PARTIALLY_PAID", "PAID", "OVERDUE"] as const;
 
 export interface AdminDashboard {
   financialYear: { from: Date; to: Date };
-  /**
-   * The three headline money figures describe the same set of invoices — the
-   * ones dated in this financial year — so they always add up:
-   * totalSales = totalReceived + outstanding.
-   */
   totalSales: number;
   totalReceived: number;
   outstanding: number;
-  /** Still owed on invoices from earlier financial years; shown alongside. */
   priorOutstanding: number;
-  /** Past due across all years — a risk figure, deliberately not FY-scoped. */
   overdueAmount: number;
   overdueCount: number;
   monthSales: number;
@@ -104,8 +85,6 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     attendanceRows,
     recentInvoiceRows,
   ] = await Promise.all([
-    // Invoiced and collected for the year come from the same rows, so the
-    // received figure can never include money against last year's invoices.
     prisma.invoice.aggregate({
       where: { ...revenueWhere, date: { gte: fy.from, lte: fy.to } },
       _sum: { total: true, amountPaid: true },
@@ -169,9 +148,6 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
     }),
   ]);
 
-  // Outstanding is derived per invoice rather than as a single SQL expression
-  // because Prisma cannot subtract two columns in an aggregate. This pass is
-  // across all years: overdue and the per-customer list need the old debt too.
   let allTimeOutstanding = 0;
   let overdueAmount = 0;
   let overdueCount = 0;
@@ -268,7 +244,6 @@ export async function getAdminDashboard(): Promise<AdminDashboard> {
   };
 }
 
-/** Invoiced vs received for the last six months, for the dashboard chart. */
 async function getRevenueByMonth() {
   const months = recentMonths(6);
   const first = monthRange(months[0]!.month, months[0]!.year);
@@ -277,7 +252,6 @@ async function getRevenueByMonth() {
     months[months.length - 1]!.year,
   );
 
-  // Two range queries beat twelve point queries.
   const [invoices, payments] = await Promise.all([
     prisma.invoice.findMany({
       where: {
@@ -317,8 +291,6 @@ async function getRevenueByMonth() {
   });
 }
 
-// --- Employee ----------------------------------------------------------------
-
 export interface EmployeeDashboard {
   todayStatus: {
     status: string | null;
@@ -349,11 +321,6 @@ export interface EmployeeDashboard {
     year: number;
     netPay: number;
   } | null;
-  /**
-   * Invoices the employee is connected to — those they raised, or that belong
-   * to a customer they own. Deliberately limited to the fields an employee
-   * needs for follow-up; no company-wide totals are computed.
-   */
   followUps: {
     id: string;
     number: string;
@@ -369,7 +336,6 @@ export interface EmployeeDashboard {
     status: string;
     customer: string | null;
   }[];
-  /** Work handed to this employee that is not yet finished, most urgent first. */
   openTasks: {
     id: string;
     title: string;

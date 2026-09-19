@@ -13,13 +13,6 @@ import { createSession, destroySession } from "@/lib/session";
 import { changePasswordSchema, loginSchema } from "@/lib/validation";
 import { RateLimitError } from "@/lib/errors";
 
-/**
- * Sign in.
- *
- * Deliberately vague on failure: the same message and a comparable response
- * time for "no such user" and "wrong password", so the form cannot be used to
- * discover which email addresses have accounts.
- */
 export async function signIn(
   _prevState: FormState,
   formData: FormData,
@@ -35,8 +28,6 @@ export async function signIn(
 
   const { email, password } = parsed.data;
 
-  // Rate limit per email *and* per IP: one stops credential stuffing against a
-  // single account, the other stops a spray across many.
   try {
     const headerList = await headers();
     const ip =
@@ -78,7 +69,6 @@ export async function signIn(
   const GENERIC_FAILURE = "That email address and password do not match.";
 
   if (!user) {
-    // Spend the same time as a real comparison would.
     await fakePasswordCheck(password);
     return formError(GENERIC_FAILURE);
   }
@@ -95,8 +85,6 @@ export async function signIn(
     return formError(GENERIC_FAILURE);
   }
 
-  // Only after the password checks out: the account's state is the owner's
-  // business, not something to reveal to whoever types in their email.
   if (user.status !== "ACTIVE") {
     await recordAudit({
       userId: user.id,
@@ -129,10 +117,6 @@ export async function signIn(
   redirect("/dashboard");
 }
 
-/**
- * What a deactivated employee reads when they try to sign in. Short and to the
- * point: the fact, the administrator's reason, and whom to ask.
- */
 function deactivatedMessage(user: {
   status: "INACTIVE" | "SUSPENDED" | "ACTIVE";
   deactivationReason: string | null;
@@ -161,11 +145,6 @@ export async function signOut(): Promise<void> {
   redirect("/login");
 }
 
-/**
- * Change own password. Bumping `sessionVersion` invalidates every JWT already
- * issued for this user, then a fresh session is minted for the current device
- * so the person changing their password is not signed out of it.
- */
 export const changePassword = formAction(
   { access: "user", schema: changePasswordSchema },
   async ({ input, user }) => {

@@ -11,7 +11,6 @@ import { Field, Input } from "@/components/ui/field";
 import { formatDate } from "@/lib/dates";
 import { emptyFormState, fieldError } from "@/lib/form-state";
 
-/** Add a holiday, and the list of existing ones. */
 export function HolidayManager({ defaultDate }: { defaultDate: string }) {
   const [state, formAction] = useActionState(addHoliday, emptyFormState);
 
@@ -64,11 +63,6 @@ export function HolidayManager({ defaultDate }: { defaultDate: string }) {
   );
 }
 
-/**
- * Exported separately rather than hung off `HolidayManager`: a Client
- * Component reaches a Server Component as a module reference, so property
- * access on it (`HolidayManager.List`) is not a component.
- */
 export function HolidayList({
   holidays,
 }: {

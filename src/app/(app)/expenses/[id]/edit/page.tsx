@@ -23,16 +23,14 @@ export default async function EditExpensePage(
 
   assertOwnerOrAdmin(user, expense.userId);
 
-  // Once reviewed, the claim is part of the payroll record.
-  if (expense.status !== "PENDING" && user.role !== "ADMIN") {
+  if (expense.status === "REIMBURSED" && user.role !== "ADMIN") {
     redirect("/expenses");
   }
 
-  const workLogs = await prisma.dailyWorkLog.findMany({
-    where: { userId: expense.userId },
-    orderBy: { date: "desc" },
-    take: 40,
-    select: { id: true, title: true, date: true },
+  const customers = await prisma.customer.findMany({
+    where: { type: { not: "VENDOR" } },
+    orderBy: [{ companyName: "asc" }, { name: "asc" }],
+    select: { id: true, name: true, companyName: true },
   });
 
   return (
@@ -47,17 +45,22 @@ export default async function EditExpensePage(
       />
 
       <ExpenseForm
-        workLogs={workLogs.map((log) => ({
-          id: log.id,
-          label: `${formatDate(log.date)} — ${log.title}`,
+        customers={customers.map((customer) => ({
+          id: customer.id,
+          label: customer.companyName ?? customer.name,
         }))}
         values={{
           id: expense.id,
           date: dayKey(expense.date),
           category: expense.category,
           amount: String(toMoney(expense.amount)),
+          distanceKm:
+            expense.distanceKm === null
+              ? ""
+              : String(toMoney(expense.distanceKm)),
+          foodType: expense.foodType ?? "",
           description: expense.description,
-          workLogId: expense.workLogId ?? "",
+          customerId: expense.customerId ?? "",
           receiptUrl: expense.receiptUrl ?? "",
         }}
       />

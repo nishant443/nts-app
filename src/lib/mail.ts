@@ -8,17 +8,6 @@ import nodemailer, { type Transporter } from "nodemailer";
 import { env } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 
-/**
- * Outbound email.
- *
- * Optional: with no SMTP host configured the app runs normally and the "Send by
- * email" buttons explain that mail has not been set up, rather than failing at
- * the moment somebody presses one. `isMailConfigured()` is what the UI checks.
- *
- * Gmail works with an app password (SMTP_HOST=smtp.gmail.com, SMTP_PORT=465,
- * SMTP_SECURE=true).
- */
-
 export function isMailConfigured(): boolean {
   return Boolean(env.SMTP_HOST && env.SMTP_FROM);
 }
@@ -33,8 +22,6 @@ function getTransporter(): Transporter {
     );
   }
 
-  // Connections are pooled and reused; building a transport per send would
-  // renegotiate TLS every time.
   transporter ??= nodemailer.createTransport({
     host: env.SMTP_HOST,
     port: env.SMTP_PORT,
@@ -54,15 +41,9 @@ export interface MailAttachment {
   filename: string;
   content: Buffer;
   contentType: string;
-  /** Set to reference the attachment inline from HTML as `cid:<value>`. */
   cid?: string;
 }
 
-/**
- * The logo travels inside the message as an inline attachment rather than a
- * link, so it renders whether or not the recipient's mail client fetches
- * remote images and whether or not the app is publicly reachable.
- */
 const LOGO_CID = "nts-logo";
 
 let logoCache: Buffer | null | undefined;
@@ -74,13 +55,11 @@ async function loadLogo(): Promise<Buffer | null> {
       path.join(process.cwd(), "public", "brand", "nts-logo.png"),
     );
   } catch {
-    // A missing brand asset degrades to a text-only header, not a failed send.
     logoCache = null;
   }
   return logoCache;
 }
 
-/** Letterhead strip for HTML mail; `companyName` is the alt text. */
 function brandHeader(companyName: string): string {
   return `<p style="margin:0 0 18px"><img src="cid:${LOGO_CID}" width="150" height="69" alt="${escapeHtml(companyName)}" style="display:block;width:150px;height:auto;border:0"></p>`;
 }
@@ -95,7 +74,6 @@ export async function sendMail(options: {
 }): Promise<void> {
   const transport = getTransporter();
 
-  // Any template that used brandHeader() gets the logo bytes attached inline.
   const attachments = [...(options.attachments ?? [])];
   if (options.html?.includes(`cid:${LOGO_CID}`)) {
     const logo = await loadLogo();
@@ -128,13 +106,6 @@ export async function sendMail(options: {
   }
 }
 
-/**
- * Plain-text and HTML bodies for sending a quotation or invoice.
- *
- * Deliberately simple markup — business mail clients (Outlook in particular)
- * render elaborate templates unpredictably, and this has to look right the
- * first time it reaches a customer.
- */
 export function documentEmail(options: {
   kind: "Quotation" | "Invoice";
   number: string;
@@ -209,11 +180,6 @@ export function documentEmail(options: {
   return { subject, text, html };
 }
 
-/**
- * Email an employee receives when an administrator assigns them a task, or
- * reassigns an existing one to them. Carries the full description so the
- * person can act on it from their inbox without signing in first.
- */
 export function taskAssignedEmail(options: {
   assigneeName: string;
   title: string;
@@ -285,7 +251,6 @@ export function taskAssignedEmail(options: {
   return { subject, text, html };
 }
 
-/** Sent to whoever assigned a task when the assignee marks it complete. */
 export function taskCompletedEmail(options: {
   recipientName: string;
   completedBy: string;
@@ -360,11 +325,6 @@ export function taskCompletedEmail(options: {
   return { subject, text, html };
 }
 
-/**
- * The email twin of an in-app notification — leave decisions, expense and
- * work-report reviews, payslips, payments. One layout, so every message from
- * the system looks the same: what happened, one line of detail, a button.
- */
 export function notificationEmail(options: {
   recipientName: string;
   category: string;
@@ -410,7 +370,6 @@ export function notificationEmail(options: {
   return { subject, text, html };
 }
 
-/** Customer and company names are user-controlled; never interpolate raw. */
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")

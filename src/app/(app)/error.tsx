@@ -5,11 +5,6 @@ import { RotateCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-/**
- * Route-level error boundary. Next passes a `digest` for errors thrown on the
- * server; the message itself is withheld in production, so the digest is what
- * ties a user's report to the server log.
- */
 export default function AppError({
   error,
   reset,

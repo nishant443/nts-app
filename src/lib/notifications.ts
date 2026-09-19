@@ -6,26 +6,15 @@ import { isMailConfigured, notificationEmail, sendMail } from "@/lib/mail";
 import { prisma } from "@/lib/prisma";
 import { getCompanySettings } from "@/lib/settings";
 
-/**
- * Notifications: an in-app row for the bell, and the same message by email.
- *
- * Delivery is best-effort — a failure here must not undo the leave approval
- * (or whatever) that triggered it. Email is skipped when SMTP is not
- * configured, and callers that send their own richer email (task assignment,
- * task completion) pass `email: false` so nobody gets the news twice.
- */
-
 interface NotifyInput {
   userId: string;
   type: NotificationType;
   title: string;
   body?: string;
   link?: string;
-  /** Also email the person. Default true. */
   email?: boolean;
 }
 
-/** Subject prefix / eyebrow for each kind of event. */
 const CATEGORY: Record<NotificationType, string> = {
   LEAVE_SUBMITTED: "Leave request",
   LEAVE_APPROVED: "Leave approved",
@@ -72,7 +61,6 @@ export async function notify(input: NotifyInput): Promise<void> {
   }
 }
 
-/** Fan out to every active admin — used when an employee submits something. */
 export async function notifyAdmins(
   input: Omit<NotifyInput, "userId">,
 ): Promise<void> {
@@ -121,7 +109,6 @@ async function emailNotification(
     });
     await sendMail({ to: recipient.email, subject, text, html });
   } catch (error) {
-    // The in-app notification is already saved; email is best effort.
     console.error("[notify] email failed", input.type, error);
   }
 }

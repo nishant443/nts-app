@@ -53,8 +53,6 @@ export default async function TasksPage(props: {
   const assigneeFilter = isAdmin ? param(searchParams, "assignee") : undefined;
   const { page, perPage, skip, take } = pageWindow(searchParams);
 
-  // Employees only ever see what is assigned to them. Admins see everything and
-  // may narrow to one person.
   const scope = isAdmin
     ? assigneeFilter
       ? { assigneeId: assigneeFilter }
@@ -81,9 +79,6 @@ export default async function TasksPage(props: {
     await Promise.all([
       prisma.task.findMany({
         where,
-        // Live work first, newest assignment at the top — so a task handed
-        // out a moment ago is the first thing on the page, not buried behind
-        // older overdue work on a later page.
         orderBy: [{ status: "asc" }, { createdAt: "desc" }],
         skip,
         take,

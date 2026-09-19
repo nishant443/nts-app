@@ -1,16 +1,6 @@
-/**
- * Application error types.
- *
- * Route Handlers and Server Actions throw these; `withRoute()` in `lib/api.ts`
- * turns them into the right status code, and `formAction()` turns them into a
- * message the form can display. Anything that is *not* one of these is treated
- * as a bug and reported as a generic 500 so internal details never leak.
- */
-
 export class AppError extends Error {
   readonly status: number;
   readonly code: string;
-  /** Field-level messages, shaped like Zod's `fieldErrors`. */
   readonly fieldErrors?: Record<string, string[]>;
 
   constructor(
@@ -78,10 +68,6 @@ export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }
 
-/**
- * A message safe to show a user. Unknown errors collapse to a generic string —
- * stack traces and driver messages must never reach the browser.
- */
 export function toUserMessage(error: unknown): string {
   if (isAppError(error)) return error.message;
   return "Something went wrong. Please try again.";

@@ -21,21 +21,11 @@ import type { LucideIcon } from "lucide-react";
 
 import type { Role } from "@/generated/prisma/enums";
 
-/**
- * Navigation is data, not markup — the sidebar and the mobile drawer render
- * from this same list.
- *
- * `adminOnly` hides an entry from employees. That is presentation only: the
- * pages themselves call `requireAdmin()`, so hiding a link is never what keeps
- * anyone out.
- */
-
 export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
   adminOnly?: boolean;
-  /** Match nested routes too, e.g. /customers/abc highlights "Customers". */
   matchPrefix?: boolean;
 }
 
@@ -175,7 +165,6 @@ export const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-/** Strips entries the given role must not see. */
 export function navForRole(role: Role): NavGroup[] {
   const isAdmin = role === "ADMIN";
 
@@ -187,7 +176,6 @@ export function navForRole(role: Role): NavGroup[] {
     .filter((group) => group.items.length > 0);
 }
 
-/** Whether `href` should render as the active nav entry for `pathname`. */
 export function isActive(item: NavItem, pathname: string): boolean {
   if (pathname === item.href) return true;
   if (!item.matchPrefix) return false;
