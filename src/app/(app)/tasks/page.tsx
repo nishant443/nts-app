@@ -81,13 +81,10 @@ export default async function TasksPage(props: {
     await Promise.all([
       prisma.task.findMany({
         where,
-        // Live work first, most urgent at the top, soonest due before later.
-        orderBy: [
-          { status: "asc" },
-          { priority: "desc" },
-          { dueDate: { sort: "asc", nulls: "last" } },
-          { createdAt: "desc" },
-        ],
+        // Live work first, newest assignment at the top — so a task handed
+        // out a moment ago is the first thing on the page, not buried behind
+        // older overdue work on a later page.
+        orderBy: [{ status: "asc" }, { createdAt: "desc" }],
         skip,
         take,
         select: {
