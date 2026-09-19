@@ -41,13 +41,10 @@ export default async function NewExpensePage(props: {
         }))}
         values={{
           date: param(searchParams, "date") ?? dayKey(today()),
-          category: "TRAVEL",
-          amount: "",
-          distanceKm: "",
-          foodType: "",
           description: "",
           customerId: param(searchParams, "customerId") ?? "",
           receiptUrl: "",
+          items: [],
         }}
       />
     </>

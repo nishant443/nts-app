@@ -13,7 +13,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { requireUser } from "@/lib/dal";
 import { formatDate, monthRange, today } from "@/lib/dates";
-import { FOOD_TYPE_LABELS } from "@/lib/expense-rates";
+import { describeExpenseLine } from "@/lib/expense-rates";
 import { formatCurrency, toMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import {
@@ -45,10 +45,9 @@ const CATEGORIES = [
 interface ExpenseRow {
   id: string;
   date: Date;
-  category: string;
-  basis: string | null;
+  lines: string[];
   amount: number;
-  description: string;
+  description: string | null;
   status: string;
   customerName: string | null;
   reviewNote: string | null;
@@ -69,7 +68,7 @@ export default async function ExpensesPage(props: {
   const where = {
     userId: user.id,
     ...(status ? { status } : {}),
-    ...(category ? { category } : {}),
+    ...(category ? { items: { some: { category } } } : {}),
     ...(dateRange ? { date: dateRange } : {}),
     ...(term
       ? { description: { contains: term, mode: "insensitive" as const } }
@@ -88,10 +87,11 @@ export default async function ExpensesPage(props: {
       select: {
         id: true,
         date: true,
-        category: true,
-        distanceKm: true,
-        foodType: true,
         amount: true,
+        items: {
+          orderBy: { position: "asc" },
+          select: { category: true, distanceKm: true, foodType: true },
+        },
         description: true,
         status: true,
         reviewNote: true,
@@ -117,13 +117,16 @@ export default async function ExpensesPage(props: {
   const rows: ExpenseRow[] = records.map((record) => ({
     id: record.id,
     date: record.date,
-    category: record.category,
-    basis:
-      record.distanceKm !== null
-        ? `${toMoney(record.distanceKm)} km`
-        : record.foodType
-          ? FOOD_TYPE_LABELS[record.foodType]
-          : null,
+    lines: record.items.map((item) => {
+      const basis = describeExpenseLine({
+        category: item.category,
+        distanceKm: item.distanceKm === null ? null : toMoney(item.distanceKm),
+        foodType: item.foodType,
+      });
+      return basis
+        ? `${humanizeEnum(item.category)} (${basis})`
+        : humanizeEnum(item.category);
+    }),
     amount: toMoney(record.amount),
     description: record.description,
     status: record.status,
@@ -135,17 +138,10 @@ export default async function ExpensesPage(props: {
 
   const columns: Column<ExpenseRow>[] = [
     {
-      key: "category",
-      header: "Category",
+      key: "lines",
+      header: "Expenses",
       role: "primary",
-      cell: (row) => (
-        <span>
-          {humanizeEnum(row.category)}
-          {row.basis && (
-            <span className="ml-1.5 text-fg-subtle">· {row.basis}</span>
-          )}
-        </span>
-      ),
+      cell: (row) => row.lines.join(" · "),
     },
     {
       key: "description",

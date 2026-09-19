@@ -221,36 +221,38 @@ export async function getExpenseReport(
   from: Date,
   to: Date,
 ): Promise<ExpenseReportRow[]> {
-  const expenses = await prisma.expense.findMany({
-    where: { date: { gte: from, lte: to } },
-    select: { category: true, status: true, amount: true },
+  const items = await prisma.expenseItem.findMany({
+    where: { expense: { date: { gte: from, lte: to } } },
+    select: {
+      category: true,
+      amount: true,
+      expense: { select: { status: true } },
+    },
   });
 
   const byCategory = new Map<string, ExpenseReportRow>();
 
-  for (const expense of expenses) {
-    const entry = byCategory.get(expense.category) ?? {
-      category: expense.category,
+  for (const item of items) {
+    const entry = byCategory.get(item.category) ?? {
+      category: item.category,
       count: 0,
       pending: 0,
       approved: 0,
       total: 0,
     };
 
-    const amount = toMoney(expense.amount);
+    const amount = toMoney(item.amount);
+    const status = item.expense.status;
     entry.count += 1;
     entry.total = round2(entry.total + amount);
 
-    if (expense.status === "PENDING") {
+    if (status === "PENDING") {
       entry.pending = round2(entry.pending + amount);
-    } else if (
-      expense.status === "APPROVED" ||
-      expense.status === "REIMBURSED"
-    ) {
+    } else if (status === "APPROVED" || status === "REIMBURSED") {
       entry.approved = round2(entry.approved + amount);
     }
 
-    byCategory.set(expense.category, entry);
+    byCategory.set(item.category, entry);
   }
 
   return [...byCategory.values()].sort((a, b) => b.total - a.total);

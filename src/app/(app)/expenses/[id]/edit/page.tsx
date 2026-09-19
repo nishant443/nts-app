@@ -18,7 +18,10 @@ export default async function EditExpensePage(
   const user = await requireUser();
   const { id } = await props.params;
 
-  const expense = await prisma.expense.findUnique({ where: { id } });
+  const expense = await prisma.expense.findUnique({
+    where: { id },
+    include: { items: { orderBy: { position: "asc" } } },
+  });
   if (!expense) notFound();
 
   assertOwnerOrAdmin(user, expense.userId);
@@ -52,16 +55,17 @@ export default async function EditExpensePage(
         values={{
           id: expense.id,
           date: dayKey(expense.date),
-          category: expense.category,
-          amount: String(toMoney(expense.amount)),
-          distanceKm:
-            expense.distanceKm === null
-              ? ""
-              : String(toMoney(expense.distanceKm)),
-          foodType: expense.foodType ?? "",
-          description: expense.description,
+          description: expense.description ?? "",
           customerId: expense.customerId ?? "",
           receiptUrl: expense.receiptUrl ?? "",
+          items: expense.items.map((item) => ({
+            category: item.category,
+            amount: String(toMoney(item.amount)),
+            distanceKm:
+              item.distanceKm === null ? "" : String(toMoney(item.distanceKm)),
+            foodType: item.foodType ?? "",
+            note: item.note ?? "",
+          })),
         }}
       />
     </>

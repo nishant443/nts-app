@@ -15,7 +15,9 @@ if (!connectionString) {
   throw new Error("DATABASE_URL is not set. Copy .env.example to .env first.");
 }
 
-const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString }),
+});
 
 function day(year: number, month: number, date: number): Date {
   return new Date(Date.UTC(year, month - 1, date));
@@ -237,16 +239,66 @@ const CUSTOMERS = [
 ];
 
 const SERVICE_LINES = [
-  { description: "Spindle rebuild and dynamic balancing — Mazak QT-200", hsn: "998717", unit: "Job", rate: 78000 },
-  { description: "CNC preventive maintenance visit (8 hours on site)", hsn: "998717", unit: "Visit", rate: 12500 },
-  { description: "Ball screw replacement including alignment", hsn: "998717", unit: "Job", rate: 46500 },
-  { description: "Fanuc servo drive repair and parameter restoration", hsn: "998717", unit: "Job", rate: 34000 },
-  { description: "Retrofit — Siemens 828D controller upgrade", hsn: "998717", unit: "Job", rate: 425000 },
-  { description: "Geometric accuracy calibration with laser interferometer", hsn: "998717", unit: "Job", rate: 28000 },
-  { description: "Mitsubishi encoder battery pack (set of 4)", hsn: "854810", unit: "Set", rate: 4800 },
-  { description: "Linear guideway block — THK HSR35 replacement", hsn: "848299", unit: "Nos", rate: 18600 },
-  { description: "Hydraulic power pack overhaul", hsn: "998717", unit: "Job", rate: 39500 },
-  { description: "Robot interfacing and PLC integration — 6-axis loader", hsn: "998717", unit: "Job", rate: 168000 },
+  {
+    description: "Spindle rebuild and dynamic balancing — Mazak QT-200",
+    hsn: "998717",
+    unit: "Job",
+    rate: 78000,
+  },
+  {
+    description: "CNC preventive maintenance visit (8 hours on site)",
+    hsn: "998717",
+    unit: "Visit",
+    rate: 12500,
+  },
+  {
+    description: "Ball screw replacement including alignment",
+    hsn: "998717",
+    unit: "Job",
+    rate: 46500,
+  },
+  {
+    description: "Fanuc servo drive repair and parameter restoration",
+    hsn: "998717",
+    unit: "Job",
+    rate: 34000,
+  },
+  {
+    description: "Retrofit — Siemens 828D controller upgrade",
+    hsn: "998717",
+    unit: "Job",
+    rate: 425000,
+  },
+  {
+    description: "Geometric accuracy calibration with laser interferometer",
+    hsn: "998717",
+    unit: "Job",
+    rate: 28000,
+  },
+  {
+    description: "Mitsubishi encoder battery pack (set of 4)",
+    hsn: "854810",
+    unit: "Set",
+    rate: 4800,
+  },
+  {
+    description: "Linear guideway block — THK HSR35 replacement",
+    hsn: "848299",
+    unit: "Nos",
+    rate: 18600,
+  },
+  {
+    description: "Hydraulic power pack overhaul",
+    hsn: "998717",
+    unit: "Job",
+    rate: 39500,
+  },
+  {
+    description: "Robot interfacing and PLC integration — 6-axis loader",
+    hsn: "998717",
+    unit: "Job",
+    rate: 168000,
+  },
 ];
 
 const WORK_TASKS = [
@@ -313,7 +365,8 @@ async function main() {
       website: "https://ntss.co.in",
       logoUrl: "/brand/nts-logo.png",
       addressLine1: "Flat No. 24108, Prestige Jindal City",
-      addressLine2: "Tumkur Main Road, 7th Cross, Manjunatha Nagar, Bagalakunte",
+      addressLine2:
+        "Tumkur Main Road, 7th Cross, Manjunatha Nagar, Bagalakunte",
       city: "Bengaluru",
       state: "Karnataka",
       postalCode: "560073",
@@ -364,8 +417,7 @@ async function main() {
         phone: employee.phone,
         role: employee.role,
         status: "ACTIVE",
-        passwordHash:
-          employee.role === "ADMIN" ? adminPassword : staffPassword,
+        passwordHash: employee.role === "ADMIN" ? adminPassword : staffPassword,
       },
     });
 
@@ -474,10 +526,16 @@ async function main() {
         status = roll > 0.94 ? "ABSENT" : roll > 0.9 ? "HALF_DAY" : "PRESENT";
       }
 
-      const worked = status === "PRESENT" ? between(480, 585) : status === "HALF_DAY" ? between(220, 260) : 0;
-      const checkIn = status === "PRESENT" || status === "HALF_DAY"
-        ? atTime(cursor, 9, between(0, 25))
-        : null;
+      const worked =
+        status === "PRESENT"
+          ? between(480, 585)
+          : status === "HALF_DAY"
+            ? between(220, 260)
+            : 0;
+      const checkIn =
+        status === "PRESENT" || status === "HALF_DAY"
+          ? atTime(cursor, 9, between(0, 25))
+          : null;
 
       await prisma.attendance.create({
         data: {
@@ -485,7 +543,9 @@ async function main() {
           date: new Date(cursor),
           status,
           checkInAt: checkIn,
-          checkOutAt: checkIn ? new Date(checkIn.getTime() + worked * 60_000) : null,
+          checkOutAt: checkIn
+            ? new Date(checkIn.getTime() + worked * 60_000)
+            : null,
           workedMinutes: worked,
           source: "SELF_CHECK_IN",
         },
@@ -517,12 +577,28 @@ async function main() {
             "COURIER",
           ] as const) as ExpenseCategory;
 
+          const distanceKm =
+            category === "FUEL" ? Math.round(between(10, 120)) : null;
+          const foodType =
+            category === "FOOD"
+              ? random() > 0.6
+                ? ("OUTSTATION" as const)
+                : ("LOCAL" as const)
+              : null;
+          const amount =
+            category === "FUEL"
+              ? distanceKm! * 5
+              : category === "FOOD"
+                ? foodType === "OUTSTATION"
+                  ? 500
+                  : 200
+                : between(180, 2400);
+
           await prisma.expense.create({
             data: {
               userId: user.id,
               date: new Date(cursor),
-              category,
-              amount: between(180, 2400),
+              amount,
               description:
                 category === "TRAVEL"
                   ? "Cab to customer site and return"
@@ -531,6 +607,17 @@ async function main() {
                     : category === "FOOD"
                       ? "Meal during extended shift"
                       : "Courier charges for spare dispatch",
+              items: {
+                create: [
+                  {
+                    position: 0,
+                    category,
+                    amount,
+                    distanceKm,
+                    foodType,
+                  },
+                ],
+              },
               workLogId: workLog.id,
               status: random() > 0.3 ? "APPROVED" : "PENDING",
               reviewedById: random() > 0.3 ? admin.id : null,
@@ -683,7 +770,8 @@ async function main() {
         status: "SENT",
         subject: "Tax invoice for services rendered",
         placeOfSupply: customer.state,
-        terms: "Payment due within 30 days. Interest at 18% p.a. on delayed payments.",
+        terms:
+          "Payment due within 30 days. Interest at 18% p.a. on delayed payments.",
         ...totals,
         amountPaid: 0,
         createdById: admin.id,
@@ -693,7 +781,9 @@ async function main() {
     invoices.push(invoice);
   }
 
-  for (const customer of clients.filter((c) => c.type === "ACTIVE").slice(0, 4)) {
+  for (const customer of clients
+    .filter((c) => c.type === "ACTIVE")
+    .slice(0, 4)) {
     invoiceSeq++;
     const date = addDays(rangeStart, between(10, 75));
     const lines = buildLines(between(1, 2));
@@ -753,7 +843,10 @@ async function main() {
   }
 
   await prisma.invoice.updateMany({
-    where: { dueDate: { lt: TODAY }, status: { in: ["SENT", "PARTIALLY_PAID"] } },
+    where: {
+      dueDate: { lt: TODAY },
+      status: { in: ["SENT", "PARTIALLY_PAID"] },
+    },
     data: { status: "OVERDUE" },
   });
   console.log(`  ✓ ${paymentCount} payments`);
@@ -822,7 +915,8 @@ async function main() {
 
     const lopDays = random() > 0.7 ? 1 : 0;
     const fullMonth = basic + hra + conveyance + medical + special;
-    const lopDeduction = Math.round((fullMonth / workingDays) * lopDays * 100) / 100;
+    const lopDeduction =
+      Math.round((fullMonth / workingDays) * lopDays * 100) / 100;
     const reimbursements = between(0, 3500);
 
     const gross = fullMonth + reimbursements;
@@ -893,7 +987,10 @@ async function main() {
 
   for (const task of TASKS) {
     const assignee = pick(staff);
-    const due = addDays(day(THIS_YEAR, THIS_MONTH, TODAY.getUTCDate()), task.dueOffset);
+    const due = addDays(
+      day(THIS_YEAR, THIS_MONTH, TODAY.getUTCDate()),
+      task.dueOffset,
+    );
     const created = addDays(due, -between(3, 7));
 
     await prisma.task.create({
@@ -912,8 +1009,7 @@ async function main() {
             ? addDays(created, 1)
             : null,
         completedAt: task.status === "COMPLETED" ? addDays(created, 2) : null,
-        completionNote:
-          "completionNote" in task ? task.completionNote : null,
+        completionNote: "completionNote" in task ? task.completionNote : null,
       },
     });
 

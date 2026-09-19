@@ -34,10 +34,13 @@ export default async function WorkLogDetailPage(
         select: {
           id: true,
           date: true,
-          category: true,
           amount: true,
           status: true,
           description: true,
+          items: {
+            orderBy: { position: "asc" },
+            select: { category: true },
+          },
         },
       },
     },
@@ -146,7 +149,9 @@ export default async function WorkLogDetailPage(
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13.5px] font-medium text-fg">
-                    {humanizeEnum(expense.category)}
+                    {expense.items
+                      .map((item) => humanizeEnum(item.category))
+                      .join(" · ")}
                   </p>
                   <p className="truncate text-[12px] text-fg-muted">
                     {expense.description}

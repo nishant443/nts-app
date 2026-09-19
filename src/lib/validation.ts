@@ -74,7 +74,8 @@ const optionalEmail = z
   .optional()
   .transform((value) => (value === "" ? undefined : value?.toLowerCase()))
   .refine(
-    (value) => value === undefined || z.string().email().safeParse(value).success,
+    (value) =>
+      value === undefined || z.string().email().safeParse(value).success,
     "Enter a valid email address.",
   );
 
@@ -326,55 +327,62 @@ export const taskProgressSchema = z.object({
   note: optionalText(1000),
 });
 
+export const expenseItemSchema = z.object({
+  category: z.enum([
+    "TRAVEL",
+    "FUEL",
+    "FOOD",
+    "TOOLS",
+    "MATERIAL",
+    "LODGING",
+    "COURIER",
+    "OTHER",
+  ]),
+  amount: optionalNumeric("Amount"),
+  distanceKm: optionalNumeric("Distance"),
+  foodType: z
+    .enum(["LOCAL", "OUTSTATION"])
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  note: optionalText(200),
+});
+
 export const expenseSchema = z
   .object({
     id: optionalCuid,
     date: dateString,
-    category: z.enum([
-      "TRAVEL",
-      "FUEL",
-      "FOOD",
-      "TOOLS",
-      "MATERIAL",
-      "LODGING",
-      "COURIER",
-      "OTHER",
-    ]),
-    amount: optionalNumeric("Amount"),
-    distanceKm: optionalNumeric("Distance"),
-    foodType: z
-      .enum(["LOCAL", "OUTSTATION"])
-      .optional()
-      .or(z.literal("").transform(() => undefined)),
-    description: requiredText("Description", 500),
+    description: optionalText(500),
     customerId: optionalCuid,
     receiptUrl: optionalText(500),
-    next: z.enum(["list", "another"]).optional(),
+    items: z.array(expenseItemSchema).min(1, "Add at least one expense line."),
   })
   .superRefine((value, ctx) => {
-    if (value.category === "TRAVEL") {
-      if (value.distanceKm <= 0 || value.distanceKm > 10_000) {
+    value.items.forEach((item, index) => {
+      const line = `Line ${index + 1}`;
+      if (item.category === "FUEL") {
+        if (item.distanceKm <= 0 || item.distanceKm > 10_000) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["items", index, "distanceKm"],
+            message: `${line}: enter the distance in kilometres.`,
+          });
+        }
+      } else if (item.category === "FOOD") {
+        if (!item.foodType) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["items", index, "foodType"],
+            message: `${line}: choose local or outstation.`,
+          });
+        }
+      } else if (item.amount < 1 || item.amount > 1_000_000) {
         ctx.addIssue({
           code: "custom",
-          path: ["distanceKm"],
-          message: "Enter the distance travelled in kilometres.",
+          path: ["items", index, "amount"],
+          message: `${line}: enter an amount between 1 and 10,00,000.`,
         });
       }
-    } else if (value.category === "FOOD") {
-      if (!value.foodType) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["foodType"],
-          message: "Choose local or outstation.",
-        });
-      }
-    } else if (value.amount < 1 || value.amount > 1_000_000) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["amount"],
-        message: "Amount must be between 1 and 10,00,000.",
-      });
-    }
+    });
   });
 
 export const expenseReviewSchema = z.object({
@@ -440,14 +448,7 @@ export const invoiceSchema = z.object({
   poDate: optionalDateString,
   quotationId: optionalCuid,
   status: z
-    .enum([
-      "DRAFT",
-      "SENT",
-      "PARTIALLY_PAID",
-      "PAID",
-      "OVERDUE",
-      "CANCELLED",
-    ])
+    .enum(["DRAFT", "SENT", "PARTIALLY_PAID", "PAID", "OVERDUE", "CANCELLED"])
     .default("DRAFT"),
 });
 

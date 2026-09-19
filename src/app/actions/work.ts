@@ -7,9 +7,13 @@ import { action, formAction, formError, formSuccess } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
 import { parseDateInput } from "@/lib/dates";
 import { ConflictError, NotFoundError } from "@/lib/errors";
-import { expenseAmount } from "@/lib/expense-rates";
+import {
+  describeExpenseLine,
+  expenseLineAmount,
+  zipExpenseLines,
+} from "@/lib/expense-rates";
 import { flash } from "@/lib/flash";
-import { formatCurrency } from "@/lib/money";
+import { formatCurrency, round2 } from "@/lib/money";
 import { notify, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import {
@@ -197,44 +201,46 @@ export const deleteWorkLog = action<{ id: string }>(
 );
 
 export const saveExpense = formAction(
-  { access: "user", schema: expenseSchema },
+  { access: "user", schema: expenseSchema, transform: zipExpenseLines },
   async ({ input, user }) => {
     const date = parseDateInput(input.date);
-    const isTravel = input.category === "TRAVEL";
-    const isFood = input.category === "FOOD";
 
-    const amount = expenseAmount({
-      category: input.category,
-      amount: input.amount,
-      distanceKm: input.distanceKm,
-      foodType: input.foodType,
+    const lines = input.items.map((item, index) => {
+      const amount = expenseLineAmount({
+        category: item.category,
+        amount: item.amount,
+        distanceKm: item.distanceKm,
+        foodType: item.foodType,
+      });
+      if (amount === null) {
+        throw new ConflictError(`Line ${index + 1} is incomplete.`);
+      }
+      return {
+        position: index,
+        category: item.category,
+        amount,
+        distanceKm: item.category === "FUEL" ? item.distanceKm : null,
+        foodType: item.category === "FOOD" ? (item.foodType ?? null) : null,
+        note: item.note ?? null,
+      };
     });
-    if (amount === null) return formError("Could not work out the amount.");
+    const total = round2(lines.reduce((sum, line) => sum + line.amount, 0));
 
     const claim = {
       date,
-      category: input.category,
-      amount,
-      distanceKm: isTravel ? input.distanceKm : null,
-      foodType: isFood ? input.foodType : null,
-      description: input.description,
+      amount: total,
+      description: input.description ?? null,
       customerId: input.customerId ?? null,
       receiptUrl: input.receiptUrl ?? null,
     };
 
-    const after = () => {
-      if (input.next !== "another") return "/expenses";
-      const query = new URLSearchParams({ date: input.date });
-      if (input.customerId) query.set("customerId", input.customerId);
-      return `/expenses/new?${query}`;
-    };
-
-    const detail = isTravel
-      ? ` (${input.distanceKm} km)`
-      : isFood
-        ? ` (${input.foodType?.toLowerCase()})`
-        : "";
-    const summary = `${humanizeEnum(input.category)} — ${formatCurrency(amount)}${detail}`;
+    const summary = lines
+      .map((line) => {
+        const basis = describeExpenseLine(line);
+        return `${humanizeEnum(line.category)}${basis ? ` (${basis})` : ""} — ${formatCurrency(line.amount)}`;
+      })
+      .join(" · ");
+    const body = `${summary}. Total ${formatCurrency(total)}.`;
 
     if (input.id) {
       const existing = await prisma.expense.findUnique({
@@ -269,13 +275,14 @@ export const saveExpense = formAction(
           reviewedById: null,
           reviewedAt: null,
           reviewNote: null,
+          items: { deleteMany: {}, create: lines },
         },
       });
 
       await notifyAdmins({
         type: "EXPENSE_SUBMITTED",
         title: `${user.name} edited an expense claim — needs re-approval`,
-        body: summary,
+        body,
         link: "/admin/approvals?tab=expenses",
       });
 
@@ -285,8 +292,8 @@ export const saveExpense = formAction(
         entity: "Expense",
         entityId: existing.id,
         meta: {
-          amount,
-          category: input.category,
+          amount: total,
+          lines: lines.length,
           previousStatus: existing.status,
         },
       });
@@ -295,18 +302,23 @@ export const saveExpense = formAction(
       revalidatePath("/admin/approvals");
       revalidatePath("/dashboard");
       await flash("Expense claim updated and sent for approval again.");
-      redirect(after());
+      redirect("/expenses");
     }
 
     const created = await prisma.expense.create({
-      data: { ...claim, userId: user.id, status: "PENDING" },
+      data: {
+        ...claim,
+        userId: user.id,
+        status: "PENDING",
+        items: { create: lines },
+      },
       select: { id: true },
     });
 
     await notifyAdmins({
       type: "EXPENSE_SUBMITTED",
-      title: `${user.name} submitted an expense claim`,
-      body: summary,
+      title: `${user.name} submitted an expense claim for ${formatCurrency(total)}`,
+      body,
       link: "/admin/approvals?tab=expenses",
     });
 
@@ -315,7 +327,7 @@ export const saveExpense = formAction(
       action: "expense.created",
       entity: "Expense",
       entityId: created.id,
-      meta: { amount, category: input.category },
+      meta: { amount: total, lines: lines.length },
     });
 
     revalidatePath("/expenses");
@@ -323,7 +335,7 @@ export const saveExpense = formAction(
     revalidatePath("/dashboard");
 
     await flash("Expense claim submitted.");
-    redirect(after());
+    redirect("/expenses");
   },
 );
 
@@ -348,7 +360,6 @@ export const reviewExpense = formAction(
         id: true,
         userId: true,
         amount: true,
-        category: true,
         user: { select: { name: true } },
       },
     });
@@ -373,7 +384,7 @@ export const reviewExpense = formAction(
         input.decision === "REJECTED"
           ? "Expense claim declined"
           : "Expense claim approved — it will be paid with your salary",
-      body: input.reviewNote ?? `${expense.category.toLowerCase()} claim.`,
+      body: input.reviewNote ?? `${formatCurrency(expense.amount)} claim.`,
       link: "/expenses",
     });
 

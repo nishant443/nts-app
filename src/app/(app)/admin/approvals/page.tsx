@@ -5,13 +5,12 @@ import { reviewLeaveRequest } from "@/app/actions/leave";
 import { reviewExpense, reviewWorkLog } from "@/app/actions/work";
 import { ReviewPanel } from "@/components/admin/review-panel";
 import { Avatar } from "@/components/ui/avatar";
-import { StatusBadge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/feedback";
 import { PageHeader } from "@/components/ui/page-header";
 import { LinkTabs } from "@/components/ui/tabs";
 import { requireAdmin } from "@/lib/dal";
-import { FOOD_TYPE_LABELS } from "@/lib/expense-rates";
+import { describeExpenseLine } from "@/lib/expense-rates";
 import { formatDate, formatRelative } from "@/lib/dates";
 import { formatCurrency, toMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
@@ -205,6 +204,7 @@ async function ExpenseQueue() {
     include: {
       user: { select: { name: true, avatarUrl: true, employeeCode: true } },
       customer: { select: { id: true, name: true, companyName: true } },
+      items: { orderBy: { position: "asc" } },
     },
   });
 
@@ -234,23 +234,54 @@ async function ExpenseQueue() {
             <div className="min-w-0">
               <p className="flex flex-wrap items-center gap-2 text-[14px] font-semibold text-fg">
                 {formatCurrency(expense.amount)}
-                <StatusBadge status={expense.category} dot={false} />
+                <span className="text-[12px] font-medium text-fg-muted">
+                  {expense.items.length}{" "}
+                  {expense.items.length === 1 ? "line" : "lines"}
+                </span>
               </p>
 
               <p className="mt-0.5 text-[13px] text-fg-muted">
                 {expense.user.name} · {formatDate(expense.date)}
-                {expense.distanceKm !== null &&
-                  ` · ${toMoney(expense.distanceKm)} km`}
-                {expense.foodType && ` · ${FOOD_TYPE_LABELS[expense.foodType]}`}
                 {expense.reviewedAt === null &&
                 expense.updatedAt > expense.createdAt
                   ? " · Edited — re-approval"
                   : ""}
               </p>
 
-              <p className="mt-1.5 text-[13px] leading-relaxed text-fg">
-                {expense.description}
-              </p>
+              <ul className="mt-1.5 flex flex-col gap-0.5 text-[13px] text-fg">
+                {expense.items.map((item) => {
+                  const basis = describeExpenseLine({
+                    category: item.category,
+                    distanceKm:
+                      item.distanceKm === null
+                        ? null
+                        : toMoney(item.distanceKm),
+                    foodType: item.foodType,
+                  });
+                  return (
+                    <li key={item.id} className="flex justify-between gap-3">
+                      <span>
+                        {humanizeEnum(item.category)}
+                        {basis && (
+                          <span className="text-fg-muted"> · {basis}</span>
+                        )}
+                        {item.note && (
+                          <span className="text-fg-muted"> — {item.note}</span>
+                        )}
+                      </span>
+                      <span className="tnum shrink-0">
+                        {formatCurrency(item.amount)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              {expense.description && (
+                <p className="mt-1.5 text-[13px] leading-relaxed text-fg-muted">
+                  {expense.description}
+                </p>
+              )}
 
               <div className="mt-1.5 flex flex-wrap items-center gap-3 text-[12px]">
                 {expense.customer && (

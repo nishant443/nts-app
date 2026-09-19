@@ -550,13 +550,11 @@ model Expense {
   user   User   @relation("ExpenseOwner", fields: [userId], references: [id], onDelete: Cascade)
 
   date        DateTime
-  category    ExpenseCategory
-  amount      Decimal         @db.Decimal(14, 2)
-  description String
+  amount      Decimal @db.Decimal(14, 2)
+  description String?
   receiptUrl  String?
 
-  distanceKm Decimal?  @db.Decimal(8, 2)
-  foodType   FoodType?
+  items ExpenseItem[]
 
   workLogId String?
   workLog   DailyWorkLog? @relation(fields: [workLogId], references: [id], onDelete: SetNull)
@@ -579,6 +577,23 @@ model Expense {
   @@index([date])
   @@index([customerId])
   @@map("expenses")
+}
+
+model ExpenseItem {
+  id        String  @id @default(cuid())
+  expenseId String
+  expense   Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  position   Int
+  category   ExpenseCategory
+  amount     Decimal         @db.Decimal(14, 2)
+  distanceKm Decimal?        @db.Decimal(8, 2)
+  foodType   FoodType?
+  note       String?
+
+  @@index([expenseId])
+  @@index([category])
+  @@map("expense_items")
 }
 
 model Customer {
