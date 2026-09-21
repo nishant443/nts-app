@@ -94,6 +94,19 @@ export function RunActions({
         />
       )}
 
+      {status === "PAID" && (
+        <ConfirmAction
+          action={setPayrollStatus}
+          input={{ id: runId, status: "FINALIZED" }}
+          title="Mark as unpaid?"
+          body="Use this if the run was marked paid by mistake. It goes back to finalized; payslips and emails are not affected."
+          confirmLabel="Mark unpaid"
+          variant="ghost"
+          successMessage="Payroll marked as unpaid."
+          trigger="Mark as unpaid"
+        />
+      )}
+
       {status === "FINALIZED" && (
         <>
           <ConfirmAction
