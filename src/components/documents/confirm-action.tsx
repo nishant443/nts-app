@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button, type ButtonVariant } from "@/components/ui/button";
 import { showSuccess } from "@/components/ui/success-popup";
 
-export function ConfirmAction<TInput>({
+export function ConfirmAction<TInput, TResult = unknown>({
   action,
   input,
   title,
@@ -23,7 +23,7 @@ export function ConfirmAction<TInput>({
 }: {
   action: (
     input: TInput,
-  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  ) => Promise<{ ok: true; data: TResult } | { ok: false; error: string }>;
   input: TInput;
   title: string;
   body: string;
@@ -32,7 +32,7 @@ export function ConfirmAction<TInput>({
   variant?: ButtonVariant;
   className?: string;
   size?: "sm" | "md";
-  successMessage?: string;
+  successMessage?: string | ((data: TResult) => string);
   redirectTo?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -53,7 +53,11 @@ export function ConfirmAction<TInput>({
       const result = await action(input);
 
       if (result.ok) {
-        if (successMessage) showSuccess(successMessage);
+        const message =
+          typeof successMessage === "function"
+            ? successMessage(result.data)
+            : successMessage;
+        if (message) showSuccess(message);
         setOpen(false);
         if (redirectTo) router.push(redirectTo);
         else router.refresh();

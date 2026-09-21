@@ -6,11 +6,16 @@ import { redirect } from "next/navigation";
 import { action, formAction, formError, formSuccess } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
 import { formatMonthYear, parseDateInput } from "@/lib/dates";
+import { env } from "@/lib/env";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { flash } from "@/lib/flash";
+import { isMailConfigured, payslipEmail, sendMail } from "@/lib/mail";
+import { formatCurrency } from "@/lib/money";
 import { notify } from "@/lib/notifications";
 import { buildPayslipFor, getWorkingDays } from "@/lib/payroll";
 import { prisma } from "@/lib/prisma";
+import { renderPayslipPdf } from "@/lib/services/payslip-pdf";
+import { getCompanySettings } from "@/lib/settings";
 import type { PayrollStatus } from "@/generated/prisma/enums";
 import { payrollRunSchema, salaryStructureSchema } from "@/lib/validation";
 
@@ -148,77 +153,161 @@ export const generatePayslips = action<{ id: string }>(
   },
 );
 
-export const setPayrollStatus = action<{ id: string; status: string }>(
+export const setPayrollStatus = action<
+  { id: string; status: string },
+  PayslipDelivery | null
+>({ access: "admin" }, async ({ input, user }) => {
+  const allowed = ["DRAFT", "PROCESSING", "FINALIZED", "PAID"] as const;
+
+  if (!(allowed as readonly string[]).includes(input.status)) {
+    throw new ConflictError("That is not a valid payroll status.");
+  }
+
+  const run = await prisma.payrollRun.findUnique({
+    where: { id: input.id },
+    select: {
+      id: true,
+      month: true,
+      year: true,
+      status: true,
+      _count: { select: { payslips: true } },
+    },
+  });
+
+  if (!run) throw new NotFoundError("That payroll run no longer exists.");
+
+  if (
+    (input.status === "FINALIZED" || input.status === "PAID") &&
+    run._count.payslips === 0
+  ) {
+    throw new ConflictError("Generate payslips before finalizing this run.");
+  }
+
+  await prisma.payrollRun.update({
+    where: { id: run.id },
+    data: {
+      status: input.status as PayrollStatus,
+      finalizedAt: input.status === "FINALIZED" ? new Date() : undefined,
+      paidAt: input.status === "PAID" ? new Date() : undefined,
+    },
+  });
+
+  let delivery: PayslipDelivery | null = null;
+  if (input.status === "FINALIZED" && run.status !== "FINALIZED") {
+    delivery = await emailPayslips(run.id, run.month, run.year);
+  }
+
+  await recordAudit({
+    userId: user.id,
+    action: "payroll.status_changed",
+    entity: "PayrollRun",
+    entityId: run.id,
+    meta: { from: run.status, to: input.status, ...delivery },
+  });
+
+  revalidatePath("/admin/payroll");
+  revalidatePath(`/admin/payroll/${run.id}`);
+  revalidatePath("/payslips");
+
+  return delivery;
+});
+
+export const resendPayslipEmails = action<{ id: string }, PayslipDelivery>(
   { access: "admin" },
   async ({ input, user }) => {
-    const allowed = ["DRAFT", "PROCESSING", "FINALIZED", "PAID"] as const;
-
-    if (!(allowed as readonly string[]).includes(input.status)) {
-      throw new ConflictError("That is not a valid payroll status.");
-    }
-
     const run = await prisma.payrollRun.findUnique({
       where: { id: input.id },
-      select: {
-        id: true,
-        month: true,
-        year: true,
-        status: true,
-        _count: { select: { payslips: true } },
-      },
+      select: { id: true, month: true, year: true, status: true },
     });
 
     if (!run) throw new NotFoundError("That payroll run no longer exists.");
 
-    if (
-      (input.status === "FINALIZED" || input.status === "PAID") &&
-      run._count.payslips === 0
-    ) {
-      throw new ConflictError(
-        "Generate payslips before finalizing this run.",
-      );
+    if (run.status !== "FINALIZED" && run.status !== "PAID") {
+      throw new ConflictError("Finalize the run before emailing payslips.");
     }
 
-    await prisma.payrollRun.update({
-      where: { id: run.id },
-      data: {
-        status: input.status as PayrollStatus,
-        finalizedAt:
-          input.status === "FINALIZED" ? new Date() : undefined,
-        paidAt: input.status === "PAID" ? new Date() : undefined,
-      },
-    });
-
-    if (input.status === "FINALIZED" && run.status !== "FINALIZED") {
-      const payslips = await prisma.payslip.findMany({
-        where: { payrollRunId: run.id },
-        select: { userId: true },
-      });
-
-      for (const payslip of payslips) {
-        await notify({
-          userId: payslip.userId,
-          type: "PAYSLIP_READY",
-          title: `Payslip for ${formatMonthYear(run.month, run.year)} is ready`,
-          body: "Your payslip is available to view and download.",
-          link: "/payslips",
-        });
-      }
-    }
+    const delivery = await emailPayslips(run.id, run.month, run.year);
 
     await recordAudit({
       userId: user.id,
-      action: "payroll.status_changed",
+      action: "payroll.payslips_emailed",
       entity: "PayrollRun",
       entityId: run.id,
-      meta: { from: run.status, to: input.status },
+      meta: { ...delivery },
     });
 
-    revalidatePath("/admin/payroll");
-    revalidatePath(`/admin/payroll/${run.id}`);
-    revalidatePath("/payslips");
+    return delivery;
   },
 );
+
+interface PayslipDelivery {
+  emailed: number;
+  failed: number;
+  skipped: number;
+}
+
+async function emailPayslips(
+  runId: string,
+  month: number,
+  year: number,
+): Promise<PayslipDelivery> {
+  const period = formatMonthYear(month, year);
+  const payslips = await prisma.payslip.findMany({
+    where: { payrollRunId: runId },
+    select: { id: true, userId: true, user: { select: { status: true } } },
+  });
+
+  const settings = await getCompanySettings();
+  const link = `${env.NEXT_PUBLIC_APP_URL}/payslips`;
+  const mailReady = isMailConfigured();
+  const delivery: PayslipDelivery = { emailed: 0, failed: 0, skipped: 0 };
+
+  for (const entry of payslips) {
+    await notify({
+      userId: entry.userId,
+      type: "PAYSLIP_READY",
+      title: `Payslip for ${period} is ready`,
+      body: "Your payslip is available to view and download.",
+      link: "/payslips",
+      email: false,
+    });
+
+    if (!mailReady || entry.user.status !== "ACTIVE") {
+      delivery.skipped += 1;
+      continue;
+    }
+
+    try {
+      const { buffer, filename, payslip } = await renderPayslipPdf(entry.id);
+      const { subject, text, html } = payslipEmail({
+        employeeName: payslip.user.name,
+        period,
+        grossEarnings: formatCurrency(payslip.grossEarnings),
+        totalDeductions: formatCurrency(payslip.totalDeductions),
+        netPay: formatCurrency(payslip.netPay),
+        hasAttachment: true,
+        hrContact: { email: settings.email, phone: settings.phone },
+        companyName: settings.name,
+        link,
+      });
+      await sendMail({
+        to: payslip.user.email,
+        subject,
+        text,
+        html,
+        attachments: [
+          { filename, content: buffer, contentType: "application/pdf" },
+        ],
+      });
+      delivery.emailed += 1;
+    } catch (error) {
+      console.error("[payroll] payslip email failed", entry.id, error);
+      delivery.failed += 1;
+    }
+  }
+
+  return delivery;
+}
 
 export const deletePayrollRun = action<{ id: string }>(
   { access: "admin" },

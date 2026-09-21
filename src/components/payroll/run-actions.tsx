@@ -2,10 +2,14 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, Mail, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
-import { generatePayslips, setPayrollStatus } from "@/app/actions/payroll";
+import {
+  generatePayslips,
+  resendPayslipEmails,
+  setPayrollStatus,
+} from "@/app/actions/payroll";
 import { ConfirmAction } from "@/components/documents/confirm-action";
 import { Button } from "@/components/ui/button";
 import { showSuccess } from "@/components/ui/success-popup";
@@ -58,11 +62,35 @@ export function RunActions({
           action={setPayrollStatus}
           input={{ id: runId, status: "FINALIZED" }}
           title="Finalize this payroll run?"
-          body="The figures will be locked and every employee will be notified that their payslip is ready. You can reopen the run afterwards if something needs correcting."
-          confirmLabel="Finalize and publish"
+          body="The figures will be locked and every employee will be emailed their payslip as a PDF. You can reopen the run afterwards if something needs correcting."
+          confirmLabel="Finalize and email payslips"
           variant="primary"
-          successMessage="Payroll finalized. Employees have been notified."
+          successMessage={(delivery) =>
+            delivery
+              ? deliveryMessage("Payroll finalized.", delivery)
+              : "Payroll finalized."
+          }
           trigger="Finalize"
+        />
+      )}
+
+      {(status === "FINALIZED" || status === "PAID") && (
+        <ConfirmAction
+          action={resendPayslipEmails}
+          input={{ id: runId }}
+          title="Email payslips again?"
+          body="Every employee on this run receives their payslip PDF by email once more. Use this if a mail failed or someone missed it."
+          confirmLabel="Send emails"
+          variant="secondary"
+          successMessage={(delivery) =>
+            deliveryMessage("Emails sent.", delivery)
+          }
+          trigger={
+            <>
+              <Mail aria-hidden="true" />
+              Email payslips
+            </>
+          }
         />
       )}
 
@@ -93,4 +121,16 @@ export function RunActions({
       )}
     </>
   );
+}
+
+function deliveryMessage(
+  prefix: string,
+  delivery: { emailed: number; failed: number; skipped: number },
+): string {
+  const parts = [
+    `${delivery.emailed} payslip${delivery.emailed === 1 ? "" : "s"} emailed`,
+  ];
+  if (delivery.failed > 0) parts.push(`${delivery.failed} failed`);
+  if (delivery.skipped > 0) parts.push(`${delivery.skipped} skipped`);
+  return `${prefix} ${parts.join(", ")}.`;
 }

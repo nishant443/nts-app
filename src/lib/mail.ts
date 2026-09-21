@@ -433,6 +433,64 @@ export function notificationEmail(options: {
   return { subject, text, html };
 }
 
+export function payslipEmail(options: {
+  employeeName: string;
+  period: string;
+  grossEarnings: string;
+  totalDeductions: string;
+  netPay: string;
+  hasAttachment: boolean;
+  hrContact: { email: string | null; phone: string | null };
+  companyName: string;
+  link: string;
+}): { subject: string; text: string; html: string } {
+  const subject = `Your payslip for ${options.period} is ready`;
+
+  const contact = [options.hrContact.email, options.hrContact.phone]
+    .filter(Boolean)
+    .join(" or ");
+  const clarification = `Please check it carefully and contact HR${contact ? ` at ${contact}` : ""} for any clarification.`;
+
+  const rows: [string, string][] = [
+    ["Pay period", options.period],
+    ["Gross earnings", options.grossEarnings],
+    ["Total deductions", options.totalDeductions],
+    ["Net pay", options.netPay],
+  ];
+
+  const text = [
+    `Hi ${options.employeeName},`,
+    "",
+    `Your salary slip for ${options.period} has been generated.`,
+    options.hasAttachment
+      ? "The PDF is attached to this email."
+      : "You can download it from the NTS app.",
+    "",
+    ...rows.map(([label, value]) => `${label}: ${value}`),
+    "",
+    clarification,
+    "",
+    `View your payslips: ${options.link}`,
+    "",
+    options.companyName,
+  ].join("\n");
+
+  const html = emailShell({
+    companyName: options.companyName,
+    eyebrow: "Payslip",
+    heading: `Payslip for ${options.period}`,
+    intro: `Hi ${escapeHtml(options.employeeName)}, your salary slip for <strong style="color:${INK}">${escapeHtml(options.period)}</strong> has been generated${options.hasAttachment ? " and is attached to this email as a PDF" : ""}.`,
+    body: `
+      ${detailsTable(rows)}
+      <p style="margin:18px 0 0">${escapeHtml(clarification)}</p>`,
+    cta: { label: "View my payslips", href: options.link },
+    footnote:
+      "This payslip is confidential and intended only for the employee named above.",
+  });
+
+  return { subject, text, html };
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
