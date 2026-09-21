@@ -25,7 +25,9 @@ export async function generateMetadata(
   });
 
   return {
-    title: run ? `Payroll · ${formatMonthYear(run.month, run.year)}` : "Payroll",
+    title: run
+      ? `Payroll · ${formatMonthYear(run.month, run.year)}`
+      : "Payroll",
   };
 }
 
@@ -35,6 +37,7 @@ interface PayslipRow {
   employeeCode: string;
   presentDays: number;
   lopDays: number;
+  expenses: number;
   gross: number;
   deductions: number;
   net: number;
@@ -67,6 +70,7 @@ export default async function PayrollRunPage(
     employeeCode: payslip.user.employeeCode,
     presentDays: toMoney(payslip.presentDays),
     lopDays: toMoney(payslip.lopDays),
+    expenses: toMoney(payslip.reimbursements),
     gross: toMoney(payslip.grossEarnings),
     deductions: toMoney(payslip.totalDeductions),
     net: toMoney(payslip.netPay),
@@ -74,11 +78,12 @@ export default async function PayrollRunPage(
 
   const totals = rows.reduce(
     (sum, row) => ({
+      expenses: round2(sum.expenses + row.expenses),
       gross: round2(sum.gross + row.gross),
       deductions: round2(sum.deductions + row.deductions),
       net: round2(sum.net + row.net),
     }),
-    { gross: 0, deductions: 0, net: 0 },
+    { expenses: 0, gross: 0, deductions: 0, net: 0 },
   );
 
   const columns: Column<PayslipRow>[] = [
@@ -109,6 +114,21 @@ export default async function PayrollRunPage(
       cell: (row) =>
         row.lopDays > 0 ? (
           <span className="tnum font-medium text-warning">{row.lopDays}</span>
+        ) : (
+          <span className="text-fg-subtle">—</span>
+        ),
+    },
+    {
+      key: "expenses",
+      header: "Expenses",
+      mobileLabel: "Approved expenses",
+      align: "right",
+      hideOnMobile: true,
+      cell: (row) =>
+        row.expenses > 0 ? (
+          <span className="tnum text-success">
+            +{formatCurrency(row.expenses)}
+          </span>
         ) : (
           <span className="text-fg-subtle">—</span>
         ),
@@ -211,7 +231,16 @@ export default async function PayrollRunPage(
           icon={<Users />}
           tone="accent"
         />
-        <StatCard label="Gross" value={formatCurrency(totals.gross)} tone="neutral" />
+        <StatCard
+          label="Gross"
+          value={formatCurrency(totals.gross)}
+          hint={
+            totals.expenses > 0
+              ? `incl. ${formatCurrency(totals.expenses)} approved expenses`
+              : undefined
+          }
+          tone="neutral"
+        />
         <StatCard
           label="Deductions"
           value={formatCurrency(totals.deductions)}

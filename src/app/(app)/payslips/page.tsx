@@ -24,6 +24,7 @@ interface PayslipRow {
   totalDeductions: number;
   netPay: number;
   lopDays: number;
+  expenses: number;
 }
 
 export default async function PayslipsPage(props: {
@@ -52,6 +53,7 @@ export default async function PayslipsPage(props: {
         totalDeductions: true,
         netPay: true,
         lopDays: true,
+        reimbursements: true,
       },
     }),
     prisma.payslip.count({ where }),
@@ -65,6 +67,7 @@ export default async function PayslipsPage(props: {
     totalDeductions: toMoney(record.totalDeductions),
     netPay: toMoney(record.netPay),
     lopDays: toMoney(record.lopDays),
+    expenses: toMoney(record.reimbursements),
   }));
 
   const columns: Column<PayslipRow>[] = [
@@ -83,6 +86,21 @@ export default async function PayslipsPage(props: {
           {row.lopDays > 0 ? `${row.lopDays} day(s) LOP` : "Full month"}
         </span>
       ),
+    },
+    {
+      key: "expenses",
+      header: "Expenses",
+      mobileLabel: "Approved expenses",
+      align: "right",
+      hideOnMobile: true,
+      cell: (row) =>
+        row.expenses > 0 ? (
+          <span className="tnum text-success">
+            +{formatCurrency(row.expenses)}
+          </span>
+        ) : (
+          <span className="text-fg-subtle">—</span>
+        ),
     },
     {
       key: "gross",

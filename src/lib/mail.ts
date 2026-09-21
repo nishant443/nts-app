@@ -436,6 +436,7 @@ export function notificationEmail(options: {
 export function payslipEmail(options: {
   employeeName: string;
   period: string;
+  approvedExpenses: string | null;
   grossEarnings: string;
   totalDeductions: string;
   netPay: string;
@@ -453,6 +454,12 @@ export function payslipEmail(options: {
 
   const rows: [string, string][] = [
     ["Pay period", options.period],
+    ...(options.approvedExpenses
+      ? ([["Approved expenses", options.approvedExpenses]] as [
+          string,
+          string,
+        ][])
+      : []),
     ["Gross earnings", options.grossEarnings],
     ["Total deductions", options.totalDeductions],
     ["Net pay", options.netPay],

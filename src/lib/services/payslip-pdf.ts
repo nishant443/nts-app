@@ -19,6 +19,7 @@ export interface RenderedPayslip {
     month: number;
     year: number;
     runStatus: string;
+    reimbursements: number;
     grossEarnings: number;
     totalDeductions: number;
     netPay: number;
@@ -59,7 +60,7 @@ export async function renderPayslipPdf(id: string): Promise<RenderedPayslip> {
     { label: "Medical", value: toMoney(payslip.medical) },
     { label: "Special allowance", value: toMoney(payslip.specialAllowance) },
     { label: "Other allowance", value: toMoney(payslip.otherAllowance) },
-    { label: "Reimbursements", value: toMoney(payslip.reimbursements) },
+    { label: "Approved expenses", value: toMoney(payslip.reimbursements) },
   ].filter((entry) => entry.value > 0);
 
   const deductions = [
@@ -112,6 +113,7 @@ export async function renderPayslipPdf(id: string): Promise<RenderedPayslip> {
       month: payslip.month,
       year: payslip.year,
       runStatus: payslip.payrollRun.status,
+      reimbursements: toMoney(payslip.reimbursements),
       grossEarnings: toMoney(payslip.grossEarnings),
       totalDeductions: toMoney(payslip.totalDeductions),
       netPay: toMoney(payslip.netPay),

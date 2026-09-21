@@ -114,7 +114,7 @@ export async function GET(
       { header: "LOP days", key: "lopDays", width: 10, value: (r) => r.lopDays },
       { header: "Basic", key: "basic", width: 14, money: true, value: (r) => r.basic },
       { header: "Allowances", key: "allowances", width: 14, money: true, value: (r) => r.allowances },
-      { header: "Reimbursements", key: "reimbursements", width: 15, money: true, value: (r) => r.reimbursements },
+      { header: "Approved expenses", key: "reimbursements", width: 15, money: true, value: (r) => r.reimbursements },
       { header: "Gross", key: "gross", width: 14, money: true, value: (r) => r.gross },
       { header: "PF", key: "pf", width: 12, money: true, value: (r) => r.pf },
       { header: "ESI", key: "esi", width: 12, money: true, value: (r) => r.esi },

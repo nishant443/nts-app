@@ -74,66 +74,7 @@ export const generatePayslips = action<{ id: string }>(
       );
     }
 
-    const [employees, workingDays] = await Promise.all([
-      prisma.user.findMany({
-        where: { status: "ACTIVE" },
-        select: { id: true, name: true },
-        orderBy: { employeeCode: "asc" },
-      }),
-      getWorkingDays(run.month, run.year),
-    ]);
-
-    let generated = 0;
-    let skipped = 0;
-
-    for (const employee of employees) {
-      const computed = await buildPayslipFor(
-        employee.id,
-        run.month,
-        run.year,
-        workingDays,
-      );
-
-      if (!computed) {
-        skipped += 1;
-        continue;
-      }
-
-      const data = {
-        month: run.month,
-        year: run.year,
-        workingDays: computed.workingDays,
-        presentDays: computed.presentDays,
-        paidLeaveDays: computed.paidLeaveDays,
-        lopDays: computed.lopDays,
-        basic: computed.basic,
-        hra: computed.hra,
-        conveyance: computed.conveyance,
-        medical: computed.medical,
-        specialAllowance: computed.specialAllowance,
-        otherAllowance: computed.otherAllowance,
-        reimbursements: computed.reimbursements,
-        pfDeduction: computed.pfDeduction,
-        esiDeduction: computed.esiDeduction,
-        professionalTax: computed.professionalTax,
-        tdsDeduction: computed.tdsDeduction,
-        lopDeduction: computed.lopDeduction,
-        otherDeduction: computed.otherDeduction,
-        grossEarnings: computed.grossEarnings,
-        totalDeductions: computed.totalDeductions,
-        netPay: computed.netPay,
-      };
-
-      await prisma.payslip.upsert({
-        where: {
-          payrollRunId_userId: { payrollRunId: run.id, userId: employee.id },
-        },
-        create: { ...data, payrollRunId: run.id, userId: employee.id },
-        update: data,
-      });
-
-      generated += 1;
-    }
+    const { generated, skipped } = await buildRunPayslips(run);
 
     await prisma.payrollRun.update({
       where: { id: run.id },
@@ -194,6 +135,7 @@ export const setPayrollStatus = action<
 
   let delivery: PayslipDelivery | null = null;
   if (input.status === "FINALIZED" && run.status !== "FINALIZED") {
+    await buildRunPayslips(run);
     delivery = await emailPayslips(run.id, run.month, run.year);
   }
 
@@ -246,6 +188,75 @@ interface PayslipDelivery {
   skipped: number;
 }
 
+async function buildRunPayslips(run: {
+  id: string;
+  month: number;
+  year: number;
+}): Promise<{ generated: number; skipped: number }> {
+  const [employees, workingDays] = await Promise.all([
+    prisma.user.findMany({
+      where: { status: "ACTIVE" },
+      select: { id: true },
+      orderBy: { employeeCode: "asc" },
+    }),
+    getWorkingDays(run.month, run.year),
+  ]);
+
+  let generated = 0;
+  let skipped = 0;
+
+  for (const employee of employees) {
+    const computed = await buildPayslipFor(
+      employee.id,
+      run.month,
+      run.year,
+      workingDays,
+    );
+
+    if (!computed) {
+      skipped += 1;
+      continue;
+    }
+
+    const data = {
+      month: run.month,
+      year: run.year,
+      workingDays: computed.workingDays,
+      presentDays: computed.presentDays,
+      paidLeaveDays: computed.paidLeaveDays,
+      lopDays: computed.lopDays,
+      basic: computed.basic,
+      hra: computed.hra,
+      conveyance: computed.conveyance,
+      medical: computed.medical,
+      specialAllowance: computed.specialAllowance,
+      otherAllowance: computed.otherAllowance,
+      reimbursements: computed.reimbursements,
+      pfDeduction: computed.pfDeduction,
+      esiDeduction: computed.esiDeduction,
+      professionalTax: computed.professionalTax,
+      tdsDeduction: computed.tdsDeduction,
+      lopDeduction: computed.lopDeduction,
+      otherDeduction: computed.otherDeduction,
+      grossEarnings: computed.grossEarnings,
+      totalDeductions: computed.totalDeductions,
+      netPay: computed.netPay,
+    };
+
+    await prisma.payslip.upsert({
+      where: {
+        payrollRunId_userId: { payrollRunId: run.id, userId: employee.id },
+      },
+      create: { ...data, payrollRunId: run.id, userId: employee.id },
+      update: data,
+    });
+
+    generated += 1;
+  }
+
+  return { generated, skipped };
+}
+
 async function emailPayslips(
   runId: string,
   month: number,
@@ -282,6 +293,10 @@ async function emailPayslips(
       const { subject, text, html } = payslipEmail({
         employeeName: payslip.user.name,
         period,
+        approvedExpenses:
+          payslip.reimbursements > 0
+            ? formatCurrency(payslip.reimbursements)
+            : null,
         grossEarnings: formatCurrency(payslip.grossEarnings),
         totalDeductions: formatCurrency(payslip.totalDeductions),
         netPay: formatCurrency(payslip.netPay),
