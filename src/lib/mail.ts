@@ -103,11 +103,9 @@ export async function sendMail(options: {
 }
 
 const BRAND = "#1f4e79";
-const BRAND_DARK = "#163a5a";
 const INK = "#131a24";
 const MUTED = "#566274";
 const LINE = "#e3e8ef";
-const PAGE_BG = "#eef2f7";
 
 function emailShell(options: {
   companyName: string;
@@ -119,6 +117,7 @@ function emailShell(options: {
   footnote?: string;
 }): string {
   const company = escapeHtml(options.companyName);
+  const preview = options.intro.replace(/<[^>]+>/g, "");
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -129,60 +128,46 @@ function emailShell(options: {
   <meta name="supported-color-schemes" content="light">
   <title>${escapeHtml(options.heading)}</title>
 </head>
-<body style="margin:0;padding:0;background:${PAGE_BG};-webkit-text-size-adjust:100%">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${escapeHtml(options.intro)}</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${PAGE_BG}">
+<body style="margin:0;padding:0;background:#ffffff;-webkit-text-size-adjust:100%">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${preview}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff">
     <tr>
-      <td align="center" style="padding:28px 12px">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(19,26,36,.06)">
+      <td align="center" style="padding:32px 20px 40px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px">
           <tr>
-            <td style="height:6px;background:linear-gradient(90deg,${BRAND} 0%,#2f77ff 100%);font-size:0;line-height:0">&nbsp;</td>
-          </tr>
-          <tr>
-            <td style="padding:30px 32px 8px;font-family:Arial,Helvetica,sans-serif">
-              <p style="margin:0 0 14px;font-size:11.5px;font-weight:bold;letter-spacing:.08em;text-transform:uppercase;color:${BRAND}">${escapeHtml(options.eyebrow)}</p>
-              <h1 style="margin:0 0 10px;font-size:22px;line-height:1.3;font-weight:bold;color:${INK}">${escapeHtml(options.heading)}</h1>
-              <p style="margin:0;font-size:14.5px;line-height:1.6;color:${MUTED}">${options.intro}</p>
+            <td style="font-family:Arial,Helvetica,sans-serif;text-align:left">
+              <p style="margin:0 0 12px;font-size:12px;font-weight:bold;letter-spacing:.08em;text-transform:uppercase;color:${BRAND}">${escapeHtml(options.eyebrow)}</p>
+              <h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;font-weight:bold;color:${INK}">${escapeHtml(options.heading)}</h1>
+              <p style="margin:0 0 22px;font-size:15px;line-height:1.6;color:${MUTED}">${options.intro}</p>
             </td>
           </tr>
           <tr>
-            <td style="padding:18px 32px 8px;font-family:Arial,Helvetica,sans-serif;font-size:14.5px;line-height:1.6;color:${INK}">
+            <td style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:${INK};text-align:left">
               ${options.body}
             </td>
           </tr>
           ${
             options.cta
               ? `<tr>
-            <td style="padding:14px 32px 30px;font-family:Arial,Helvetica,sans-serif">
+            <td style="padding:26px 0 0;font-family:Arial,Helvetica,sans-serif;text-align:left">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="border-radius:8px;background:${BRAND}">
-                    <a href="${escapeHtml(options.cta.href)}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;border:1px solid ${BRAND_DARK}">${escapeHtml(options.cta.label)} &rarr;</a>
+                    <a href="${escapeHtml(options.cta.href)}" style="display:inline-block;padding:12px 24px;font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px">${escapeHtml(options.cta.label)} &rarr;</a>
                   </td>
                 </tr>
               </table>
-              ${options.footnote ? `<p style="margin:14px 0 0;font-size:12.5px;line-height:1.5;color:${MUTED}">${escapeHtml(options.footnote)}</p>` : ""}
+              ${options.footnote ? `<p style="margin:14px 0 0;font-size:13px;line-height:1.5;color:${MUTED}">${escapeHtml(options.footnote)}</p>` : ""}
             </td>
           </tr>`
-              : `<tr><td style="height:22px;font-size:0;line-height:0">&nbsp;</td></tr>`
+              : ""
           }
           <tr>
-            <td style="padding:22px 32px 26px;border-top:1px solid ${LINE};background:#f8fafc;font-family:Arial,Helvetica,sans-serif">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td style="vertical-align:middle">
-                    <img src="cid:${LOGO_CID}" width="120" height="55" alt="${company}" style="display:block;width:120px;height:auto;border:0">
-                  </td>
-                  <td align="right" style="vertical-align:middle;font-size:12.5px;line-height:1.5;color:${MUTED}">
-                    <strong style="color:${INK}">${company}</strong><br>
-                    Sent automatically from the NTS app
-                  </td>
-                </tr>
-              </table>
+            <td style="padding:36px 0 0;font-family:Arial,Helvetica,sans-serif;text-align:left">
+              <img src="cid:${LOGO_CID}" width="120" height="55" alt="${company}" style="display:block;width:120px;height:auto;border:0">
             </td>
           </tr>
         </table>
-        <p style="margin:16px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:#8a94a6">You are receiving this because you have an account with ${company}.</p>
       </td>
     </tr>
   </table>
@@ -191,15 +176,12 @@ function emailShell(options: {
 }
 
 function detailsTable(rows: [string, string][]): string {
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${LINE};border-radius:10px;border-collapse:separate;overflow:hidden;font-size:13.5px">
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:14px">
     ${rows
       .map(
-        (
-          [label, value],
-          index,
-        ) => `<tr style="background:${index % 2 === 0 ? "#f8fafc" : "#ffffff"}">
-      <td style="padding:9px 14px;width:36%;color:${MUTED};vertical-align:top;border-top:${index === 0 ? "0" : `1px solid ${LINE}`}">${escapeHtml(label)}</td>
-      <td style="padding:9px 14px;color:${INK};font-weight:bold;vertical-align:top;border-top:${index === 0 ? "0" : `1px solid ${LINE}`}">${escapeHtml(value)}</td>
+        ([label, value], index) => `<tr>
+      <td style="padding:10px 12px 10px 0;width:40%;color:${MUTED};vertical-align:top;border-top:${index === 0 ? "0" : `1px solid ${LINE}`}">${escapeHtml(label)}</td>
+      <td style="padding:10px 0;color:${INK};font-weight:bold;vertical-align:top;border-top:${index === 0 ? "0" : `1px solid ${LINE}`}">${escapeHtml(value)}</td>
     </tr>`,
       )
       .join("")}
@@ -212,9 +194,8 @@ function calloutBox(
   tone: "brand" | "success",
 ): string {
   const color = tone === "success" ? "#0f9d58" : BRAND;
-  const bg = tone === "success" ? "#e6f6ee" : "#eaf2fb";
-  return `<div style="margin:0 0 18px;padding:14px 16px;background:${bg};border-left:4px solid ${color};border-radius:8px">
-    <div style="font-size:11.5px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:${color}">${escapeHtml(title)}</div>
+  return `<div style="margin:0 0 20px;padding:4px 0 4px 16px;border-left:3px solid ${color}">
+    <div style="font-size:12px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:${color}">${escapeHtml(title)}</div>
     <div style="white-space:pre-line;margin-top:6px;color:${INK}">${escapeHtml(text)}</div>
   </div>`;
 }
@@ -284,7 +265,7 @@ export function documentEmail(options: {
       ${detailsTable(rows)}
       <p style="margin:18px 0 0">${escapeHtml(closing)}</p>
       <p style="margin:12px 0 0">Thank you for your business.</p>
-      <p style="margin:18px 0 0;padding-top:14px;border-top:1px solid ${LINE};color:${MUTED};font-size:13.5px">
+      <p style="margin:22px 0 0;color:${MUTED};font-size:14px">
         ${escapeHtml(options.senderName)}<br>
         <strong style="color:${INK}">${escapeHtml(options.companyName)}</strong><br>
         ${options.senderPhone ? `${escapeHtml(options.senderPhone)}<br>` : ""}
@@ -425,7 +406,7 @@ export function notificationEmail(options: {
     heading: options.title,
     intro: `Hi ${escapeHtml(options.recipientName)}, here is an update from the NTS app.`,
     body: options.body
-      ? `<div style="padding:14px 16px;background:#f8fafc;border:1px solid ${LINE};border-radius:10px;white-space:pre-line">${escapeHtml(options.body)}</div>`
+      ? `<p style="margin:0;white-space:pre-line">${escapeHtml(options.body)}</p>`
       : "",
     cta: options.link ? { label: "Open in NTS", href: options.link } : null,
   });
