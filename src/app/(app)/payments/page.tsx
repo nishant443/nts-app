@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/feedback";
+import { ExportMenu } from "@/components/ui/export-menu";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
@@ -155,6 +156,12 @@ export default async function PaymentsPage(props: {
     invoiceId: record.invoiceId,
   }));
 
+  const exportQuery = new URLSearchParams(
+    Object.entries(carryParams(searchParams, ["q", "status", "from", "to"]))
+      .filter(([, value]) => Boolean(value))
+      .map(([key, value]) => [key, value as string]),
+  ).toString();
+
   const now = today();
   let outstanding = 0;
   let overdue = 0;
@@ -220,12 +227,15 @@ export default async function PaymentsPage(props: {
             : "Payments for the customers and invoices you look after."
         }
         actions={
-          isAdmin ? (
-            <Button href="/payments/new" variant="primary">
-              <Plus aria-hidden="true" />
-              Record payment
-            </Button>
-          ) : undefined
+          <>
+            <ExportMenu basePath="/api/export/payments" query={exportQuery} />
+            {isAdmin && (
+              <Button href="/payments/new" variant="primary">
+                <Plus aria-hidden="true" />
+                Record payment
+              </Button>
+            )}
+          </>
         }
       />
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 
 import { markAttendance } from "@/app/actions/attendance";
 import { FormBanners, SubmitButton } from "@/components/forms/form-shell";
@@ -8,6 +8,35 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/field";
 import { emptyFormState, fieldError } from "@/lib/form-state";
 
+function TimeInput({ id, name }: { id: string; name: string }) {
+  const previous = useRef("");
+
+  return (
+    <Input
+      id={id}
+      name={name}
+      type="time"
+      onChange={(event) => {
+        const input = event.currentTarget;
+        const before = previous.current;
+        const after = input.value;
+        previous.current = after;
+
+        if (!after) return;
+
+        const [beforeHour, beforeMinute] = before.split(":");
+        const [afterHour, afterMinute] = after.split(":");
+        const meridiemPicked =
+          beforeMinute === afterMinute &&
+          Math.abs(Number(afterHour) - Number(beforeHour)) === 12;
+
+        if (before === "" || meridiemPicked) {
+          setTimeout(() => input.blur(), 0);
+        }
+      }}
+    />
+  );
+}
 
 export function MarkAttendanceForm({
   employees,
@@ -71,7 +100,7 @@ export function MarkAttendanceForm({
               htmlFor="checkInAt"
               error={fieldError(state, "checkInAt")}
             >
-              <Input id="checkInAt" name="checkInAt" type="time" />
+              <TimeInput id="checkInAt" name="checkInAt" />
             </Field>
 
             <Field
@@ -79,7 +108,7 @@ export function MarkAttendanceForm({
               htmlFor="checkOutAt"
               error={fieldError(state, "checkOutAt")}
             >
-              <Input id="checkOutAt" name="checkOutAt" type="time" />
+              <TimeInput id="checkOutAt" name="checkOutAt" />
             </Field>
           </div>
 
