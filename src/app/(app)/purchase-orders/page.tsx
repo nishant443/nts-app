@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/feedback";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { ExportMenu } from "@/components/ui/export-menu";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { requireUser } from "@/lib/dal";
@@ -110,6 +111,12 @@ export default async function PurchaseOrdersPage(props: {
     vendor: record.vendor.companyName ?? record.vendor.name,
   }));
 
+  const exportQuery = new URLSearchParams(
+    Object.entries(carryParams(searchParams, ["q", "status", "from", "to"]))
+      .filter(([, value]) => Boolean(value))
+      .map(([key, value]) => [key, value as string]),
+  ).toString();
+
   const columns: Column<OrderRow>[] = [
     {
       key: "number",
@@ -163,12 +170,18 @@ export default async function PurchaseOrdersPage(props: {
         title="Purchase orders"
         description="Parts and services NTS buys in from suppliers."
         actions={
-          isAdmin ? (
-            <Button href="/purchase-orders/new" variant="primary">
-              <Plus aria-hidden="true" />
-              New order
-            </Button>
-          ) : undefined
+          <>
+            <ExportMenu
+              basePath="/api/export/purchase-orders"
+              query={exportQuery}
+            />
+            {isAdmin && (
+              <Button href="/purchase-orders/new" variant="primary">
+                <Plus aria-hidden="true" />
+                New order
+              </Button>
+            )}
+          </>
         }
       />
 

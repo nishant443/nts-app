@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/feedback";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { ExportMenu } from "@/components/ui/export-menu";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { requireUser } from "@/lib/dal";
@@ -88,6 +89,12 @@ export default async function CustomersPage(props: {
     prisma.customer.count({ where }),
   ]);
 
+  const exportQuery = new URLSearchParams(
+    Object.entries(carryParams(searchParams, ["q", "type"]))
+      .filter(([, value]) => Boolean(value))
+      .map(([key, value]) => [key, value as string]),
+  ).toString();
+
   const columns: Column<CustomerRow>[] = [
     {
       key: "name",
@@ -162,10 +169,13 @@ export default async function CustomersPage(props: {
         title="Customers"
         description="Every company NTS works with — clients, leads and suppliers."
         actions={
-          <Button href="/customers/new" variant="primary">
-            <Plus aria-hidden="true" />
-            Add customer
-          </Button>
+          <>
+            <ExportMenu basePath="/api/export/customers" query={exportQuery} />
+            <Button href="/customers/new" variant="primary">
+              <Plus aria-hidden="true" />
+              Add customer
+            </Button>
+          </>
         }
       />
 

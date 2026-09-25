@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/feedback";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { ExportMenu } from "@/components/ui/export-menu";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { requireUser } from "@/lib/dal";
@@ -143,6 +144,12 @@ export default async function InvoicesPage(props: {
     ),
   }));
 
+  const exportQuery = new URLSearchParams(
+    Object.entries(carryParams(searchParams, ["q", "status", "from", "to"]))
+      .filter(([, value]) => Boolean(value))
+      .map(([key, value]) => [key, value as string]),
+  ).toString();
+
   const columns: Column<InvoiceRow>[] = [
     {
       key: "number",
@@ -220,12 +227,15 @@ export default async function InvoicesPage(props: {
             : `${total} invoice(s) on record.`
         }
         actions={
-          isAdmin ? (
-            <Button href="/invoices/new" variant="primary">
-              <Plus aria-hidden="true" />
-              New invoice
-            </Button>
-          ) : undefined
+          <>
+            <ExportMenu basePath="/api/export/invoices" query={exportQuery} />
+            {isAdmin && (
+              <Button href="/invoices/new" variant="primary">
+                <Plus aria-hidden="true" />
+                New invoice
+              </Button>
+            )}
+          </>
         }
       />
 

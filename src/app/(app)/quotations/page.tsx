@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { DataTable, type Column } from "@/components/ui/data-table";
 import { EmptyState } from "@/components/ui/feedback";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { ExportMenu } from "@/components/ui/export-menu";
 import { PageHeader } from "@/components/ui/page-header";
 import { Pagination } from "@/components/ui/pagination";
 import { requireUser } from "@/lib/dal";
@@ -112,6 +113,12 @@ export default async function QuotationsPage(props: {
     customer: record.customer.companyName ?? record.customer.name,
   }));
 
+  const exportQuery = new URLSearchParams(
+    Object.entries(carryParams(searchParams, ["q", "status", "from", "to"]))
+      .filter(([, value]) => Boolean(value))
+      .map(([key, value]) => [key, value as string]),
+  ).toString();
+
   const columns: Column<QuotationRow>[] = [
     {
       key: "number",
@@ -163,10 +170,13 @@ export default async function QuotationsPage(props: {
         title="Quotations"
         description={`${total} quotation(s) worth ${formatCurrency(toMoney(valueAggregate._sum.total))}`}
         actions={
-          <Button href="/quotations/new" variant="primary">
-            <Plus aria-hidden="true" />
-            New quotation
-          </Button>
+          <>
+            <ExportMenu basePath="/api/export/quotations" query={exportQuery} />
+            <Button href="/quotations/new" variant="primary">
+              <Plus aria-hidden="true" />
+              New quotation
+            </Button>
+          </>
         }
       />
 

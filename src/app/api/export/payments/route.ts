@@ -1,21 +1,18 @@
-import { renderToBuffer } from "@react-pdf/renderer";
 import { z } from "zod";
 
 import { errorResponse, parseQuery } from "@/lib/api";
 import { requireApiUser } from "@/lib/dal";
-import { formatDate, today } from "@/lib/dates";
-import {
-  buildWorkbook,
-  sheet,
-  spreadsheetHeaders,
-  type SheetColumn,
-} from "@/lib/excel";
-import { formatAmount, round2, toMoney } from "@/lib/money";
-import { loadPdfAssets } from "@/lib/pdf/document-pdf";
-import { ReportPdf, type ReportColumn } from "@/lib/pdf/report-pdf";
+import { formatDate } from "@/lib/dates";
+import { formatAmount, toMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit, RateLimits } from "@/lib/rate-limit";
-import { getCompanySettings } from "@/lib/settings";
+import {
+  dateRangeLabel,
+  describeFilters,
+  listExportResponse,
+  sumBy,
+  type ExportColumn,
+} from "@/lib/services/list-export";
 import { humanizeEnum } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -36,7 +33,7 @@ const querySchema = z.object({
     .optional(),
 });
 
-interface PaymentExportRow {
+interface Row {
   date: string;
   customer: string;
   invoice: string;
@@ -59,14 +56,15 @@ export async function GET(request: Request) {
     const query = parseQuery(request, querySchema);
     const isAdmin = user.role === "ADMIN";
     const term = query.q?.trim();
-
     const from = query.from ? new Date(`${query.from}T00:00:00.000Z`) : null;
     const to = query.to ? new Date(`${query.to}T23:59:59.999Z`) : null;
 
     const where = {
       ...(query.status ? { status: query.status } : {}),
       ...(from || to
-        ? { date: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } }
+        ? {
+            date: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) },
+          }
         : {}),
       ...(isAdmin
         ? {}
@@ -82,7 +80,9 @@ export async function GET(request: Request) {
             AND: [
               {
                 OR: [
-                  { reference: { contains: term, mode: "insensitive" as const } },
+                  {
+                    reference: { contains: term, mode: "insensitive" as const },
+                  },
                   {
                     invoice: {
                       number: { contains: term, mode: "insensitive" as const },
@@ -125,123 +125,50 @@ export async function GET(request: Request) {
       },
     });
 
-    const rows: PaymentExportRow[] = records.map((record) => ({
+    const rows: Row[] = records.map((record) => ({
       date: formatDate(record.date),
       customer: record.customer.companyName ?? record.customer.name,
       invoice: record.invoice?.number ?? "",
       mode: humanizeEnum(record.mode),
       reference: record.reference ?? "",
       status: humanizeEnum(record.status),
-      recordedBy: record.recordedBy?.name ?? "",
+      recordedBy: record.recordedBy.name,
       amount: toMoney(record.amount),
     }));
 
-    const total = round2(rows.reduce((sum, row) => sum + row.amount, 0));
-    const received = round2(
-      rows
-        .filter((row) => row.status === "Received")
-        .reduce((sum, row) => sum + row.amount, 0),
-    );
-
-    const period =
-      from || to
-        ? `${from ? formatDate(from) : "Start"} to ${to ? formatDate(to) : formatDate(today())}`
-        : "All dates";
-    const filters = [
-      period,
-      query.status ? `Status: ${humanizeEnum(query.status)}` : null,
-      term ? `Search: ${term}` : null,
-    ]
-      .filter(Boolean)
-      .join(" · ");
-
-    const stamp = new Date().toISOString().slice(0, 10);
-
-    if (query.format === "pdf") {
-      const [settings, assets] = await Promise.all([
-        getCompanySettings(),
-        loadPdfAssets(),
-      ]);
-
-      const columns: ReportColumn[] = [
-        { header: "Date", width: 11 },
-        { header: "Customer", width: 26 },
-        { header: "Invoice", width: 15 },
-        { header: "Mode", width: 10 },
-        { header: "Reference", width: 16 },
-        { header: "Status", width: 10 },
-        { header: "Amount", width: 12, align: "right" },
-      ];
-
-      const buffer = await renderToBuffer(
-        ReportPdf({
-          settings,
-          title: "Payments",
-          subtitle: filters,
-          generatedOn: formatDate(today()),
-          summary: [
-            { label: "Payments", value: String(rows.length) },
-            { label: "Received", value: formatAmount(received) },
-            { label: "Total", value: formatAmount(total) },
-          ],
-          columns,
-          rows: rows.map((row) => [
-            row.date,
-            row.customer,
-            row.invoice,
-            row.mode,
-            row.reference,
-            row.status,
-            formatAmount(row.amount),
-          ]),
-          totals: [
-            "Total",
-            null,
-            null,
-            null,
-            null,
-            null,
-            formatAmount(total),
-          ],
-          assets,
-        }),
-      );
-
-      return new Response(new Uint8Array(buffer), {
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="Payments-${stamp}.pdf"`,
-          "Cache-Control": "private, no-store",
-        },
-      });
-    }
-
-    const columns: SheetColumn<PaymentExportRow>[] = [
-      { header: "Date", key: "date", width: 14, value: (r) => r.date },
-      { header: "Customer", key: "customer", width: 34, value: (r) => r.customer },
-      { header: "Invoice", key: "invoice", width: 20, value: (r) => r.invoice },
-      { header: "Mode", key: "mode", width: 12, value: (r) => r.mode },
-      { header: "Reference", key: "reference", width: 22, value: (r) => r.reference },
-      { header: "Status", key: "status", width: 13, value: (r) => r.status },
-      { header: "Recorded by", key: "recordedBy", width: 22, value: (r) => r.recordedBy },
-      { header: "Amount", key: "amount", width: 16, money: true, value: (r) => r.amount },
+    const columns: ExportColumn<Row>[] = [
+      { header: "Date", key: "date", width: 14, pdfWidth: 11, value: (r) => r.date },
+      { header: "Customer", key: "customer", width: 34, pdfWidth: 26, value: (r) => r.customer },
+      { header: "Invoice", key: "invoice", width: 20, pdfWidth: 15, value: (r) => r.invoice },
+      { header: "Mode", key: "mode", width: 12, pdfWidth: 10, value: (r) => r.mode },
+      { header: "Reference", key: "reference", width: 22, pdfWidth: 16, value: (r) => r.reference },
+      { header: "Status", key: "status", width: 13, pdfWidth: 10, value: (r) => r.status },
+      { header: "Recorded by", key: "recordedBy", width: 22, excelOnly: true, value: (r) => r.recordedBy },
+      { header: "Amount", key: "amount", width: 16, pdfWidth: 12, money: true, value: (r) => r.amount },
     ];
 
-    const buffer = await buildWorkbook({
-      title: "Payments",
-      subtitle: filters,
-      sheets: [
-        sheet<PaymentExportRow>({
-          name: "Payments",
-          columns,
-          rows,
-          totals: { amount: total },
-        }),
-      ],
-    });
+    const total = sumBy(rows, (row) => row.amount);
+    const received = sumBy(
+      rows.filter((row) => row.status === "Received"),
+      (row) => row.amount,
+    );
 
-    return new Response(new Uint8Array(buffer), {
-      headers: spreadsheetHeaders(`Payments-${stamp}.xlsx`),
+    return await listExportResponse<Row>({
+      format: query.format,
+      title: "Payments",
+      filters: describeFilters([
+        dateRangeLabel(from, to),
+        query.status ? `Status: ${humanizeEnum(query.status)}` : null,
+        term ? `Search: ${term}` : null,
+      ]),
+      columns,
+      rows,
+      summary: [
+        { label: "Payments", value: String(rows.length) },
+        { label: "Received", value: formatAmount(received) },
+        { label: "Total", value: formatAmount(total) },
+      ],
+      totals: { amount: total },
     });
   } catch (error) {
     return errorResponse(error);
