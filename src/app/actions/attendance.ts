@@ -149,8 +149,14 @@ export const markAttendance = formAction(
       return new Date(`${input.date}T${value}:00${BUSINESS_UTC_OFFSET}`);
     };
 
-    const checkInAt = toDateTime(input.checkInAt);
-    const checkOutAt = toDateTime(input.checkOutAt);
+    const existing = await prisma.attendance.findUnique({
+      where: { userId_date: { userId: input.userId, date } },
+      select: { checkInAt: true, checkOutAt: true },
+    });
+
+    const checkInAt = toDateTime(input.checkInAt) ?? existing?.checkInAt ?? null;
+    const checkOutAt =
+      toDateTime(input.checkOutAt) ?? existing?.checkOutAt ?? null;
 
     if (checkInAt && checkOutAt && checkOutAt <= checkInAt) {
       return formError("Check-out must be after check-in.", {

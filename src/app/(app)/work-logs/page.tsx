@@ -36,6 +36,8 @@ interface WorkLogRow {
   hoursSpent: number;
   status: string;
   customer: string | null;
+  employee: string;
+  employeeCode: string;
   expenseCount: number;
 }
 
@@ -43,15 +45,35 @@ export default async function WorkLogsPage(props: {
   searchParams: Promise<SearchParams>;
 }) {
   const user = await requireUser();
+  const isAdmin = user.role === "ADMIN";
   const searchParams = await props.searchParams;
+
+  const employees = isAdmin
+    ? await prisma.user.findMany({
+        orderBy: { employeeCode: "asc" },
+        select: { id: true, name: true, employeeCode: true },
+      })
+    : [];
+
+  const requestedEmployee = param(searchParams, "employee");
+  const employeeId =
+    isAdmin && employees.some((entry) => entry.id === requestedEmployee)
+      ? requestedEmployee
+      : undefined;
 
   const term = param(searchParams, "q");
   const status = enumParam(searchParams, "status", STATUSES);
   const dateRange = dateRangeFilter(searchParams);
   const { page, perPage, skip, take } = pageWindow(searchParams);
 
+  const scope = isAdmin
+    ? employeeId
+      ? { userId: employeeId }
+      : {}
+    : { userId: user.id };
+
   const where = {
-    userId: user.id,
+    ...scope,
     ...(status ? { status } : {}),
     ...(dateRange ? { date: dateRange } : {}),
     ...(term
@@ -80,20 +102,18 @@ export default async function WorkLogsPage(props: {
         hoursSpent: true,
         status: true,
         customer: { select: { companyName: true, name: true } },
+        user: { select: { name: true, employeeCode: true } },
         _count: { select: { expenses: true } },
       },
     }),
     prisma.dailyWorkLog.count({ where }),
     prisma.dailyWorkLog.aggregate({
-      where: {
-        userId: user.id,
-        date: { gte: thisMonth.from, lte: thisMonth.to },
-      },
+      where: { ...scope, date: { gte: thisMonth.from, lte: thisMonth.to } },
       _sum: { hoursSpent: true },
       _count: true,
     }),
     prisma.dailyWorkLog.count({
-      where: { userId: user.id, status: "SUBMITTED" },
+      where: { ...scope, status: "SUBMITTED" },
     }),
   ]);
 
@@ -104,6 +124,8 @@ export default async function WorkLogsPage(props: {
     hoursSpent: toMoney(record.hoursSpent),
     status: record.status,
     customer: record.customer?.companyName ?? record.customer?.name ?? null,
+    employee: record.user.name,
+    employeeCode: record.user.employeeCode,
     expenseCount: record._count.expenses,
   }));
 
@@ -114,6 +136,23 @@ export default async function WorkLogsPage(props: {
       role: "primary",
       cell: (row) => row.title,
     },
+    ...(isAdmin
+      ? [
+          {
+            key: "employee",
+            header: "Employee",
+            mobileLabel: "Employee",
+            cell: (row: WorkLogRow) => (
+              <span className="text-fg">
+                {row.employee}
+                <span className="ml-1.5 text-fg-subtle">
+                  {row.employeeCode}
+                </span>
+              </span>
+            ),
+          },
+        ]
+      : []),
     {
       key: "customer",
       header: "Customer",
@@ -161,8 +200,12 @@ export default async function WorkLogsPage(props: {
   return (
     <>
       <PageHeader
-        title="My work"
-        description="What you worked on each day, and where it stands for review."
+        title={isAdmin ? "Daily work" : "My work"}
+        description={
+          isAdmin
+            ? "Every employee's daily work report. Filter by employee to see one person's history."
+            : "What you worked on each day, and where it stands for review."
+        }
         actions={
           <Button href="/work-logs/new" variant="primary">
             <Plus aria-hidden="true" />
@@ -191,9 +234,25 @@ export default async function WorkLogsPage(props: {
 
       <Card>
         <FilterBar
-          searchPlaceholder="Search what you worked on…"
+          searchPlaceholder={
+            isAdmin
+              ? "Search work reports…"
+              : "Search what you worked on…"
+          }
           dateRange
           selects={[
+            ...(isAdmin
+              ? [
+                  {
+                    name: "employee",
+                    label: "Employees",
+                    options: employees.map((entry) => ({
+                      value: entry.id,
+                      label: `${entry.name} · ${entry.employeeCode}`,
+                    })),
+                  },
+                ]
+              : []),
             {
               name: "status",
               label: "Status",
@@ -214,8 +273,16 @@ export default async function WorkLogsPage(props: {
             <EmptyState
               icon={<ClipboardList />}
               title="Nothing logged yet"
-              description="Record what you worked on so it can be reviewed and billed."
-              action={{ label: "Log today's work", href: "/work-logs/new" }}
+              description={
+                isAdmin
+                  ? "No work reports match these filters."
+                  : "Record what you worked on so it can be reviewed and billed."
+              }
+              action={
+                isAdmin
+                  ? undefined
+                  : { label: "Log today's work", href: "/work-logs/new" }
+              }
             />
           }
         />
@@ -224,7 +291,13 @@ export default async function WorkLogsPage(props: {
           page={page}
           perPage={perPage}
           total={total}
-          baseParams={carryParams(searchParams, ["q", "status", "from", "to"])}
+          baseParams={carryParams(searchParams, [
+            "q",
+            "status",
+            "from",
+            "to",
+            "employee",
+          ])}
         />
       </Card>
     </>

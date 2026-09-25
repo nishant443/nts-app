@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
 
 import { markAttendance } from "@/app/actions/attendance";
 import { FormBanners, SubmitButton } from "@/components/forms/form-shell";
@@ -9,29 +9,37 @@ import { Field, Input, Select } from "@/components/ui/field";
 import { emptyFormState, fieldError } from "@/lib/form-state";
 
 function TimeInput({ id, name }: { id: string; name: string }) {
-  const previous = useRef("");
+  const [value, setValue] = useState("");
+  const [instance, setInstance] = useState(0);
+  const fromPicker = useRef(false);
 
   return (
     <Input
+      key={instance}
       id={id}
       name={name}
       type="time"
+      value={value}
+      onPointerDown={() => {
+        fromPicker.current = true;
+      }}
+      onKeyDown={() => {
+        fromPicker.current = false;
+      }}
       onChange={(event) => {
-        const input = event.currentTarget;
-        const before = previous.current;
-        const after = input.value;
-        previous.current = after;
+        const next = event.currentTarget.value;
+        const [beforeHour, beforeMinute] = value.split(":");
+        const [nextHour, nextMinute] = next.split(":");
 
-        if (!after) return;
-
-        const [beforeHour, beforeMinute] = before.split(":");
-        const [afterHour, afterMinute] = after.split(":");
         const meridiemPicked =
-          beforeMinute === afterMinute &&
-          Math.abs(Number(afterHour) - Number(beforeHour)) === 12;
+          beforeMinute === nextMinute &&
+          Math.abs(Number(nextHour) - Number(beforeHour)) === 12;
 
-        if (before === "" || meridiemPicked) {
-          setTimeout(() => input.blur(), 0);
+        setValue(next);
+
+        if (next && fromPicker.current && (value === "" || meridiemPicked)) {
+          fromPicker.current = false;
+          setInstance((count) => count + 1);
         }
       }}
     />
