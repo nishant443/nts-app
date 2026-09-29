@@ -8,6 +8,10 @@
 **One place for the business side and the people side of Nutan Tech Solutions —
 CNC machine service, retrofitting, automation and robotics, Bengaluru.**
 
+### [🔗 Open the live app →](https://nts-app-six.vercel.app)
+
+[![Live](https://img.shields.io/badge/Live-nts--app--six.vercel.app-000000?logo=vercel&logoColor=white)](https://nts-app-six.vercel.app)
+
 [![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
 [![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -15,6 +19,7 @@ CNC machine service, retrofitting, automation and robotics, Bengaluru.**
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 
+[Live app](https://nts-app-six.vercel.app) ·
 [Quick start](#-quick-start) ·
 [Features](#-what-it-does) ·
 [How it works](#-how-it-works) ·
@@ -442,6 +447,9 @@ src/
 ---
 
 ## 🚀 Deployment
+
+Running live on Vercel at **<https://nts-app-six.vercel.app>**, backed by Neon
+Postgres.
 
 Any Node host works. On **Vercel**:
 
