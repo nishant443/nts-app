@@ -5,11 +5,11 @@ import { uploadFile } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
-const FOLDERS = new Set(["receipts", "documents", "avatars"]);
+const FOLDERS = new Set(["receipts", "documents"]);
 
 export const POST = withRoute(
   { access: "user", rateLimit: RateLimits.upload },
-  async ({ request }) => {
+  async ({ request, user }) => {
     const formData = await request.formData();
 
     const file = formData.get("file");
@@ -22,7 +22,7 @@ export const POST = withRoute(
       throw new ValidationError("That upload folder is not allowed.");
     }
 
-    const stored = await uploadFile(file, folder);
+    const stored = await uploadFile(file, folder, user.id);
 
     return json(stored, { status: 201 });
   },

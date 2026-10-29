@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 
 import { prisma } from "@/lib/prisma";
+import { clientIp } from "@/lib/rate-limit";
 
 export type AuditEntity =
   | "User"
@@ -36,10 +37,8 @@ interface AuditInput {
 async function requestIpHash(): Promise<string | null> {
   try {
     const headerList = await headers();
-    const forwarded = headerList.get("x-forwarded-for");
-    const ip =
-      forwarded?.split(",")[0]?.trim() || headerList.get("x-real-ip") || null;
-    if (!ip) return null;
+    const ip = clientIp(headerList);
+    if (ip === "unknown") return null;
     return createHash("sha256").update(ip).digest("hex").slice(0, 32);
   } catch {
     return null;

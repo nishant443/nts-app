@@ -12,6 +12,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { requireUser } from "@/lib/dal";
 import { formatDate } from "@/lib/dates";
 import { prisma } from "@/lib/prisma";
+import { visibleDocumentsWhere } from "@/lib/services/file-access";
 import {
   carryParams,
   enumParam,
@@ -60,14 +61,7 @@ export default async function DocumentsPage(props: {
   const where = {
     ...(ownerType ? { ownerType } : {}),
     ...(term ? { name: { contains: term, mode: "insensitive" as const } } : {}),
-    ...(isAdmin
-      ? {}
-      : {
-          OR: [
-            { ownerType: { not: "EMPLOYEE" as const } },
-            { ownerType: "EMPLOYEE" as const, ownerId: user.id },
-          ],
-        }),
+    ...visibleDocumentsWhere(user),
   };
 
   const [records, total, customers, employees] = await Promise.all([

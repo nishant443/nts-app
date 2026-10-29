@@ -20,10 +20,3 @@ const DUMMY_HASH = "$2a$12$C6UzMDM.H6dfI/f/IKcEe.7RG.d/FhBQtEB5rnrbYNhOKRt7yFRsC
 export async function fakePasswordCheck(plain: string): Promise<void> {
   await bcrypt.compare(plain, DUMMY_HASH);
 }
-
-export function generateTemporaryPassword(): string {
-  const words = ["Spindle", "Servo", "Turret", "Chuck", "Axis", "Coolant"];
-  const word = words[Math.floor(Math.random() * words.length)]!;
-  const digits = String(Math.floor(1000 + Math.random() * 9000));
-  return `${word}@${digits}`;
-}

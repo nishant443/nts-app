@@ -71,14 +71,25 @@ export function withRoute<TContext = unknown>(
         );
       }
 
-      return await run({ request, user, context });
+      return noStore(await run({ request, user, context }));
     } catch (error) {
       return errorResponse(error);
     }
   };
 }
 
+function noStore<T extends Response>(response: T): T {
+  if (!response.headers.has("Cache-Control")) {
+    response.headers.set("Cache-Control", "private, no-store");
+  }
+  return response;
+}
+
 export function errorResponse(error: unknown): NextResponse {
+  return noStore(buildErrorResponse(error));
+}
+
+function buildErrorResponse(error: unknown): NextResponse {
   if (error instanceof RateLimitError) {
     return NextResponse.json(
       { error: error.message, code: error.code },

@@ -203,16 +203,6 @@ export const deletePayment = action<{ id: string }>(
   },
 );
 
-export async function refreshOverdueInvoices(): Promise<void> {
-  await prisma.invoice.updateMany({
-    where: {
-      dueDate: { lt: today() },
-      status: { in: ["SENT", "PARTIALLY_PAID"] },
-    },
-    data: { status: "OVERDUE" },
-  });
-}
-
 export const markPaymentReceived = action<{ id: string }>(
   { access: "admin" },
   async ({ input, user }) => {

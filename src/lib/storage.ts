@@ -6,6 +6,7 @@ import path from "node:path";
 
 import { env } from "@/lib/env";
 import { AppError, ValidationError } from "@/lib/errors";
+import { prisma } from "@/lib/prisma";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
@@ -62,9 +63,30 @@ export function safeFileName(original: string): string {
   return cleaned || "file";
 }
 
+// Every stored file is referenced as /api/files/<key>, whichever driver holds
+// it. That route checks who may read the file before serving it, so the
+// storage provider never hands out a public, permanent URL.
+const FILE_ROUTE_PREFIX = "/api/files/";
+const KEY_PATTERN = /^[a-z0-9-]+\/[a-z0-9-]{8,64}\.(?:jpe?g|png|webp|pdf)$/;
+
+export function fileUrlForKey(key: string): string {
+  return `${FILE_ROUTE_PREFIX}${key}`;
+}
+
+export function fileKeyFromUrl(url: string | null | undefined): string | null {
+  if (!url?.startsWith(FILE_ROUTE_PREFIX)) return null;
+  const key = url.slice(FILE_ROUTE_PREFIX.length);
+  return isValidFileKey(key) ? key : null;
+}
+
+export function isValidFileKey(key: string): boolean {
+  return KEY_PATTERN.test(key);
+}
+
 export async function uploadFile(
   file: File,
   folder: string,
+  uploadedById: string,
 ): Promise<StoredFile> {
   if (file.size === 0) throw new ValidationError("The file is empty.");
   if (file.size > MAX_BYTES) {
@@ -92,12 +114,15 @@ export async function uploadFile(
   const segment = folder.replace(/[^a-z0-9-]/gi, "").toLowerCase() || "misc";
   const key = `${segment}/${randomUUID()}${extension}`;
 
-  const url =
-    env.STORAGE_DRIVER === "cloudinary"
-      ? await uploadToCloudinary(buffer, key, mimeType)
-      : await uploadToLocalDisk(buffer, key);
+  if (env.STORAGE_DRIVER === "cloudinary") {
+    await uploadToCloudinary(buffer, key, mimeType);
+  } else {
+    await uploadToLocalDisk(buffer, key);
+  }
 
-  return { url, name, mimeType, sizeBytes: file.size };
+  await prisma.storedUpload.create({ data: { key, uploadedById } });
+
+  return { url: fileUrlForKey(key), name, mimeType, sizeBytes: file.size };
 }
 
 const STORAGE_ROOT = path.join(process.cwd(), "storage");
@@ -105,7 +130,7 @@ const STORAGE_ROOT = path.join(process.cwd(), "storage");
 async function uploadToLocalDisk(
   bytes: Uint8Array,
   key: string,
-): Promise<string> {
+): Promise<void> {
   const destination = path.join(STORAGE_ROOT, key);
 
   if (!destination.startsWith(STORAGE_ROOT + path.sep)) {
@@ -114,8 +139,6 @@ async function uploadToLocalDisk(
 
   await mkdir(path.dirname(destination), { recursive: true });
   await writeFile(destination, bytes);
-
-  return `/api/files/${key}`;
 }
 
 export function resolveLocalFile(segments: string[]): string | null {
@@ -125,30 +148,49 @@ export function resolveLocalFile(segments: string[]): string | null {
   return normalised;
 }
 
+function cloudinarySignature(
+  params: Record<string, string | number>,
+  apiSecret: string,
+): string {
+  const payload = Object.keys(params)
+    .sort()
+    .map((name) => `${name}=${params[name]}`)
+    .join("&");
+  return createHash("sha1").update(`${payload}${apiSecret}`).digest("hex");
+}
+
+function cloudinaryCredentials() {
+  return {
+    cloudName: env.CLOUDINARY_CLOUD_NAME!,
+    apiKey: env.CLOUDINARY_API_KEY!,
+    apiSecret: env.CLOUDINARY_API_SECRET!,
+  };
+}
+
 async function uploadToCloudinary(
   bytes: Uint8Array,
   key: string,
   mimeType: string,
-): Promise<string> {
-  const cloudName = env.CLOUDINARY_CLOUD_NAME!;
-  const apiKey = env.CLOUDINARY_API_KEY!;
-  const apiSecret = env.CLOUDINARY_API_SECRET!;
+): Promise<void> {
+  const { cloudName, apiKey, apiSecret } = cloudinaryCredentials();
 
-  const timestamp = Math.floor(Date.now() / 1000);
-  const publicId = key.replace(/\.[^.]+$/, "");
-  const signature = createHash("sha1")
-    .update(`public_id=${publicId}&timestamp=${timestamp}${apiSecret}`)
-    .digest("hex");
+  const params = {
+    public_id: key.replace(/\.[^.]+$/, ""),
+    timestamp: Math.floor(Date.now() / 1000),
+    // "private" assets can only be fetched through a signed, expiring URL.
+    type: "private",
+  };
 
   const form = new FormData();
   form.append("file", new Blob([bytes as BlobPart], { type: mimeType }));
-  form.append("public_id", publicId);
-  form.append("timestamp", String(timestamp));
+  for (const [name, value] of Object.entries(params)) {
+    form.append(name, String(value));
+  }
   form.append("api_key", apiKey);
-  form.append("signature", signature);
+  form.append("signature", cloudinarySignature(params, apiSecret));
 
   const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`,
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
     { method: "POST", body: form },
   );
 
@@ -160,14 +202,30 @@ async function uploadToCloudinary(
       code: "upload_failed",
     });
   }
+}
 
-  const result = (await response.json()) as { secure_url?: string };
-  if (!result.secure_url) {
-    throw new AppError("Upload succeeded but no URL was returned.", {
-      status: 502,
-      code: "upload_failed",
-    });
-  }
+export const SIGNED_URL_TTL_SECONDS = 300;
 
-  return result.secure_url;
+export function signedCloudinaryUrl(key: string): string {
+  const { cloudName, apiKey, apiSecret } = cloudinaryCredentials();
+  const extension = path.extname(key);
+  const now = Math.floor(Date.now() / 1000);
+
+  const params = {
+    public_id: key.slice(0, -extension.length),
+    format: extension.slice(1),
+    type: "private",
+    timestamp: now,
+    expires_at: now + SIGNED_URL_TTL_SECONDS,
+  };
+
+  const query = new URLSearchParams({
+    ...Object.fromEntries(
+      Object.entries(params).map(([name, value]) => [name, String(value)]),
+    ),
+    api_key: apiKey,
+    signature: cloudinarySignature(params, apiSecret),
+  });
+
+  return `https://api.cloudinary.com/v1_1/${cloudName}/image/download?${query}`;
 }

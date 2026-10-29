@@ -414,6 +414,46 @@ export function notificationEmail(options: {
   return { subject, text, html };
 }
 
+export function passwordResetEmail(options: {
+  recipientName: string;
+  link: string;
+  expiresInLabel: string;
+  requestedByAdmin: boolean;
+  companyName: string;
+}): { subject: string; text: string; html: string } {
+  const subject = "Reset your NTS password";
+
+  const reason = options.requestedByAdmin
+    ? "Your administrator has sent you a link to set a new password for the NTS app."
+    : "We received a request to reset the password for your NTS account.";
+
+  const footnote = `This link works once and expires in ${options.expiresInLabel}. If you did not ask for it, you can ignore this email and your password will stay the same.`;
+
+  const text = [
+    `Hi ${options.recipientName},`,
+    "",
+    reason,
+    "",
+    `Set a new password: ${options.link}`,
+    "",
+    footnote,
+    "",
+    options.companyName,
+  ].join("\n");
+
+  const html = emailShell({
+    companyName: options.companyName,
+    eyebrow: "Account security",
+    heading: "Reset your password",
+    intro: `Hi ${escapeHtml(options.recipientName)}, ${escapeHtml(reason.charAt(0).toLowerCase() + reason.slice(1))}`,
+    body: "",
+    cta: { label: "Set a new password", href: options.link },
+    footnote,
+  });
+
+  return { subject, text, html };
+}
+
 export function payslipEmail(options: {
   employeeName: string;
   period: string;

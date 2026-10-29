@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Plus, Wallet2 } from "lucide-react";
 
-import { refreshOverdueInvoices } from "@/app/actions/payments";
+import { refreshOverdueInvoices } from "@/lib/services/invoices";
 import { StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader } from "@/components/ui/card";

@@ -10,6 +10,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "check": "tsx scripts/check-calculations.ts",
+    "icons": "tsx scripts/generate-icons.ts",
     "verify": "npm run typecheck && npm run lint && npm run check",
     "db:start": "pg_ctl -D \"%LOCALAPPDATA%\\Programs\\pgsql-17-data\" -o \"-p 5433\" -l \"%LOCALAPPDATA%\\Programs\\pgsql-17-data\\server.log\" start",
     "db:stop": "pg_ctl -D \"%LOCALAPPDATA%\\Programs\\pgsql-17-data\" stop",
@@ -58,6 +59,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "prisma": "^7.10.0",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5"

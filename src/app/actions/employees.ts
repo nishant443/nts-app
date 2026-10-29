@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { action, formAction, formError, formSuccess } from "@/lib/action";
-import { generateTemporaryPassword, hashPassword } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { parseDateInput } from "@/lib/dates";
 import { env } from "@/lib/env";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { isMailConfigured, notificationEmail, sendMail } from "@/lib/mail";
+import { issuePasswordReset } from "@/lib/password-reset";
 import { getCompanySettings } from "@/lib/settings";
 import { flash } from "@/lib/flash";
 import { formatEmployeeCode } from "@/lib/numbering";
@@ -148,7 +149,13 @@ export const updateEmployee = formAction(
         role: input.role,
         status: input.status,
         ...(input.status !== "ACTIVE" && employee.status === "ACTIVE"
-          ? { sessionVersion: { increment: 1 }, deactivatedAt: new Date() }
+          ? { deactivatedAt: new Date() }
+          : {}),
+        // A changed role or a deactivation must not wait for the old token to
+        // expire: its role claim is what the proxy checks.
+        ...((input.status !== "ACTIVE" && employee.status === "ACTIVE") ||
+        input.role !== employee.role
+          ? { sessionVersion: { increment: 1 } }
           : {}),
         ...(input.status === "ACTIVE" && employee.status !== "ACTIVE"
           ? { deactivatedAt: null, deactivationReason: null }
@@ -396,37 +403,35 @@ async function emailEmployee(
   }
 }
 
-export const resetEmployeePassword = action<
-  { id: string },
-  { temporaryPassword: string; name: string }
->(
+export const sendPasswordResetLink = action<{ id: string }, { name: string; email: string }>(
   { access: "admin" },
   async ({ input, user }) => {
+    if (!isMailConfigured()) {
+      throw new ConflictError(
+        "Email has not been set up, so a reset link cannot be sent. Configure SMTP first.",
+      );
+    }
+
     const employee = await prisma.user.findUnique({
       where: { id: input.id },
-      select: { id: true, name: true },
+      select: { id: true, name: true, email: true, status: true },
     });
 
     if (!employee) throw new NotFoundError("That employee no longer exists.");
+    if (employee.status !== "ACTIVE") {
+      throw new ConflictError("Reactivate this account before sending a reset link.");
+    }
 
-    const temporary = generateTemporaryPassword();
-
-    await prisma.user.update({
-      where: { id: input.id },
-      data: {
-        passwordHash: await hashPassword(temporary),
-        sessionVersion: { increment: 1 },
-      },
-    });
+    await issuePasswordReset(employee, { requestedByAdmin: true });
 
     await recordAudit({
       userId: user.id,
-      action: "employee.password_reset",
+      action: "employee.password_reset_link_sent",
       entity: "User",
       entityId: input.id,
       meta: { employee: employee.name },
     });
 
-    return { temporaryPassword: temporary, name: employee.name };
+    return { name: employee.name, email: employee.email };
   },
 );

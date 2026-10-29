@@ -213,20 +213,22 @@ model User {
   profile         EmployeeProfile?
   salaryStructure SalaryStructure[]
   attendance      Attendance[]
-  leaveRequests   LeaveRequest[]    @relation("LeaveRequester")
-  leaveReviews    LeaveRequest[]    @relation("LeaveReviewer")
+  leaveRequests   LeaveRequest[]       @relation("LeaveRequester")
+  leaveReviews    LeaveRequest[]       @relation("LeaveReviewer")
   leaveBalances   LeaveBalance[]
   payslips        Payslip[]
-  workLogs        DailyWorkLog[]    @relation("WorkLogAuthor")
-  workLogReviews  DailyWorkLog[]    @relation("WorkLogReviewer")
-  expenses        Expense[]         @relation("ExpenseOwner")
-  expenseReviews  Expense[]         @relation("ExpenseReviewer")
-  assignedTasks   Task[]            @relation("TaskAssignee")
-  createdTasks    Task[]            @relation("TaskAssigner")
+  workLogs        DailyWorkLog[]       @relation("WorkLogAuthor")
+  workLogReviews  DailyWorkLog[]       @relation("WorkLogReviewer")
+  expenses        Expense[]            @relation("ExpenseOwner")
+  expenseReviews  Expense[]            @relation("ExpenseReviewer")
+  assignedTasks   Task[]               @relation("TaskAssignee")
+  createdTasks    Task[]               @relation("TaskAssigner")
   notifications   Notification[]
   auditLogs       AuditLog[]
-  workLocations   WorkLocation[]    @relation("WorkLocationEmployee")
-  setLocations    WorkLocation[]    @relation("WorkLocationSetter")
+  workLocations   WorkLocation[]       @relation("WorkLocationEmployee")
+  setLocations    WorkLocation[]       @relation("WorkLocationSetter")
+  passwordResets  PasswordResetToken[]
+  uploads         StoredUpload[]
 
   createdCustomers      Customer[]      @relation("CustomerCreator")
   ownedCustomers        Customer[]      @relation("CustomerOwner")
@@ -550,7 +552,7 @@ model Expense {
   user   User   @relation("ExpenseOwner", fields: [userId], references: [id], onDelete: Cascade)
 
   date        DateTime
-  amount      Decimal @db.Decimal(14, 2)
+  amount      Decimal  @db.Decimal(14, 2)
   description String?
   receiptUrl  String?
 
@@ -960,4 +962,39 @@ model CompanySettings {
   updatedAt DateTime @updatedAt
 
   @@map("company_settings")
+}
+
+model PasswordResetToken {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model StoredUpload {
+  key          String @id
+  uploadedById String
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([uploadedById])
+  @@map("stored_uploads")
+}
+
+model RateLimit {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+
+  @@index([resetAt])
+  @@map("rate_limits")
 }

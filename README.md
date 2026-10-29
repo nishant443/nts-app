@@ -292,6 +292,7 @@ runs the revenue queries at all.
 | `npm run db:studio` | Prisma Studio |
 | `npm run db:start` / `db:stop` | Bundled local PostgreSQL on port 5433 (Windows) |
 | `npm run check` | Pure-function checks: GST split, loss of pay, amount in words, financial year |
+| `npm run icons` | Regenerate the PWA icons in `public/icons` from the NTS logo (needs the `sharp` dev dependency); commit the PNGs |
 
 <details>
 <summary><b>Importing real data</b></summary>
@@ -302,6 +303,7 @@ runs the revenue queries at all.
 | --- | --- |
 | `npx tsx scripts/import-sales.ts` | Rebuilds customers, invoices and payments from the Vyapar sale reports. Wipes existing sales data first; totals are asserted against the reports. |
 | `npx tsx scripts/import-real-data.ts` | Loads the operating spreadsheet — work log, tasks, pending payments. Re-runnable. |
+| `npx tsx scripts/privatize-uploads.ts` | One-off: makes documents and receipts uploaded before private storage existed private on Cloudinary and points them at `/api/files`. Dry run by default; add `--apply`. Re-runnable. |
 
 </details>
 
@@ -316,10 +318,11 @@ fails immediately, not at the first request.
 | --- | :---: | --- |
 | `DATABASE_URL` | ✅ | PostgreSQL connection string. Hosted databases need `?sslmode=require`. Migrations use the direct (non-pooled) host automatically. |
 | `SESSION_SECRET` | ✅ | Signs the session JWT. 32+ characters. |
-| `NEXT_PUBLIC_APP_URL` | | Absolute URL used in emails. Default `http://localhost:3000`. |
+| `NEXT_PUBLIC_APP_URL` | | Absolute URL used in emails, including password-reset links. Default `http://localhost:3000`. |
 | `STORAGE_DRIVER` | | `local` (default, writes to `./storage`) or `cloudinary`. |
 | `CLOUDINARY_CLOUD_NAME` `CLOUDINARY_API_KEY` `CLOUDINARY_API_SECRET` | with cloudinary | All three together. |
-| `SMTP_HOST` `SMTP_PORT` `SMTP_SECURE` `SMTP_USER` `SMTP_PASSWORD` `SMTP_FROM` | | Outbound email. Leave `SMTP_HOST` blank and email buttons explain mail is not set up instead of failing. |
+| `SMTP_HOST` `SMTP_PORT` `SMTP_SECURE` `SMTP_USER` `SMTP_PASSWORD` `SMTP_FROM` | | Outbound email. Leave `SMTP_HOST` blank and email buttons explain mail is not set up instead of failing. **Password reset needs it** — without SMTP, reset links cannot be delivered. |
+| `VERCEL_GIT_COMMIT_SHA` | | Set by Vercel. Becomes the build ID stamped into the service worker; elsewhere the git commit is used. |
 | `GSTIN_API_URL` `GSTIN_API_KEY` `GSTIN_API_KEY_HEADER` | | GST number lookup on the customer form (fills name, address, PIN from a GSTIN). URL template for any provider — GSTINCheck, Appyflow, KnowYourGST… — with `{gstin}`/`{key}` placeholders. Blank disables the button. |
 
 <details>
@@ -422,11 +425,14 @@ src/
 
 - **Sessions** — HS256 JWT in an `httpOnly`, `SameSite=Lax` cookie, `Secure` in production, 8-hour expiry. Claims: user id, role, session version.
 - **Passwords** — bcrypt cost 12. Unknown emails still get a bcrypt comparison so timing does not reveal whether an address exists. The account's status is only revealed *after* the password checks out.
-- **Session invalidation** — `sessionVersion` is bumped on password change, admin reset and deactivation; stale cookies are cleared by `/api/auth/expire`.
-- **Rate limiting** — login by email *and* IP; writes per account. In-process; swap `hit()` in `src/lib/rate-limit.ts` for Redis before scaling out.
+- **Session invalidation** — `sessionVersion` is bumped on sign-out (every device), password change or reset, role change and deactivation; stale cookies are cleared by `/api/auth/expire`.
+- **Password reset** — "Forgotten your password?" emails a single-use link (30 minutes; 24 hours when an administrator sends it from the employee page). The reply is identical whether or not the address has an account, the token is never returned to the browser, only its SHA-256 hash is stored, and it travels in the URL fragment so it stays out of server logs.
+- **Rate limiting** — login and password reset by email *and* IP, counted in Postgres (`rate_limits`) so the limit holds across serverless instances. General per-account read/write throttles stay in-process. Client IPs come from the platform header (`x-vercel-forwarded-for` / `x-real-ip`), never the spoofable left-most `X-Forwarded-For` entry.
+- **Access** — admin pages are gated in the proxy *and* re-checked in every page, action and route. Employees can only edit their own profile through a fixed field list.
 - **Validation** — Zod on the server for every form and endpoint; totals recomputed server-side, never trusted from the browser.
 - **Headers** — CSP, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS in production.
-- **Uploads** — magic-byte checks, stored outside `public/`, served through an authenticated route.
+- **Uploads** — magic-byte checks; private on Cloudinary (or outside `public/` locally). Every file is referenced as `/api/files/<key>`, which checks the viewer may see it (uploader, owner of the expense, or a document they can see; admins see all) and then redirects to a Cloudinary URL that expires in 5 minutes, or streams the local file. A record can only point at a file its author uploaded.
+- **Caching** — every `/api` response is `Cache-Control: private, no-store`. The service worker never caches `/api`, sign-in pages or page HTML.
 - **Audit trail** — every change to money, pay or access is logged with a hashed IP.
 
 </details>
@@ -439,8 +445,9 @@ src/
 1. Change or delete the seeded accounts.
 2. Set a fresh `SESSION_SECRET`.
 3. Switch `STORAGE_DRIVER` to `cloudinary` — local disk is not durable on serverless hosts.
-4. Point rate limiting at Redis if running more than one instance.
-5. Never commit `.env`.
+4. Configure SMTP so password-reset emails can be sent.
+5. If files were uploaded before private storage, run `npx tsx scripts/privatize-uploads.ts --apply` once.
+6. Never commit `.env`.
 
 </details>
 
@@ -458,6 +465,18 @@ Any Node host works. On **Vercel**:
 3. Provision Postgres — Neon, Supabase or Vercel Postgres; append `?sslmode=require`.
 4. Build command: `prisma generate && prisma migrate deploy && next build`.
 5. `STORAGE_DRIVER=cloudinary` with its three keys.
+
+### Installable app (PWA)
+
+In production builds NTS registers a hand-written service worker
+(`src/pwa/service-worker.js`, served at `/sw.js` with the build ID stamped in).
+It caches only static files — hashed bundles, icons, the logo, fonts and
+`/offline.html` — and loads pages network-first, falling back to the offline
+page. Nothing is active under `npm run dev`.
+
+- A new deploy shows **"A new version of NTS is available"** with *Update now* / *Later*; the new worker never takes over on its own.
+- Users can install from **Install app** in the account menu; on iOS it explains *Share → Add to Home Screen*.
+- To announce a release, add an entry at the top of `src/lib/releases.ts`. Signed-in users see it once in a *What's new* dialog.
 
 ---
 

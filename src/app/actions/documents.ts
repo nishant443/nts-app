@@ -7,6 +7,7 @@ import { action, formAction, formSuccess } from "@/lib/action";
 import { recordAudit } from "@/lib/audit";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
+import { assertOwnUpload } from "@/lib/services/file-access";
 
 const documentSchema = z.object({
   ownerType: z.enum([
@@ -29,15 +30,20 @@ const documentSchema = z.object({
 export const saveDocument = formAction(
   { access: "user", schema: documentSchema },
   async ({ input, user }) => {
-    if (
-      input.ownerType === "EMPLOYEE" &&
-      input.ownerId !== user.id &&
-      user.role !== "ADMIN"
-    ) {
-      throw new ForbiddenError(
-        "You can only upload documents to your own record.",
-      );
+    if (user.role !== "ADMIN") {
+      if (input.ownerType === "EMPLOYEE" && input.ownerId !== user.id) {
+        throw new ForbiddenError(
+          "You can only upload documents to your own record.",
+        );
+      }
+      if (input.ownerType !== "EMPLOYEE" && input.ownerType !== "CUSTOMER") {
+        throw new ForbiddenError(
+          "Only an administrator can attach documents there.",
+        );
+      }
     }
+
+    await assertOwnUpload(user, input.url);
 
     const created = await prisma.document.create({
       data: {

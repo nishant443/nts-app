@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { decodeSession, SESSION_COOKIE } from "@/lib/session";
 
-const PUBLIC_PATHS = new Set(["/login"]);
+const PUBLIC_PATHS = new Set(["/login", "/forgot-password", "/reset-password"]);
 
 function isPublic(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
@@ -60,8 +60,10 @@ function securityHeaders(response: NextResponse, isDev: boolean): NextResponse {
       `script-src ${scriptSrc}`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' data: blob: https://res.cloudinary.com",
+      "img-src 'self' data: blob: https://res.cloudinary.com https://api.cloudinary.com",
       "connect-src 'self'",
+      "worker-src 'self'",
+      "manifest-src 'self'",
       "frame-ancestors 'none'",
       "object-src 'none'",
       "base-uri 'self'",
@@ -77,7 +79,11 @@ export async function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV === "development";
 
   if (pathname.startsWith("/api/")) {
-    return securityHeaders(NextResponse.next(), isDev);
+    // API responses carry private data; no browser, proxy or service worker
+    // may keep a copy. Route handlers that set their own value still win.
+    const response = NextResponse.next();
+    response.headers.set("Cache-Control", "private, no-store");
+    return securityHeaders(response, isDev);
   }
 
   const session = await decodeSession(
@@ -111,6 +117,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|brand/|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|brand/|icons/|fonts/|sw.js|manifest.webmanifest|offline.html|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)",
   ],
 };

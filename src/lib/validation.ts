@@ -140,6 +140,21 @@ export const passwordField = z
   .regex(/[A-Z]/, "Include an uppercase letter.")
   .regex(/[0-9]/, "Include a number.");
 
+export const forgotPasswordSchema = z.object({
+  email: emailField,
+});
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(20, "This reset link is invalid.").max(200),
+    newPassword: passwordField,
+    confirmPassword: z.string().min(1, "Confirm your new password."),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "The two passwords do not match.",
+    path: ["confirmPassword"],
+  });
+
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, "Enter your current password."),

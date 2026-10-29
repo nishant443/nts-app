@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronDown, LogOut, Settings, User } from "lucide-react";
 
 import { signOut } from "@/app/actions/auth";
+import { InstallAppItem } from "@/components/pwa/install-app-item";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import type { Role } from "@/generated/prisma/enums";
@@ -104,6 +105,7 @@ export function UserMenu({
             <MenuLink href="/settings" icon={Settings} onSelect={() => setOpen(false)}>
               Settings
             </MenuLink>
+            <InstallAppItem onDone={() => setOpen(false)} />
           </div>
 
           <form action={signOut} className="border-t border-border py-1">

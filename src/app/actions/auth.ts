@@ -2,15 +2,27 @@
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
+import { after } from "next/server";
+import { z } from "zod";
 
 import { formAction, formError, type FormState } from "@/lib/action";
 import { fakePasswordCheck, hashPassword, verifyPassword } from "@/lib/auth";
 import { recordAudit } from "@/lib/audit";
 import { getSessionUser } from "@/lib/dal";
-import { enforceRateLimit, RateLimits } from "@/lib/rate-limit";
+import { hashResetToken, issuePasswordReset } from "@/lib/password-reset";
+import {
+  clientIp,
+  enforceSharedRateLimit,
+  RateLimits,
+} from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { createSession, destroySession } from "@/lib/session";
-import { changePasswordSchema, loginSchema } from "@/lib/validation";
+import {
+  changePasswordSchema,
+  forgotPasswordSchema,
+  loginSchema,
+  resetPasswordSchema,
+} from "@/lib/validation";
 import { RateLimitError } from "@/lib/errors";
 
 export async function signIn(
@@ -29,18 +41,14 @@ export async function signIn(
   const { email, password } = parsed.data;
 
   try {
-    const headerList = await headers();
-    const ip =
-      headerList.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      headerList.get("x-real-ip") ??
-      "unknown";
+    const ip = clientIp(await headers());
 
-    enforceRateLimit(
+    await enforceSharedRateLimit(
       `login:email:${email}`,
       RateLimits.login.limit,
       RateLimits.login.windowSeconds,
     );
-    enforceRateLimit(
+    await enforceSharedRateLimit(
       `login:ip:${ip}`,
       RateLimits.login.limit * 3,
       RateLimits.login.windowSeconds,
@@ -133,6 +141,12 @@ export async function signOut(): Promise<void> {
   const user = await getSessionUser();
 
   if (user) {
+    // Revokes every copy of the session token, not just this browser's cookie.
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { sessionVersion: { increment: 1 } },
+    });
+
     await recordAudit({
       userId: user.id,
       action: "auth.logout",
@@ -190,3 +204,156 @@ export const changePassword = formAction(
     };
   },
 );
+
+const RESET_REQUESTED =
+  "If that email belongs to an active NTS account, a reset link is on its way. It expires in 30 minutes.";
+
+export async function requestPasswordReset(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const parsed = forgotPasswordSchema.safeParse({ email: formData.get("email") });
+  if (!parsed.success) {
+    return formError("Enter a valid email address.", {
+      email: ["Enter a valid email address."],
+    });
+  }
+
+  const { email } = parsed.data;
+
+  try {
+    const ip = clientIp(await headers());
+    await enforceSharedRateLimit(
+      `reset:email:${email}`,
+      RateLimits.passwordReset.limit,
+      RateLimits.passwordReset.windowSeconds,
+    );
+    await enforceSharedRateLimit(
+      `reset:ip:${ip}`,
+      RateLimits.passwordReset.limit * 3,
+      RateLimits.passwordReset.windowSeconds,
+    );
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return formError(
+        "Too many reset requests. Please wait a few minutes and try again.",
+      );
+    }
+    throw error;
+  }
+
+  // The lookup and email happen after the response is sent, so the reply and
+  // its timing are identical whether or not the address has an account.
+  after(async () => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true, name: true, email: true, status: true },
+      });
+      if (!user || user.status !== "ACTIVE") return;
+
+      await issuePasswordReset(user, { requestedByAdmin: false });
+      await recordAudit({
+        userId: user.id,
+        action: "auth.password_reset_requested",
+        entity: "Auth",
+        entityId: user.id,
+      });
+    } catch (error) {
+      console.error("[auth] password reset request failed", error);
+    }
+  });
+
+  return { success: RESET_REQUESTED, ts: Date.now() };
+}
+
+const INVALID_RESET_LINK =
+  "This reset link is invalid or has expired. Request a new one.";
+
+export async function resetPassword(
+  _prevState: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const parsed = resetPasswordSchema.safeParse({
+    token: formData.get("token"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = z.flattenError(parsed.error).fieldErrors as Record<
+      string,
+      string[]
+    >;
+    if (fieldErrors.token) return formError(INVALID_RESET_LINK);
+    return formError("Please correct the highlighted fields.", fieldErrors);
+  }
+
+  try {
+    await enforceSharedRateLimit(
+      `reset-submit:ip:${clientIp(await headers())}`,
+      RateLimits.passwordReset.limit * 2,
+      RateLimits.passwordReset.windowSeconds,
+    );
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      return formError("Too many attempts. Please wait a few minutes and try again.");
+    }
+    throw error;
+  }
+
+  const { token, newPassword } = parsed.data;
+
+  const record = await prisma.passwordResetToken.findUnique({
+    where: { tokenHash: hashResetToken(token) },
+    select: {
+      id: true,
+      userId: true,
+      expiresAt: true,
+      usedAt: true,
+      user: { select: { status: true } },
+    },
+  });
+
+  if (
+    !record ||
+    record.usedAt ||
+    record.expiresAt <= new Date() ||
+    record.user.status !== "ACTIVE"
+  ) {
+    return formError(INVALID_RESET_LINK);
+  }
+
+  const passwordHash = await hashPassword(newPassword);
+
+  const claimed = await prisma.$transaction(async (tx) => {
+    // Claiming the token inside the transaction means two simultaneous
+    // submissions of the same link cannot both succeed.
+    const { count } = await tx.passwordResetToken.updateMany({
+      where: { id: record.id, usedAt: null },
+      data: { usedAt: new Date() },
+    });
+    if (count === 0) return false;
+
+    await tx.user.update({
+      where: { id: record.userId },
+      data: { passwordHash, sessionVersion: { increment: 1 } },
+    });
+    await tx.passwordResetToken.deleteMany({
+      where: { userId: record.userId, id: { not: record.id } },
+    });
+    return true;
+  });
+
+  if (!claimed) return formError(INVALID_RESET_LINK);
+
+  await recordAudit({
+    userId: record.userId,
+    action: "auth.password_reset",
+    entity: "Auth",
+    entityId: record.userId,
+  });
+
+  await destroySession();
+  redirect("/login?notice=reset");
+}

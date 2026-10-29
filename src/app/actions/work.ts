@@ -16,6 +16,7 @@ import { flash } from "@/lib/flash";
 import { formatCurrency, round2 } from "@/lib/money";
 import { notify, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { assertOwnUpload } from "@/lib/services/file-access";
 import {
   expenseReviewSchema,
   expenseSchema,
@@ -245,13 +246,19 @@ export const saveExpense = formAction(
     if (input.id) {
       const existing = await prisma.expense.findUnique({
         where: { id: input.id },
-        select: { id: true, userId: true, status: true, date: true },
+        select: { id: true, userId: true, status: true, date: true, receiptUrl: true },
       });
 
       if (!existing) throw new NotFoundError("That expense no longer exists.");
 
       if (existing.userId !== user.id && user.role !== "ADMIN") {
         return formError("You can only edit your own expenses.");
+      }
+
+      if (input.receiptUrl) {
+        await assertOwnUpload(user, input.receiptUrl, {
+          unchanged: existing.receiptUrl,
+        });
       }
 
       if (existing.status === "REIMBURSED") {
@@ -304,6 +311,8 @@ export const saveExpense = formAction(
       await flash("Expense claim updated and sent for approval again.");
       redirect("/expenses");
     }
+
+    if (input.receiptUrl) await assertOwnUpload(user, input.receiptUrl);
 
     const created = await prisma.expense.create({
       data: {

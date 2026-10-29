@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 
 import { ThemeScript } from "@/components/layout/theme";
+import { ServiceWorkerManager } from "@/components/pwa/service-worker-manager";
 import { SuccessPopupHost } from "@/components/ui/success-popup";
 
 import "./globals.css";
@@ -22,6 +23,11 @@ export const metadata: Metadata = {
     "Operations and HR platform for Nutan Tech Solutions — CNC maintenance, retrofitting, automation and robotics.",
   applicationName: "NTS",
   robots: { index: false, follow: false },
+  appleWebApp: {
+    capable: true,
+    title: "NTS",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
@@ -45,6 +51,7 @@ export default function RootLayout({
       <body className="antialiased">
         {children}
         <SuccessPopupHost />
+        <ServiceWorkerManager />
         <Toaster
           position="top-right"
           richColors
