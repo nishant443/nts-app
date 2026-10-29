@@ -21,6 +21,7 @@ import {
   type SearchParams,
 } from "@/lib/query";
 import { humanizeEnum } from "@/lib/utils";
+import { FilePreview } from "@/components/ui/file-preview";
 
 export const metadata: Metadata = {
   title: "Documents",
@@ -119,15 +120,14 @@ export default async function DocumentsPage(props: {
       header: "Document",
       role: "primary",
       cell: (row) => (
-        <a
-          href={row.url}
-          target="_blank"
-          rel="noopener noreferrer"
+        <FilePreview
+          url={row.url}
+          name={row.name}
           className="inline-flex items-center gap-2 hover:text-accent"
         >
           <FileText aria-hidden="true" className="size-4 shrink-0 text-accent" />
           {row.name}
-        </a>
+        </FilePreview>
       ),
     },
     {

@@ -431,7 +431,7 @@ src/
 - **Access** — admin pages are gated in the proxy *and* re-checked in every page, action and route. Employees can only edit their own profile through a fixed field list.
 - **Validation** — Zod on the server for every form and endpoint; totals recomputed server-side, never trusted from the browser.
 - **Headers** — CSP, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, HSTS in production.
-- **Uploads** — magic-byte checks; private on Cloudinary (or outside `public/` locally). Every file is referenced as `/api/files/<key>`, which checks the viewer may see it (uploader, owner of the expense, or a document they can see; admins see all) and then redirects to a Cloudinary URL that expires in 5 minutes, or streams the local file. A record can only point at a file its author uploaded.
+- **Uploads** — magic-byte checks; private on Cloudinary (or outside `public/` locally). Every file is referenced as `/api/files/<key>`, which checks the viewer may see it (uploader, owner of the expense, or a document they can see; admins see all) and then relays the file from the NTS origin (fetched through a Cloudinary URL that expires in 5 minutes), so an installed app never leaves its window. Files over 4 MB, beyond Vercel's response limit, get a redirect to that short-lived URL instead. Files and generated PDFs open in an in-app viewer (`FilePreview`) rather than a new tab. A record can only point at a file its author uploaded.
 - **Caching** — every `/api` response is `Cache-Control: private, no-store`. The service worker never caches `/api`, sign-in pages or page HTML.
 - **Audit trail** — every change to money, pay or access is logged with a hashed IP.
 

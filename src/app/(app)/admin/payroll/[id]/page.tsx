@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ExternalLink, FileSpreadsheet, Users } from "lucide-react";
+import { FileSpreadsheet, FileText, Users } from "lucide-react";
 
 import { RunActions } from "@/components/payroll/run-actions";
 import { StatusBadge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import { requireAdmin } from "@/lib/dal";
 import { formatMonthYear } from "@/lib/dates";
 import { formatCurrency, round2, toMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { FilePreview } from "@/components/ui/file-preview";
 
 export async function generateMetadata(
   props: PageProps<"/admin/payroll/[id]">,
@@ -168,15 +169,14 @@ export default async function PayrollRunPage(
       align: "right",
       mobileLabel: "Payslip",
       cell: (row) => (
-        <a
-          href={`/api/pdf/payslip/${row.id}`}
-          target="_blank"
-          rel="noopener noreferrer"
+        <FilePreview
+          url={`/api/pdf/payslip/${row.id}`}
+          name={`Payslip — ${row.name}`}
           className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1 text-[12.5px] font-medium text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
         >
-          <ExternalLink aria-hidden="true" className="size-3.5" />
+          <FileText aria-hidden="true" className="size-3.5" />
           PDF
-        </a>
+        </FilePreview>
       ),
     },
   ];

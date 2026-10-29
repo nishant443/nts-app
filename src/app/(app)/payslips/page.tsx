@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BadgeIndianRupee, ExternalLink } from "lucide-react";
+import { BadgeIndianRupee, FileText } from "lucide-react";
 
 import { Card, CardHeader } from "@/components/ui/card";
 import { DataTable, type Column } from "@/components/ui/data-table";
@@ -11,6 +11,7 @@ import { formatMonthYear } from "@/lib/dates";
 import { formatCurrency, toMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { pageWindow, type SearchParams } from "@/lib/query";
+import { FilePreview } from "@/components/ui/file-preview";
 
 export const metadata: Metadata = {
   title: "My payslips",
@@ -140,15 +141,14 @@ export default async function PayslipsPage(props: {
       align: "right",
       mobileLabel: "Payslip",
       cell: (row) => (
-        <a
-          href={`/api/pdf/payslip/${row.id}`}
-          target="_blank"
-          rel="noopener noreferrer"
+        <FilePreview
+          url={`/api/pdf/payslip/${row.id}`}
+          name={`Payslip — ${formatMonthYear(row.month, row.year)}`}
           className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1 text-[12.5px] font-medium text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
         >
-          <ExternalLink aria-hidden="true" className="size-3.5" />
+          <FileText aria-hidden="true" className="size-3.5" />
           PDF
-        </a>
+        </FilePreview>
       ),
     },
   ];

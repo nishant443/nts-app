@@ -34,10 +34,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f6f9" },
-    { media: "(prefers-color-scheme: dark)", color: "#0d1117" },
-  ],
+  // A single tag that ThemeScript retunes to the app's own theme, so the
+  // phone's status bar matches the top bar even when the app and the phone
+  // are set to different themes.
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({

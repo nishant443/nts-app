@@ -30,11 +30,22 @@ function isAdminOnly(pathname: string): boolean {
   return false;
 }
 
-function securityHeaders(response: NextResponse, isDev: boolean): NextResponse {
+// Stored files and generated PDFs are shown inside the app's own viewer, so
+// they may be framed by NTS itself; everything else may not be framed at all.
+function isViewableFile(pathname: string): boolean {
+  return pathname.startsWith("/api/files/") || pathname.startsWith("/api/pdf/");
+}
+
+function securityHeaders(
+  response: NextResponse,
+  isDev: boolean,
+  pathname = "",
+): NextResponse {
   const headers = response.headers;
+  const framable = isViewableFile(pathname);
 
   headers.set("X-Content-Type-Options", "nosniff");
-  headers.set("X-Frame-Options", "DENY");
+  headers.set("X-Frame-Options", framable ? "SAMEORIGIN" : "DENY");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   headers.set(
     "Permissions-Policy",
@@ -64,7 +75,7 @@ function securityHeaders(response: NextResponse, isDev: boolean): NextResponse {
       "connect-src 'self'",
       "worker-src 'self'",
       "manifest-src 'self'",
-      "frame-ancestors 'none'",
+      framable ? "frame-ancestors 'self'" : "frame-ancestors 'none'",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
@@ -83,7 +94,7 @@ export async function proxy(request: NextRequest) {
     // may keep a copy. Route handlers that set their own value still win.
     const response = NextResponse.next();
     response.headers.set("Cache-Control", "private, no-store");
-    return securityHeaders(response, isDev);
+    return securityHeaders(response, isDev, pathname);
   }
 
   const session = await decodeSession(
@@ -117,6 +128,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|brand/|icons/|fonts/|sw.js|manifest.webmanifest|offline.html|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|brand/|icons/|fonts/|sw.js|manifest.webmanifest|offline.html|launch.html|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)",
   ],
 };

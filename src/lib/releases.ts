@@ -17,6 +17,15 @@ export interface Release {
 /** Newest first. */
 export const RELEASES: Release[] = [
   {
+    version: "1.2.0",
+    date: "2026-10-29",
+    notes: [
+      "A new launch screen celebrating 3 glorious years of Nutan Tech Solutions.",
+      "The phone's status bar now matches the app's light or dark theme.",
+      "If the old look remains, remove the app from your home screen and install it again.",
+    ],
+  },
+  {
     version: "1.1.0",
     date: "2026-10-29",
     notes: [

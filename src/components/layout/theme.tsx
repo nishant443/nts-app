@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "nts-theme";
 
+// Match the top bar (bg-surface), which sits directly under the status bar.
+const STATUS_BAR = { light: "#ffffff", dark: "#151b23" } as const;
+
 type Theme = "light" | "dark" | "system";
 
 const listeners = new Set<() => void>();
@@ -74,6 +77,11 @@ function setTheme(next: Theme) {
       window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   document.documentElement.classList.toggle("dark", dark);
+  document
+    .querySelectorAll('meta[name="theme-color"]')
+    .forEach((meta) =>
+      meta.setAttribute("content", dark ? STATUS_BAR.dark : STATUS_BAR.light),
+    );
   emit();
 }
 
@@ -81,11 +89,23 @@ export function ThemeScript() {
   const script = `
 (function(){
   try {
-    var stored = localStorage.getItem(${JSON.stringify(STORAGE_KEY)});
-    var dark = stored === 'dark' ||
-      ((!stored || stored === 'system') &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches);
-    document.documentElement.classList.toggle('dark', dark);
+    var media = window.matchMedia('(prefers-color-scheme: dark)');
+    var apply = function () {
+      var stored = localStorage.getItem(${JSON.stringify(STORAGE_KEY)});
+      if (stored === 'light' || stored === 'dark') return stored === 'dark';
+      return media.matches;
+    };
+    var paint = function () {
+      var dark = apply();
+      document.documentElement.classList.toggle('dark', dark);
+      var color = dark ? ${JSON.stringify(STATUS_BAR.dark)} : ${JSON.stringify(STATUS_BAR.light)};
+      document.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
+        meta.setAttribute('content', color);
+      });
+    };
+    paint();
+    document.addEventListener('DOMContentLoaded', paint);
+    media.addEventListener('change', paint);
   } catch (e) {}
 })();`.trim();
 

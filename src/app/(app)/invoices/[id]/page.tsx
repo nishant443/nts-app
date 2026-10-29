@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
+import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { deleteInvoice, setInvoiceStatus } from "@/app/actions/invoices";
 import { ConfirmAction } from "@/components/documents/confirm-action";
@@ -18,6 +18,7 @@ import { isMailConfigured } from "@/lib/mail";
 import { formatCurrency, round2, toMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { getCompanySettings } from "@/lib/settings";
+import { FilePreview } from "@/components/ui/file-preview";
 
 export async function generateMetadata(
   props: PageProps<"/invoices/[id]">,
@@ -81,15 +82,14 @@ export default async function InvoiceDetailPage(
         ]}
         actions={
           <>
-            <Button
-              href={`/api/pdf/invoice/${invoice.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              variant="secondary"
+            <FilePreview
+              url={`/api/pdf/invoice/${invoice.id}`}
+              name={invoice.number}
+              button={{ variant: "secondary" }}
             >
-              <ExternalLink aria-hidden="true" />
+              <FileText aria-hidden="true" />
               PDF
-            </Button>
+            </FilePreview>
 
             {isAdmin && (
               <>

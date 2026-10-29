@@ -7,11 +7,12 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "NTS",
     description:
       "Nutan Tech Solutions — customers, daily work, payments and HR.",
-    start_url: "/dashboard",
+    // The branded launch screen; it forwards to /dashboard.
+    start_url: "/launch.html",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
-    theme_color: "#f4f6f9",
+    theme_color: "#ffffff",
     background_color: "#ffffff",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

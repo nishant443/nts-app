@@ -16,6 +16,7 @@ import { formatCurrency, toMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { enumParam, type SearchParams } from "@/lib/query";
 import { humanizeEnum } from "@/lib/utils";
+import { FilePreview } from "@/components/ui/file-preview";
 
 export const metadata: Metadata = {
   title: "Approvals",
@@ -293,14 +294,13 @@ async function ExpenseQueue() {
                   </a>
                 )}
                 {expense.receiptUrl && (
-                  <a
-                    href={expense.receiptUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <FilePreview
+                    url={expense.receiptUrl}
+                    name={`Receipt — ${expense.user.name}`}
                     className="text-accent hover:underline"
                   >
                     View receipt
-                  </a>
+                  </FilePreview>
                 )}
               </div>
             </div>

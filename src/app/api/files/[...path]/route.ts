@@ -17,6 +17,20 @@ import {
 
 export const runtime = "nodejs";
 
+// Vercel caps a function response at 4.5 MB, so larger files fall back to a
+// short-lived signed redirect. Everything else is relayed from this origin so
+// an installed app never leaves its own window to show a file.
+const RELAY_LIMIT_BYTES = 4 * 1024 * 1024;
+
+const FILE_HEADERS = {
+  "Cache-Control": "private, no-store",
+  "Content-Disposition": "inline",
+  "X-Content-Type-Options": "nosniff",
+  // Lets the in-app viewer show PDFs in a frame; nothing else may embed them.
+  "X-Frame-Options": "SAMEORIGIN",
+  "Content-Security-Policy": "frame-ancestors 'self'",
+};
+
 const CONTENT_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -40,23 +54,42 @@ export async function GET(
       throw new NotFoundError("File not found.");
     }
 
+    const contentType = CONTENT_TYPES[path.extname(key).toLowerCase()];
+    if (!contentType) throw new NotFoundError("File not found.");
+
     if (env.STORAGE_DRIVER === "cloudinary") {
-      return new Response(null, {
-        status: 302,
+      const signedUrl = signedCloudinaryUrl(key);
+      const upstream = await fetch(signedUrl, { cache: "no-store" });
+
+      if (!upstream.ok || !upstream.body) {
+        console.error("[files] cloudinary fetch failed", upstream.status, key);
+        throw new NotFoundError("File not found.");
+      }
+
+      const length = Number(upstream.headers.get("content-length") ?? 0);
+      if (length > RELAY_LIMIT_BYTES) {
+        await upstream.body.cancel();
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: signedUrl,
+            "Cache-Control": "private, no-store",
+            "Referrer-Policy": "no-referrer",
+          },
+        });
+      }
+
+      return new Response(upstream.body, {
         headers: {
-          Location: signedCloudinaryUrl(key),
-          "Cache-Control": "private, no-store",
-          "Referrer-Policy": "no-referrer",
+          ...FILE_HEADERS,
+          "Content-Type": contentType,
+          ...(length ? { "Content-Length": String(length) } : {}),
         },
       });
     }
 
     const filePath = resolveLocalFile(segments);
     if (!filePath) throw new NotFoundError("File not found.");
-
-    const extension = path.extname(filePath).toLowerCase();
-    const contentType = CONTENT_TYPES[extension];
-    if (!contentType) throw new NotFoundError("File not found.");
 
     let size: number;
     try {
@@ -73,11 +106,9 @@ export async function GET(
 
     return new Response(stream as unknown as BodyInit, {
       headers: {
+        ...FILE_HEADERS,
         "Content-Type": contentType,
         "Content-Length": String(size),
-        "Cache-Control": "private, no-store",
-        "Content-Disposition": "inline",
-        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error) {

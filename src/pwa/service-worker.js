@@ -6,7 +6,8 @@
  *
  * CACHING POLICY — read before changing:
  * Only public static files are cached: hashed /_next/static bundles, the
- * icons, the NTS logo, the bundled fonts and the offline page. We never cache
+ * icons, the NTS logo, the bundled fonts, the offline page and the static
+ * launch screen the installed app opens on. We never cache
  * or intercept:
  *   - /api/* (including /api/files and /api/auth), because those responses
  *     carry private HR, payroll, payment and customer data and must never be
@@ -22,9 +23,13 @@ const BUILD_ID = "__BUILD_ID__";
 const CACHE_PREFIX = "nts-static-";
 const CACHE_NAME = `${CACHE_PREFIX}${BUILD_ID}`;
 const OFFLINE_URL = "/offline.html";
+const LAUNCH_URL = "/launch.html";
 
 const PRECACHE_URLS = [
   OFFLINE_URL,
+  LAUNCH_URL,
+  "/brand/nts-logo-light.png",
+  "/brand/nts-logo-dark.png",
   "/brand/nts-logo.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
@@ -69,7 +74,8 @@ function isStaticAsset(url) {
     url.pathname.startsWith("/icons/") ||
     url.pathname.startsWith("/fonts/") ||
     /^\/brand\/nts-logo(-light|-dark)?\.png$/.test(url.pathname) ||
-    url.pathname === OFFLINE_URL
+    url.pathname === OFFLINE_URL ||
+    url.pathname === LAUNCH_URL
   );
 }
 
@@ -118,6 +124,13 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return;
+
+  // The launch screen is static and public, so it opens straight from cache
+  // and refreshes in the background.
+  if (request.mode === "navigate" && url.pathname === LAUNCH_URL) {
+    event.respondWith(staleWhileRevalidate(request));
+    return;
+  }
 
   // Sign-in pages still get the offline fallback; nothing of theirs is stored.
   if (request.mode === "navigate") {

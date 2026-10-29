@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ExternalLink, FileCheck2, Pencil } from "lucide-react";
+import { FileCheck2, FileText, Pencil } from "lucide-react";
 
 import {
   convertQuotationToInvoice,
@@ -19,6 +19,7 @@ import { isMailConfigured } from "@/lib/mail";
 import { toMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { getCompanySettings } from "@/lib/settings";
+import { FilePreview } from "@/components/ui/file-preview";
 
 export async function generateMetadata(
   props: PageProps<"/quotations/[id]">,
@@ -66,15 +67,14 @@ export default async function QuotationDetailPage(
         ]}
         actions={
           <>
-            <Button
-              href={`/api/pdf/quotation/${quotation.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              variant="secondary"
+            <FilePreview
+              url={`/api/pdf/quotation/${quotation.id}`}
+              name={quotation.number}
+              button={{ variant: "secondary" }}
             >
-              <ExternalLink aria-hidden="true" />
+              <FileText aria-hidden="true" />
               PDF
-            </Button>
+            </FilePreview>
 
             {isAdmin && (
               <EmailDocumentButton

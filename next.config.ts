@@ -79,6 +79,14 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/launch.html",
+        headers: [
+          { key: "Cache-Control", value: "no-cache" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+        ],
+      },
+      {
         source: "/icons/:path*",
         headers: [
           { key: "Cache-Control", value: "public, max-age=604800" },

@@ -5,6 +5,7 @@ import { FileText, Loader2, Paperclip, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { FilePreview } from "@/components/ui/file-preview";
 
 export function ReceiptUpload({
   value,
@@ -59,14 +60,13 @@ export function ReceiptUpload({
       {value ? (
         <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-muted px-3 py-2.5">
           <FileText aria-hidden="true" className="size-4 shrink-0 text-accent" />
-          <a
-            href={value}
-            target="_blank"
-            rel="noopener noreferrer"
+          <FilePreview
+            url={value}
+            name="Receipt"
             className="min-w-0 flex-1 truncate text-[13px] font-medium text-accent hover:underline"
           >
             View attached receipt
-          </a>
+          </FilePreview>
           <button
             type="button"
             onClick={() => onChange("")}
